@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inscripción de Cursos para Docentes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 1. Cargar Babel Standalone para transpilar TSX/JSX en el navegador -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!--
+    CORRECCIÓN: Se actualizó el importmap.
+    - Se cambió a un CDN estándar y confiable (esm.sh) para cargar los módulos.
+    - Se fijaron las versiones a unas estables (React 18, Firebase 10) para evitar problemas.
+    - Esto soluciona el problema de que el navegador no podía encontrar las librerías.
+  -->
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "firebase/app": "https://esm.sh/firebase@10.12.2/app",
+    "firebase/auth": "https://esm.sh/firebase@10.12.2/auth",
+    "firebase/firestore": "https://esm.sh/firebase@10.12.2/firestore",
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "firebase/": "https://aistudiocdn.com/firebase@^12.3.0/"
+  }
+}
+</script>
+</head>
+<body class="bg-gray-100">
+  <div id="root"></div>
+
+  <!-- Inyección de la configuración de Firebase -->
+  <script>
+    // Configuración de Firebase proporcionada por el usuario
+    const firebaseConfig = {
+      apiKey: "AIzaSyBYC-9dyv1Ulp9Oe13ePDJoahWBZNJ6-Wc",
+      authDomain: "actualizacion-docente-itd.firebaseapp.com",
+      projectId: "actualizacion-docente-itd",
+      storageBucket: "actualizacion-docente-itd.appspot.com",
+      messagingSenderId: "979604726632",
+      appId: "1:979604726632:web:7e5cdd2d8f4b8cb9a32cdd",
+      measurementId: "G-V2V4CT2C69"
+    };
+
+    // Se crea la variable global que la aplicación espera leer
+    window.__firebase_config = JSON.stringify(firebaseConfig);
+  </script>
+
+  <!-- 2. Cambiar el tipo de script a "text/babel" y añadir presets -->
+  <!-- Esto le dice a Babel que procese este archivo antes de que el navegador lo ejecute -->
+  <script type="text/babel" data-type="module" data-presets="typescript,react" src="./index.tsx"></script>
+</body>
+</html>
