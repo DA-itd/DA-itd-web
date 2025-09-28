@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 // Hook para manejar localStorage de forma reactiva
 export function useLocalStorage<T>(key: string, defaultValue: T) {

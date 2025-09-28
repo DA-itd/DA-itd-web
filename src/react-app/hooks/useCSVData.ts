@@ -14,15 +14,14 @@ export function useCSVData() {
       try {
         setLoading(true);
         
-        // Simular un pequeño delay para mostrar el loading
-        setTimeout(() => {
-          setDocentes(docentesData);
-          setDepartamentos(departamentosData);
-          setCursos(cursosData);
-          setLoading(false);
-        }, 500);
+        // Cargar datos inmediatamente
+        setDocentes(docentesData);
+        setDepartamentos(departamentosData);
+        setCursos(cursosData);
+        setLoading(false);
         
       } catch (err) {
+        console.error('Error loading data:', err);
         setError(err instanceof Error ? err.message : 'Error loading data');
         setLoading(false);
       }

@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Loader2, Download, Users, Trash2 } from 'lucide-react';
-import { useRegistrations, type StoredRegistration } from '@/react-app/hooks/useLocalStorage';
+import { useRegistrations } from '@/react-app/hooks/useLocalStorage';
 import Header from '@/react-app/components/Header';
 import Footer from '@/react-app/components/Footer';
 
 export default function Admin() {
   const { registrations, clearRegistrations } = useRegistrations();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loading] = useState(false);
+  const [error] = useState<string | null>(null);
 
   const handleClearData = () => {
     if (confirm('¿Estás seguro de que quieres borrar todos los registros? Esta acción no se puede deshacer.')) {
@@ -40,10 +40,7 @@ export default function Admin() {
     document.body.removeChild(link);
   };
 
-  // Use registrations directly since they're already grouped
-  const groupedArray = [...registrations].sort((a, b) => 
-    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  );
+  
 
   if (loading) {
     return (
@@ -62,10 +59,10 @@ export default function Admin() {
         <div className="flex flex-col items-center space-y-4 text-center">
           <div className="text-red-600 text-lg">{error}</div>
           <button 
-            onClick={fetchRegistrations}
+            onClick={() => window.location.reload()}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
-            Reintentar
+            Recargar página
           </button>
         </div>
       </div>

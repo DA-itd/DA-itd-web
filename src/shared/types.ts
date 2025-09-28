@@ -1,40 +1,62 @@
-import z from "zod";
+// Tipos para la aplicación de inscripciones ITD
+export interface DocenteType {
+  NombreCompleto: string;
+  Curp?: string;
+  Email?: string;
+}
 
-export const DocenteSchema = z.object({
-  NombreCompleto: z.string(),
-  Curp: z.string().optional(),
-  Email: z.string().email().optional(),
-});
+export interface DepartamentoType {
+  NombreDepartamento: string;
+}
 
-export const DepartamentoSchema = z.object({
-  NombreDepartamento: z.string(),
-});
+export interface CursoType {
+  Id_Curso: string;
+  Nombre_curso: string;
+  FechaVisible: string;
+  Periodo: string;
+  Horas: string;
+  Lugar: string;
+  Horario: string;
+  Tipo: string;
+}
 
-export const CursoSchema = z.object({
-  Id_Curso: z.string(),
-  Nombre_curso: z.string(),
-  FechaVisible: z.string(),
-  Periodo: z.string(),
-  Horas: z.string(),
-  Lugar: z.string(),
-  Horario: z.string(),
-  Tipo: z.string(),
-});
+export interface InscripcionType {
+  id: string;
+  nombre: string;
+  curp: string;
+  email: string;
+  genero: 'Mujer' | 'Hombre' | 'Otro';
+  departamento: string;
+  cursos: string[];
+}
 
-export const InscripcionSchema = z.object({
-  id: z.string(),
-  nombre: z.string().min(1, "Nombre es requerido"),
-  curp: z.string().length(18, "CURP debe tener 18 caracteres"),
-  email: z.string().email("Email inválido").refine(
-    (email) => email.endsWith("@itdurango.edu.mx") || email.endsWith("@gmail.com"),
-    "Email debe ser del dominio @itdurango.edu.mx o @gmail.com"
-  ),
-  genero: z.enum(["Mujer", "Hombre", "Otro"]),
-  departamento: z.string().min(1, "Departamento es requerido"),
-  cursos: z.array(z.string()).max(3, "Máximo 3 cursos permitidos").min(1, "Debe seleccionar al menos 1 curso"),
-});
+// Validaciones básicas
+export const validateCURP = (curp: string): boolean => {
+  return curp.length === 18;
+};
 
-export type DocenteType = z.infer<typeof DocenteSchema>;
-export type DepartamentoType = z.infer<typeof DepartamentoSchema>;
-export type CursoType = z.infer<typeof CursoSchema>;
-export type InscripcionType = z.infer<typeof InscripcionSchema>;
+export const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email) && 
+         (email.endsWith('@itdurango.edu.mx') || email.endsWith('@gmail.com'));
+};
+
+export const validateForm = (data: Partial<InscripcionType>): Record<string, string> => {
+  const errors: Record<string, string> = {};
+  
+  if (!data.nombre?.trim()) errors.nombre = 'Nombre es requerido';
+  if (!data.curp?.trim()) errors.curp = 'CURP es requerido';
+  else if (!validateCURP(data.curp)) errors.curp = 'CURP debe tener 18 caracteres';
+  
+  if (!data.email?.trim()) errors.email = 'Email es requerido';
+  else if (!validateEmail(data.email)) {
+    errors.email = 'Email debe ser del dominio @itdurango.edu.mx o @gmail.com';
+  }
+  
+  if (!data.genero) errors.genero = 'Género es requerido';
+  if (!data.departamento) errors.departamento = 'Departamento es requerido';
+  if (!data.cursos || data.cursos.length === 0) errors.cursos = 'Debe seleccionar al menos 1 curso';
+  if (data.cursos && data.cursos.length > 3) errors.cursos = 'Máximo 3 cursos permitidos';
+
+  return errors;
+};
