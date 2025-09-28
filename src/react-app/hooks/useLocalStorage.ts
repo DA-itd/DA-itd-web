@@ -1,6 +1,9 @@
+// Este archivo se mantiene para compatibilidad con el panel de admin
+// que aún puede mostrar registros guardados localmente
+
 import { useState } from 'react';
 
-// Hook para manejar localStorage de forma reactiva
+// Hook simple para localStorage (solo para compatibilidad del admin)
 export function useLocalStorage<T>(key: string, defaultValue: T) {
   const [value, setValue] = useState<T>(() => {
     try {
@@ -24,7 +27,7 @@ export function useLocalStorage<T>(key: string, defaultValue: T) {
   return [value, setStoredValue] as const;
 }
 
-// Tipos para el almacenamiento local
+// Tipos para registros históricos en localStorage
 export interface StoredRegistration {
   id: string;
   timestamp: string;
@@ -46,28 +49,17 @@ export interface StoredRegistration {
   created_at: string;
 }
 
-// Hook específico para registraciones
-export function useRegistrations() {
-  const [registrations, setRegistrations] = useLocalStorage<StoredRegistration[]>('inscripciones', []);
-
-  const addRegistration = (registration: Omit<StoredRegistration, 'id' | 'created_at'>) => {
-    const newRegistration: StoredRegistration = {
-      ...registration,
-      id: Date.now().toString(),
-      created_at: new Date().toISOString()
-    };
-    
-    setRegistrations(prev => [newRegistration, ...prev]);
-    return newRegistration;
-  };
+// Hook para registros históricos (solo lectura)
+export function useLocalRegistrations() {
+  const [registrations] = useLocalStorage<StoredRegistration[]>('inscripciones', []);
 
   const clearRegistrations = () => {
-    setRegistrations([]);
+    localStorage.removeItem('inscripciones');
+    window.location.reload();
   };
 
   return {
     registrations,
-    addRegistration,
     clearRegistrations
   };
 }

@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Loader2, Download, Users, Trash2 } from 'lucide-react';
-import { useRegistrations } from '@/react-app/hooks/useLocalStorage';
+import { useLocalRegistrations } from '@/react-app/hooks/useLocalStorage';
 import Header from '@/react-app/components/Header';
 import Footer from '@/react-app/components/Footer';
 
 export default function Admin() {
-  const { registrations, clearRegistrations } = useRegistrations();
+  const { registrations, clearRegistrations } = useLocalRegistrations();
   const [loading] = useState(false);
   const [error] = useState<string | null>(null);
 
@@ -80,7 +80,10 @@ export default function Admin() {
               <Users className="w-8 h-8 text-blue-600" />
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Panel de Administración</h1>
-                <p className="text-gray-600">Registros de inscripciones a cursos</p>
+                <p className="text-gray-600">Registros históricos locales</p>
+                <p className="text-sm text-amber-600">
+                  ⚠️ Los nuevos registros se envían a Google Sheets
+                </p>
               </div>
             </div>
             <div className="flex space-x-3">
@@ -103,11 +106,22 @@ export default function Admin() {
             </div>
           </div>
 
+          <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-center space-x-2 mb-2">
+              <span className="text-amber-600">ℹ️</span>
+              <h3 className="font-semibold text-amber-800">Importante</h3>
+            </div>
+            <p className="text-sm text-amber-700 mb-3">
+              Estos son registros históricos guardados localmente. Los nuevos registros se envían automáticamente a Google Sheets.
+              Para ver todas las inscripciones actuales, revisa tu Google Sheet configurado.
+            </p>
+          </div>
+
           <div className="mb-4 p-4 bg-blue-50 rounded-lg">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
               <div>
                 <div className="text-2xl font-bold text-blue-600">{registrations.length}</div>
-                <div className="text-sm text-gray-600">Personas Inscritas</div>
+                <div className="text-sm text-gray-600">Registros Locales</div>
               </div>
               <div>
                 <div className="text-2xl font-bold text-green-600">
@@ -144,7 +158,10 @@ export default function Admin() {
                 {registrations.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
-                      No hay registros disponibles
+                      <div className="space-y-2">
+                        <p>No hay registros locales disponibles</p>
+                        <p className="text-sm">Las nuevas inscripciones se guardan en Google Sheets</p>
+                      </div>
                     </td>
                   </tr>
                 ) : (

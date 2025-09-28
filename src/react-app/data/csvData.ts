@@ -1,3 +1,6 @@
+// URL de Google Apps Script para enviar inscripciones
+export const GOOGLE_SHEETS_URL = 'https://script.google.com/macros/s/TU_SCRIPT_ID_AQUI/exec';
+
 // Datos hard-coded para evitar dependencia de base de datos
 export const docentesData = [
   { NombreCompleto: "MARIA ELENA GONZALEZ LOPEZ", Curp: "GOLM850615MDFLPR03", Email: "maria.gonzalez@itdurango.edu.mx" },

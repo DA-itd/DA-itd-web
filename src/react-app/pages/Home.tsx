@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useCSVData } from '@/react-app/hooks/useCSVData';
-import { useRegistrations } from '@/react-app/hooks/useLocalStorage';
+import { useGoogleSheets } from '@/react-app/hooks/useGoogleSheets';
 import Header from '@/react-app/components/Header';
 import Footer from '@/react-app/components/Footer';
 import AutocompleteInput from '@/react-app/components/AutocompleteInput';
@@ -10,7 +10,7 @@ import type { DocenteType, InscripcionType } from '@/shared/types';
 
 export default function Home() {
   const { docentes, departamentos, cursos, loading, error } = useCSVData();
-  const { addRegistration } = useRegistrations();
+  const { submitRegistration } = useGoogleSheets();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<Partial<InscripcionType>>({
     nombre: '',
@@ -203,7 +203,6 @@ export default function Home() {
       }).filter(Boolean) as any[];
 
       const registrationData = {
-        timestamp: new Date().toISOString(),
         nombre_completo: formData.nombre || '',
         curp: formData.curp || '',
         email: formData.email || '',
@@ -212,11 +211,12 @@ export default function Home() {
         cursos: selectedCourses
       };
 
-      addRegistration(registrationData);
+      const result = await submitRegistration(registrationData);
+      setFormData(prev => ({ ...prev, id: result.id }));
       setCurrentStep(4);
     } catch (error) {
       console.error('Error submitting registration:', error);
-      setCurrentStep(4); // For now, proceed anyway
+      alert('Error al enviar la inscripción. Por favor intente de nuevo.');
     }
   };
 
