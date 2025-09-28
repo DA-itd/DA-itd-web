@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 import type { DocenteType, DepartamentoType, CursoType } from '@/shared/types';
-import { docentesData, departamentosData, cursosData } from '@/react-app/data/csvData';
+import { 
+  loadDataFromGitHub, 
+  docentesDataFallback, 
+  departamentosDataFallback, 
+  cursosDataFallback 
+} from '@/react-app/data/csvData';
 
 export function useCSVData() {
   const [docentes, setDocentes] = useState<DocenteType[]>([]);
@@ -8,27 +13,54 @@ export function useCSVData() {
   const [cursos, setCursos] = useState<CursoType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [usingFallback, setUsingFallback] = useState(false);
 
   useEffect(() => {
-    const loadLocalData = () => {
+    const loadData = async () => {
       try {
         setLoading(true);
+        setError(null);
         
-        // Cargar datos inmediatamente
-        setDocentes(docentesData);
-        setDepartamentos(departamentosData);
-        setCursos(cursosData);
-        setLoading(false);
+        console.log('Cargando datos desde GitHub...');
+        
+        // Intentar cargar datos desde GitHub
+        const data = await loadDataFromGitHub();
+        
+        console.log('Datos cargados desde GitHub:', {
+          docentes: data.docentes.length,
+          departamentos: data.departamentos.length,
+          cursos: data.cursos.length
+        });
+        
+        setDocentes(data.docentes);
+        setDepartamentos(data.departamentos);
+        setCursos(data.cursos);
+        setUsingFallback(false);
         
       } catch (err) {
-        console.error('Error loading data:', err);
-        setError(err instanceof Error ? err.message : 'Error loading data');
+        console.warn('Error al cargar desde GitHub, usando datos de respaldo:', err);
+        
+        // Si falla GitHub, usar datos de respaldo
+        setDocentes(docentesDataFallback);
+        setDepartamentos(departamentosDataFallback);
+        setCursos(cursosDataFallback);
+        setUsingFallback(true);
+        
+        setError('No se pudieron cargar los datos más recientes desde GitHub. Usando datos de respaldo.');
+      } finally {
         setLoading(false);
       }
     };
 
-    loadLocalData();
+    loadData();
   }, []);
 
-  return { docentes, departamentos, cursos, loading, error };
+  return { 
+    docentes, 
+    departamentos, 
+    cursos, 
+    loading, 
+    error, 
+    usingFallback 
+  };
 }

@@ -9,7 +9,7 @@ import CourseCard from '@/react-app/components/CourseCard';
 import type { DocenteType, InscripcionType } from '@/shared/types';
 
 export default function Home() {
-  const { docentes, departamentos, cursos, loading, error } = useCSVData();
+  const { docentes, departamentos, cursos, loading, error, usingFallback } = useCSVData();
   const { submitRegistration } = useGoogleSheets();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<Partial<InscripcionType>>({
@@ -248,6 +248,14 @@ export default function Home() {
       <Header />
       
       <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-8">
+        {/* Indicador de fuente de datos */}
+        {usingFallback && (
+          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-amber-700 text-sm">
+              ⚠️ Usando datos de respaldo. Los datos más recientes no pudieron cargarse desde GitHub.
+            </p>
+          </div>
+        )}
         {/* Progress Indicator */}
         <div className="mb-8">
           <div className="flex items-center justify-center space-x-4">
