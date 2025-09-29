@@ -1,71 +1,5 @@
-// URL de Google Apps Script para enviar inscripciones
-export const GOOGLE_SHEETS_URL = 'https://script.google.com/macros/s/TU_SCRIPT_ID_AQUI/exec';
-
-// URLs de las bases de datos en GitHub
-export const CSV_URLS = {
-  docentes: 'https://raw.githubusercontent.com/DA-itd/DA-itd-web/refs/heads/main/docentes.csv',
-  departamentos: 'https://raw.githubusercontent.com/DA-itd/DA-itd-web/refs/heads/main/departamentos.csv',
-  cursos: 'https://raw.githubusercontent.com/DA-itd/DA-itd-web/refs/heads/main/cursos.csv'
-};
-
-// Función para parsear CSV
-export function parseCSV(csvText: string): any[] {
-  const lines = csvText.trim().split('\n');
-  if (lines.length < 2) return [];
-  
-  const headers = lines[0].split(',').map(header => header.trim().replace(/"/g, ''));
-  const data = [];
-  
-  for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(',').map(value => value.trim().replace(/"/g, ''));
-    if (values.length === headers.length) {
-      const row: any = {};
-      headers.forEach((header, index) => {
-        row[header] = values[index];
-      });
-      data.push(row);
-    }
-  }
-  
-  return data;
-}
-
-// Función para cargar datos desde GitHub
-export async function loadDataFromGitHub() {
-  try {
-    const [docentesResponse, departamentosResponse, cursosResponse] = await Promise.all([
-      fetch(CSV_URLS.docentes),
-      fetch(CSV_URLS.departamentos),
-      fetch(CSV_URLS.cursos)
-    ]);
-
-    if (!docentesResponse.ok || !departamentosResponse.ok || !cursosResponse.ok) {
-      throw new Error('Error al cargar datos desde GitHub');
-    }
-
-    const [docentesCSV, departamentosCSV, cursosCSV] = await Promise.all([
-      docentesResponse.text(),
-      departamentosResponse.text(),
-      cursosResponse.text()
-    ]);
-
-    const docentes = parseCSV(docentesCSV);
-    const departamentos = parseCSV(departamentosCSV);
-    const cursos = parseCSV(cursosCSV);
-
-    return {
-      docentes,
-      departamentos,
-      cursos
-    };
-  } catch (error) {
-    console.error('Error loading data from GitHub:', error);
-    throw error;
-  }
-}
-
-// Datos de respaldo (fallback) en caso de error al cargar desde GitHub
-export const docentesDataFallback = [
+// Datos hard-coded para evitar dependencia de base de datos
+export const docentesData = [
   { NombreCompleto: "MARIA ELENA GONZALEZ LOPEZ", Curp: "GOLM850615MDFLPR03", Email: "maria.gonzalez@itdurango.edu.mx" },
   { NombreCompleto: "JOSE CARLOS MARTINEZ PEREZ", Curp: "MAPJ800420HDFRRS08", Email: "jose.martinez@itdurango.edu.mx" },
   { NombreCompleto: "ANA PATRICIA RODRIGUEZ SILVA", Curp: "ROSA751130MDFDRN07", Email: "ana.rodriguez@itdurango.edu.mx" },
@@ -78,7 +12,7 @@ export const docentesDataFallback = [
   { NombreCompleto: "MIGUEL ANGEL TORRES RAMIREZ", Curp: "TORM810918HDFRMG06", Email: "miguel.torres@itdurango.edu.mx" },
 ];
 
-export const departamentosDataFallback = [
+export const departamentosData = [
   { NombreDepartamento: "DEPARTAMENTO DE SISTEMAS Y COMPUTACIÓN" },
   { NombreDepartamento: "DEPARTAMENTO DE INGENIERÍA INDUSTRIAL" },
   { NombreDepartamento: "DEPARTAMENTO DE INGENIERÍA ELÉCTRICA Y ELECTRÓNICA" },
@@ -89,7 +23,7 @@ export const departamentosDataFallback = [
   { NombreDepartamento: "DEPARTAMENTO DE GESTIÓN TECNOLÓGICA Y VINCULACIÓN" },
 ];
 
-export const cursosDataFallback = [
+export const cursosData = [
   {
     Id_Curso: "CAD-001",
     Nombre_curso: "Metodologías Ágiles en el Desarrollo de Software",
