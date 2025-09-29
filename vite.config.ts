@@ -5,7 +5,7 @@ import { cloudflare } from "@cloudflare/vite-plugin";
 import { mochaPlugins } from "@getmocha/vite-plugins";
 
 export default defineConfig({
-  base: "/DA-itd-web/", // <--- ¡Añade esta línea!
+  base: "/da-itd.github.io/DA-itd-web//", // <--- ¡Añade esta línea!
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   plugins: [...mochaPlugins(process.env as any), react(), cloudflare()],
   server: {
