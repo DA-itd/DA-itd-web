@@ -1,32 +1,44 @@
-
-export interface Departamento {
-    id: string;
-    nombre: string;
+export interface User {
+  name: string;
+  email: string;
+  imageUrl?: string;
 }
 
-export interface Docente {
-    id: string; // Corresponds to Firebase Auth UID
-    nombreCompleto: string;
-    curp: string;
-    email: string;
-    genero: 'Masculino' | 'Femenino' | 'Otro';
-    departamentoId: string;
+export interface Teacher {
+  NombreCompleto: string;
+  Curp: string;
+  Email: string;
 }
 
-export interface Curso {
-    id: string;
-    nombre: string;
-    fecha: string; // Using string for simplicity, can be parsed
-    horario: string;
-    tipo: 'Presencial' | 'En línea' | 'Híbrido';
-    idCurso: number; // The 'XX' part for the registration ID
+export interface Course {
+  Id_Curso: string;
+  Nombre_curso: string;
+  FechaVisible: string;
+  Periodo: string;
+  Horas: number;
+  Lugar: string;
+  Horario: string;
+  Tipo: 'Docente' | 'Profesional';
+  registrations?: number;
 }
 
-export interface Inscripcion {
-    id: string; // Firestore document ID
-    docenteId: string;
-    cursoId: string;
-    idRegistro: string; // The unique 'TNM-054-XX-2026-WW' ID
-    fechaInscripcion: any; // Firestore Timestamp
-    curso?: Curso; // Optional: populated for 'My Courses' view
+export interface Department {
+  NombreDepartamento: string;
+}
+
+export interface RegistrationData {
+  user: User;
+  teacherInfo: {
+    NombreCompleto: string;
+    Curp: string;
+    Email: string;
+    Genero: string;
+    Departamento: string;
+  };
+  selectedCourses: Course[];
+  instructorDetails?: {
+    teachingCourseId: string;
+    cv: File | null;
+    ficha: File | null;
+  };
 }

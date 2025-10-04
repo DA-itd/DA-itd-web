@@ -1,81 +1,59 @@
+import React, { useState, useCallback } from 'react';
+import { User } from './types';
+import Header from './components/Header';
+import LoginScreen from './components/LoginScreen';
+import RegistrationWorkflow from './components/RegistrationWorkflow';
+import RoleSelectionScreen from './components/RoleSelectionScreen';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth, getDocente } from './services/firebaseService';
-import type { Docente } from './types';
-
-import AuthView from './components/Auth';
-import CoursesView from './components/Courses';
-import MyCoursesView from './components/MyCourses';
-import Navbar from './components/Navbar';
-import Spinner from './components/common/Spinner';
-
-type View = 'courses' | 'my-courses';
+type Role = 'participant' | 'instructor';
 
 const App: React.FC = () => {
-    const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const [docenteProfile, setDocenteProfile] = useState<Docente | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [view, setView] = useState<View>('courses');
+  const [user, setUser] = useState<User | null>(null);
+  const [role, setRole] = useState<Role | null>(null);
 
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                setCurrentUser(user);
-                try {
-                    const profile = await getDocente(user.uid);
-                    setDocenteProfile(profile);
-                } catch (error) {
-                    console.error("Error fetching docente profile:", error);
-                    setDocenteProfile(null);
-                }
-            } else {
-                setCurrentUser(null);
-                setDocenteProfile(null);
-            }
-            setLoading(false);
-        });
+  const handleLogin = useCallback(() => {
+    // This is a mock login. In a real app, this would involve an OAuth flow.
+    setUser({
+      name: 'Usuario de Prueba',
+      email: 'test.user@itdurango.edu.mx',
+      imageUrl: `https://picsum.photos/seed/testuser/100/100`,
+    });
+  }, []);
 
-        return () => unsubscribe();
-    }, []);
+  const handleLogout = useCallback(() => {
+    setUser(null);
+    setRole(null);
+  }, []);
 
-    const handleLogout = useCallback(async () => {
-        try {
-            await auth.signOut();
-            setView('courses');
-        } catch (error) {
-            console.error("Error signing out:", error);
-        }
-    }, []);
+  const handleRoleSelection = (selectedRole: Role) => {
+    setRole(selectedRole);
+  }
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <Spinner />
-            </div>
-        );
+  const handleReturnToRoleSelection = () => {
+    setRole(null);
+  }
+
+  const renderContent = () => {
+    if (!user) {
+      return <LoginScreen onLogin={handleLogin} />;
     }
+    if (!role) {
+      return <RoleSelectionScreen onSelectRole={handleRoleSelection} />;
+    }
+    return <RegistrationWorkflow user={user} role={role} onLogout={handleLogout} onReturnToRoleSelection={handleReturnToRoleSelection} />;
+  }
 
-    return (
-        <div className="min-h-screen bg-gray-50">
-            {currentUser && docenteProfile ? (
-                <>
-                    <Navbar 
-                        docenteName={docenteProfile.nombreCompleto}
-                        onLogout={handleLogout}
-                        currentView={view}
-                        setView={setView}
-                    />
-                    <main className="container mx-auto p-4 md:p-8">
-                        {view === 'courses' && <CoursesView docenteProfile={docenteProfile} />}
-                        {view === 'my-courses' && <MyCoursesView docenteProfile={docenteProfile} />}
-                    </main>
-                </>
-            ) : (
-                <AuthView />
-            )}
-        </div>
-    );
+  return (
+    <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
+      <Header user={user} onLogout={handleLogout} />
+      <main className="container mx-auto p-4 md:p-8">
+        {renderContent()}
+      </main>
+      <footer className="text-center py-4 text-gray-500 text-sm">
+        <p>&copy; {new Date().getFullYear()} Instituto Tecnológico de Durango. Todos los derechos reservados.</p>
+      </footer>
+    </div>
+  );
 };
 
 export default App;

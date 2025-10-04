@@ -1,5 +1,5 @@
 {
-  "name": "Sistema de Inscripción de Cursos para Docentes",
-  "description": "Una aplicación web para que los docentes se inscriban en cursos de formación. Gestiona la autenticación, el registro de docentes, la visualización de cursos y las inscripciones, interactuando con una base de datos de Firestore.",
+  "name": "Teacher Course Registration System",
+  "description": "A web application for teachers at Instituto Tecnológico de Durango to register for professional development courses. The system uses Google Sheets as a data source and provides an intuitive interface for course selection and registration management.",
   "requestFramePermissions": []
 }
