@@ -1,5 +1,5 @@
 import React from 'react';
-import { UserPlusIcon, PresentationIcon } from './icons';
+import { UserPlusIcon, PresentationIcon } from './icons.tsx';
 
 interface RoleSelectionScreenProps {
   onSelectRole: (role: 'participant' | 'instructor') => void;

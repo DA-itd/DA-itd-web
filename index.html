@@ -6,7 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sistema de Inscripción a Cursos</title>
     <script src="https://cdn.tailwindcss.com"></script>
-  <script type="importmap">
+    <!-- Babel for JSX Transpilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script type="importmap">
 {
   "imports": {
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
@@ -15,9 +17,12 @@
   }
 }
 </script>
+<link rel="stylesheet" href="/index.css">
 </head>
   <body class="bg-gray-100">
     <div id="root"></div>
-    <script type="module" src="./index.tsx"></script>
-  </body>
+    <!-- Changed type to text/babel to be processed by Babel -->
+    <script type="text/babel" data-type="module" src="./index.tsx"></script>
+  <script type="module" src="/index.tsx"></script>
+</body>
 </html>

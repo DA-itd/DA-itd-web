@@ -1,9 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { User } from './types';
-import Header from './components/Header';
-import LoginScreen from './components/LoginScreen';
-import RegistrationWorkflow from './components/RegistrationWorkflow';
-import RoleSelectionScreen from './components/RoleSelectionScreen';
+import { User } from './types.ts';
+import Header from './components/Header.tsx';
+import LoginScreen from './components/LoginScreen.tsx';
+import RegistrationWorkflow from './components/RegistrationWorkflow.tsx';
+import RoleSelectionScreen from './components/RoleSelectionScreen.tsx';
 
 type Role = 'participant' | 'instructor';
 

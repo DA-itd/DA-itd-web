@@ -1,4 +1,4 @@
-import { Teacher, Course, Department, RegistrationData } from '../types';
+import { Teacher, Course, Department, RegistrationData } from '../types.ts';
 
 // ¡IMPORTANTE! Reemplaza esta URL con la URL que obtengas al desplegar tu Google Apps Script.
 const SCRIPT_URL = "URL_DE_TU_SCRIPT_DESPLEGADO";
