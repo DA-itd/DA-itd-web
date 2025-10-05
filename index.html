@@ -17,23 +17,21 @@
 
     <!-- Babel v7 para transpilar TSX -> JS en el navegador (versión moderna y correcta) -->
     <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/"
-  }
-}
-</script>
+
+    <!--
+      NOTA IMPORTANTE: La sección <script type="importmap"> ha sido
+      ELIMINADA POR COMPLETO para evitar el conflicto que causa todos los errores.
+    -->
+  <link rel="stylesheet" href="/index.css">
 </head>
   <body class="bg-gray-100">
     <div id="root"></div>
     <!-- 
       Cargamos nuestra aplicación como un script normal, NO como un módulo.
-      Esto ignora cualquier `importmap` que el "fantasma" pueda añadir.
       La ruta está corregida para que funcione en GitHub Pages.
+      Los presets de Babel son correctos para procesar JSX y TypeScript.
     -->
     <script type="text/babel" data-presets="react,typescript" src="/DA-itd-web/index.tsx"></script>
-  </body>
+  <script type="module" src="/index.tsx"></script>
+</body>
 </html>

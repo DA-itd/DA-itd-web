@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 // Declaramos 'google' para que TypeScript no se queje, ya que se carga desde un script externo.
 declare const google: any;
@@ -23,7 +23,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     // Inicializamos la API de identidad de Google
     google.accounts.id.initialize({
       // ¡IMPORTANTE! Reemplaza este Client ID con el tuyo propio desde la Consola de Google Cloud.
-      // Puedes usar el que me mencionaste: '524996225715-5l95j3lces5hi49c19rfgotdrfo2seq1.apps.googleusercontent.com'
+      // Puedes usar el que me mencionaste: '524996225715-5l95j3lces5hi4c19rfgotdrfo2seq1.apps.googleusercontent.com'
       client_id: "524996225715-5l95j3lces5hi49c19rfgotdrfo2seq1.apps.googleusercontent.com",
       callback: handleCredentialResponse,
     });

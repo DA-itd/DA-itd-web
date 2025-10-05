@@ -1,4 +1,3 @@
-import React from 'react';
 import { UserPlusIcon, PresentationIcon } from './icons.tsx';
 
 interface RoleSelectionScreenProps {

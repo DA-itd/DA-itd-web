@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { User } from './types.ts';
 import Header from './components/Header.tsx';
 import LoginScreen from './components/LoginScreen.tsx';

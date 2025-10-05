@@ -1,3 +1,5 @@
+// FIX: Import React. The use of 'React.FC' requires React to be in scope,
+// preventing 'refers to a UMD global' errors.
 import React from 'react';
 
 export const CheckIcon: React.FC<{className?: string}> = ({className}) => (
