@@ -15,20 +15,24 @@
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 
-    <!-- Babel v7 para transpilar TSX -> JS en el navegador (versión corregida y moderna) -->
+    <!-- Babel v7 para transpilar TSX -> JS en el navegador (versión moderna y correcta) -->
     <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
-
-    <!--
-      NOTA IMPORTANTE: La sección <script type="importmap"> ha sido
-      ELIMINADA POR COMPLETO para evitar el conflicto que causa todos los errores.
-    -->
-  </head>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/"
+  }
+}
+</script>
+</head>
   <body class="bg-gray-100">
     <div id="root"></div>
     <!-- 
       Cargamos nuestra aplicación como un script normal, NO como un módulo.
+      Esto ignora cualquier `importmap` que el "fantasma" pueda añadir.
       La ruta está corregida para que funcione en GitHub Pages.
-      Los presets de Babel son correctos.
     -->
     <script type="text/babel" data-presets="react,typescript" src="/DA-itd-web/index.tsx"></script>
   </body>
