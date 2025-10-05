@@ -10,7 +10,7 @@ import { Teacher, Course, Department, RegistrationData } from '../types.ts';
 // 4. Implementa el script como "Aplicación web" (con acceso para "Cualquier persona").
 // 5. Google te dará una URL. ¡ESA URL es la que debes pegar aquí abajo!
 //
-const SCRIPT_URL = "PEGA_AQUÍ_LA_URL_DE_TU_APLICACIÓN_WEB_DESPLEGADA";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzYJgSKAg0uVC3Z_EQbCGNXwCnPh8x2Y195nrOshyHh0rGHgZABcBZy_2uuJAyVprte/exec";
 
 // Función auxiliar para convertir un archivo a formato Base64
 const fileToBase64 = (file: File): Promise<any> => {
