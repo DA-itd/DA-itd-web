@@ -1,11 +1,29 @@
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/"
-  }
-}
-</script>
-full contents of index.html<link rel="stylesheet" href="/index.css">
-<script type="module" src="/index.tsx"></script>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Ruta relativa para que funcione en cualquier entorno (local y GitHub) -->
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sistema de Inscripción a Cursos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Librería de Google para el inicio de sesión -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
+    <!-- MÉTODO "A PRUEBA DE FANTASMAS": Cargar React y ReactDOM como scripts globales -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <!-- Babel v7 para transpilar TSX -> JS en el navegador (versión moderna y funcional) -->
+    <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+  </head>
+  <body class="bg-gray-100">
+    <div id="root"></div>
+    <!-- 
+      Cargamos nuestra aplicación como un script normal, NO como un módulo.
+      La ruta es relativa para que funcione correctamente en GitHub Pages.
+    -->
+    <script type="text/babel" data-presets="react,typescript" src="./index.tsx"></script>
+  </body>
+</html>
