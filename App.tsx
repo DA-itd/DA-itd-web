@@ -1,5 +1,4 @@
-// FIX: Import React to use it as a module, which is standard practice.
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { User } from './types.ts';
 import Header from './components/Header.tsx';
 import LoginScreen from './components/LoginScreen.tsx';
@@ -19,10 +18,10 @@ const decodeJwt = (token: string) => {
 };
 
 const App: React.FC = () => {
-  const [user, setUser] = React.useState<User | null>(null);
-  const [role, setRole] = React.useState<Role | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [role, setRole] = useState<Role | null>(null);
 
-  const handleLoginSuccess = React.useCallback((credential: string) => {
+  const handleLoginSuccess = useCallback((credential: string) => {
     const payload = decodeJwt(credential);
     if (payload) {
       setUser({
@@ -36,7 +35,7 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const handleLogout = React.useCallback(() => {
+  const handleLogout = useCallback(() => {
     setUser(null);
     setRole(null);
     // In a real app with Google Sign-In, you might also want to revoke the session

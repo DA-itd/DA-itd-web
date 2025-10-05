@@ -1,6 +1,4 @@
-// FIX: Import React to use it as a module, which is standard practice.
-import React from 'react';
-
+import React, { useRef, useEffect } from 'react';
 // Declaramos 'google' para que TypeScript no se queje, ya que se carga desde un script externo.
 declare const google: any;
 
@@ -9,9 +7,9 @@ interface LoginScreenProps {
 }
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
-  const googleButtonRef = React.useRef<HTMLDivElement>(null);
+  const googleButtonRef = useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!google) {
       console.error("Google's script did not load.");
       return;

@@ -1,4 +1,3 @@
-// FIX: Import React and ReactDOM to use them as modules, which is standard practice in modern React applications.
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';

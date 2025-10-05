@@ -1,4 +1,3 @@
-// FIX: Import React to use it as a module, which is standard practice.
 import React from 'react';
 
 export const CheckIcon: React.FC<{className?: string}> = ({className}) => (
