@@ -4,6 +4,7 @@ interface RoleSelectionScreenProps {
   onSelectRole: (role: 'participant' | 'instructor') => void;
 }
 
+// @ts-ignore - React is a global variable from the script in index.html
 const RoleSelectionScreen: React.FC<RoleSelectionScreenProps> = ({ onSelectRole }) => {
   return (
     <div className="text-center">

@@ -1,4 +1,3 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
 import { User, Teacher, Course, Department, RegistrationData } from '../types.ts';
 import { getTeachers, getCourses, getDepartments, submitRegistration } from '../services/api.ts';
 import { CheckIcon, XIcon, UploadIcon, DocumentIcon, LoadingIcon } from './icons.tsx';
@@ -8,44 +7,69 @@ const MAX_REGISTRATIONS_PER_COURSE = 30;
 const MAX_FILE_SIZE_MB = 2;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
-
+// @ts-ignore - React is a global variable from the script in index.html
 const RegistrationWorkflow: React.FC<{ user: User; role: 'participant' | 'instructor'; onLogout: () => void; onReturnToRoleSelection: () => void; }> = ({ user, role, onLogout, onReturnToRoleSelection }) => {
     // Data states
-    const [teachers, setTeachers] = useState<Teacher[]>([]);
-    const [courses, setCourses] = useState<Course[]>([]);
-    const [departments, setDepartments] = useState<Department[]>([]);
+    // @ts-ignore - React is a global variable from the script in index.html
+    const [teachers, setTeachers] = React.useState<Teacher[]>([]);
+    // @ts-ignore - React is a global variable from the script in index.html
+    const [courses, setCourses] = React.useState<Course[]>([]);
+    // @ts-ignore - React is a global variable from the script in index.html
+    const [departments, setDepartments] = React.useState<Department[]>([]);
     
     // Form states
-    const [name, setName] = useState('');
-    const [curp, setCurp] = useState('');
-    const [email, setEmail] = useState('');
-    const [gender, setGender] = useState('');
-    const [department, setDepartment] = useState('');
+    // @ts-ignore - React is a global variable from the script in index.html
+    const [name, setName] = React.useState('');
+    // @ts-ignore - React is a global variable from the script in index.html
+    const [curp, setCurp] = React.useState('');
+    // @ts-ignore - React is a global variable from the script in index.html
+    const [email, setEmail] = React.useState('');
+    // @ts-ignore - React is a global variable from the script in index.html
+    const [gender, setGender] = React.useState('');
+    // @ts-ignore - React is a global variable from the script in index.html
+    const [department, setDepartment] = React.useState('');
     
-    const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<Teacher[]>([]);
-    const [isAutocompleteOpen, setIsAutocompleteOpen] = useState(false);
-    const [isNewTeacher, setIsNewTeacher] = useState(false);
+    // @ts-ignore - React is a global variable from the script in index.html
+    const [autocompleteSuggestions, setAutocompleteSuggestions] = React.useState<Teacher[]>([]);
+    // @ts-ignore - React is a global variable from the script in index.html
+    const [isAutocompleteOpen, setIsAutocompleteOpen] = React.useState(false);
+    // @ts-ignore - React is a global variable from the script in index.html
+    const [isNewTeacher, setIsNewTeacher] = React.useState(false);
 
-    const [selectedCourses, setSelectedCourses] = useState<Course[]>([]);
-    const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
+    // @ts-ignore - React is a global variable from the script in index.html
+    const [selectedCourses, setSelectedCourses] = React.useState<Course[]>([]);
+    // @ts-ignore - React is a global variable from the script in index.html
+    const [selectedPeriod, setSelectedPeriod] = React.useState<string | null>(null);
     
     // UI states
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [submitting, setSubmitting] = useState(false);
-    const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
-    const [submitError, setSubmitError] = useState<string | null>(null);
-    const [registrationComplete, setRegistrationComplete] = useState(false);
+    // @ts-ignore - React is a global variable from the script in index.html
+    const [loading, setLoading] = React.useState(true);
+    // @ts-ignore - React is a global variable from the script in index.html
+    const [error, setError] = React.useState<string | null>(null);
+    // @ts-ignore - React is a global variable from the script in index.html
+    const [submitting, setSubmitting] = React.useState(false);
+    // @ts-ignore - React is a global variable from the script in index.html
+    const [submitSuccess, setSubmitSuccess] = React.useState<string | null>(null);
+    // @ts-ignore - React is a global variable from the script in index.html
+    const [submitError, setSubmitError] = React.useState<string | null>(null);
+    // @ts-ignore - React is a global variable from the script in index.html
+    const [registrationComplete, setRegistrationComplete] = React.useState(false);
 
     // Instructor states
-    const [instructorCourseId, setInstructorCourseId] = useState<string>('');
-    const [cvFile, setCvFile] = useState<File | null>(null);
-    const [fichaFile, setFichaFile] = useState<File | null>(null);
-    const [fileErrors, setFileErrors] = useState<{ cv?: string; ficha?: string }>({});
+    // @ts-ignore - React is a global variable from the script in index.html
+    const [instructorCourseId, setInstructorCourseId] = React.useState<string>('');
+    // @ts-ignore - React is a global variable from the script in index.html
+    const [cvFile, setCvFile] = React.useState<File | null>(null);
+    // @ts-ignore - React is a global variable from the script in index.html
+    const [fichaFile, setFichaFile] = React.useState<File | null>(null);
+    // @ts-ignore - React is a global variable from the script in index.html
+    const [fileErrors, setFileErrors] = React.useState<{ cv?: string; ficha?: string }>({});
     
-    const isInstructorMode = useMemo(() => role === 'instructor', [role]);
+    // @ts-ignore - React is a global variable from the script in index.html
+    const isInstructorMode = React.useMemo(() => role === 'instructor', [role]);
 
-    useEffect(() => {
+    // @ts-ignore - React is a global variable from the script in index.html
+    React.useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
@@ -66,6 +90,7 @@ const RegistrationWorkflow: React.FC<{ user: User; role: 'participant' | 'instru
         fetchData();
     }, []);
 
+    // @ts-ignore - React is a global variable from the script in index.html
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value.toUpperCase();
         setName(value);
@@ -145,11 +170,13 @@ const RegistrationWorkflow: React.FC<{ user: User; role: 'participant' | 'instru
         return (course.registrations || 0) >= MAX_REGISTRATIONS_PER_COURSE;
     }
 
-    const filteredCourses = useMemo(() => {
+    // @ts-ignore - React is a global variable from the script in index.html
+    const filteredCourses = React.useMemo(() => {
         return courses;
     }, [courses]);
     
-    const isFormValid = useMemo(() => {
+    // @ts-ignore - React is a global variable from the script in index.html
+    const isFormValid = React.useMemo(() => {
         const teacherInfoValid = name && curp && email && gender && department;
         if (!teacherInfoValid) return false;
 
@@ -180,6 +207,7 @@ const RegistrationWorkflow: React.FC<{ user: User; role: 'participant' | 'instru
         return `Por favor, complete los siguientes campos: ${messages.join(', ')}.`;
     };
 
+    // @ts-ignore - React is a global variable from the script in index.html
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!isFormValid) {
@@ -241,10 +269,12 @@ const RegistrationWorkflow: React.FC<{ user: User; role: 'participant' | 'instru
         )
     }
 
+    // @ts-ignore - React is a global variable from the script in index.html
     const FileInput: React.FC<{
         label: string; file: File | null; setFile: (file: File | null) => void; accept: string;
         error?: string; setError: (error: string | null) => void;
     }> = ({ label, file, setFile, accept, error, setError }) => {
+        // @ts-ignore - React is a global variable from the script in index.html
         const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
             const selectedFile = e.target.files ? e.target.files[0] : null;
             e.target.value = ''; // Reset input to allow re-uploading the same file if needed after an error

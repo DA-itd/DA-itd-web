@@ -1,4 +1,3 @@
-import { useState, useCallback } from 'react';
 import { User } from './types.ts';
 import Header from './components/Header.tsx';
 import LoginScreen from './components/LoginScreen.tsx';
@@ -17,11 +16,15 @@ const decodeJwt = (token: string) => {
   }
 };
 
+// @ts-ignore - React is a global variable from the script in index.html
 const App: React.FC = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [role, setRole] = useState<Role | null>(null);
+  // @ts-ignore - React is a global variable from the script in index.html
+  const [user, setUser] = React.useState<User | null>(null);
+  // @ts-ignore - React is a global variable from the script in index.html
+  const [role, setRole] = React.useState<Role | null>(null);
 
-  const handleLoginSuccess = useCallback((credential: string) => {
+  // @ts-ignore - React is a global variable from the script in index.html
+  const handleLoginSuccess = React.useCallback((credential: string) => {
     const payload = decodeJwt(credential);
     if (payload) {
       setUser({
@@ -35,7 +38,8 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const handleLogout = useCallback(() => {
+  // @ts-ignore - React is a global variable from the script in index.html
+  const handleLogout = React.useCallback(() => {
     setUser(null);
     setRole(null);
     // In a real app with Google Sign-In, you might also want to revoke the session

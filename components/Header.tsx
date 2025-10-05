@@ -5,6 +5,7 @@ interface HeaderProps {
   onLogout: () => void;
 }
 
+// @ts-ignore - React is a global variable from the script in index.html
 const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
   return (
     <header className="bg-white shadow-md">
