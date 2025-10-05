@@ -1,3 +1,4 @@
+// Fix: Import React and ReactDOM to use them as modules.
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';

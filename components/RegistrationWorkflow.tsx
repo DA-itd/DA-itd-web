@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
+// Fix: Import React to use hooks and JSX.
+import React from 'react';
 import { User, Teacher, Course, Department, RegistrationData } from '../types.ts';
 import { getTeachers, getCourses, getDepartments, submitRegistration } from '../services/api.ts';
 import { CheckIcon, XIcon, UploadIcon, DocumentIcon, LoadingIcon } from './icons.tsx';
@@ -10,41 +11,41 @@ const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 const RegistrationWorkflow: React.FC<{ user: User; role: 'participant' | 'instructor'; onLogout: () => void; onReturnToRoleSelection: () => void; }> = ({ user, role, onLogout, onReturnToRoleSelection }) => {
     // Data states
-    const [teachers, setTeachers] = useState<Teacher[]>([]);
-    const [courses, setCourses] = useState<Course[]>([]);
-    const [departments, setDepartments] = useState<Department[]>([]);
+    const [teachers, setTeachers] = React.useState<Teacher[]>([]);
+    const [courses, setCourses] = React.useState<Course[]>([]);
+    const [departments, setDepartments] = React.useState<Department[]>([]);
     
     // Form states
-    const [name, setName] = useState('');
-    const [curp, setCurp] = useState('');
-    const [email, setEmail] = useState('');
-    const [gender, setGender] = useState('');
-    const [department, setDepartment] = useState('');
+    const [name, setName] = React.useState('');
+    const [curp, setCurp] = React.useState('');
+    const [email, setEmail] = React.useState('');
+    const [gender, setGender] = React.useState('');
+    const [department, setDepartment] = React.useState('');
     
-    const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<Teacher[]>([]);
-    const [isAutocompleteOpen, setIsAutocompleteOpen] = useState(false);
-    const [isNewTeacher, setIsNewTeacher] = useState(false);
+    const [autocompleteSuggestions, setAutocompleteSuggestions] = React.useState<Teacher[]>([]);
+    const [isAutocompleteOpen, setIsAutocompleteOpen] = React.useState(false);
+    const [isNewTeacher, setIsNewTeacher] = React.useState(false);
 
-    const [selectedCourses, setSelectedCourses] = useState<Course[]>([]);
-    const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
+    const [selectedCourses, setSelectedCourses] = React.useState<Course[]>([]);
+    const [selectedPeriod, setSelectedPeriod] = React.useState<string | null>(null);
     
     // UI states
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [submitting, setSubmitting] = useState(false);
-    const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
-    const [submitError, setSubmitError] = useState<string | null>(null);
-    const [registrationComplete, setRegistrationComplete] = useState(false);
+    const [loading, setLoading] = React.useState(true);
+    const [error, setError] = React.useState<string | null>(null);
+    const [submitting, setSubmitting] = React.useState(false);
+    const [submitSuccess, setSubmitSuccess] = React.useState<string | null>(null);
+    const [submitError, setSubmitError] = React.useState<string | null>(null);
+    const [registrationComplete, setRegistrationComplete] = React.useState(false);
 
     // Instructor states
-    const [instructorCourseId, setInstructorCourseId] = useState<string>('');
-    const [cvFile, setCvFile] = useState<File | null>(null);
-    const [fichaFile, setFichaFile] = useState<File | null>(null);
-    const [fileErrors, setFileErrors] = useState<{ cv?: string; ficha?: string }>({});
+    const [instructorCourseId, setInstructorCourseId] = React.useState<string>('');
+    const [cvFile, setCvFile] = React.useState<File | null>(null);
+    const [fichaFile, setFichaFile] = React.useState<File | null>(null);
+    const [fileErrors, setFileErrors] = React.useState<{ cv?: string; ficha?: string }>({});
     
-    const isInstructorMode = useMemo(() => role === 'instructor', [role]);
+    const isInstructorMode = React.useMemo(() => role === 'instructor', [role]);
 
-    useEffect(() => {
+    React.useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
@@ -144,11 +145,11 @@ const RegistrationWorkflow: React.FC<{ user: User; role: 'participant' | 'instru
         return (course.registrations || 0) >= MAX_REGISTRATIONS_PER_COURSE;
     }
 
-    const filteredCourses = useMemo(() => {
+    const filteredCourses = React.useMemo(() => {
         return courses;
     }, [courses]);
     
-    const isFormValid = useMemo(() => {
+    const isFormValid = React.useMemo(() => {
         const teacherInfoValid = name && curp && email && gender && department;
         if (!teacherInfoValid) return false;
 
@@ -361,7 +362,9 @@ const RegistrationWorkflow: React.FC<{ user: User; role: 'participant' | 'instru
                         <label htmlFor="department" className="block text-sm font-medium text-gray-700">Departamento de Adscripción</label>
                         <select id="department" value={department} onChange={e => setDepartment(e.target.value)} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" required>
                             <option value="">Seleccione un departamento...</option>
-                            {departments.map(d => (<option key={d.NombreDepartamento} value={d.NombreDepartamento}>{d.NombreDepartamento}</option>))}
+                            {departments.map(d => (
+                                <option key={d.NombreDepartamento} value={d.NombreDepartamento}>{d.NombreDepartamento}</option>
+                            ))}
                         </select>
                     </div>
                 </div>
@@ -395,7 +398,8 @@ const RegistrationWorkflow: React.FC<{ user: User; role: 'participant' | 'instru
                                                 </div>
                                             </div>
                                             <button type="button" onClick={() => !isDisabled && handleSelectCourse(course)} disabled={isDisabled} className={`ml-4 px-4 py-2 text-sm font-medium rounded-md transition-colors w-24 flex-shrink-0 ${isSelected ? 'bg-green-500 text-white cursor-default' : 'bg-green-500 text-white'} ${!isSelected && 'bg-blue-600 hover:bg-blue-700'} disabled:bg-gray-400 disabled:cursor-not-allowed`}>
-                                                {isSelected ? <><CheckIcon className="w-5 h-5 inline-block mr-1" /><span>Añadido</span></> : (isFull ? 'Lleno' : (isPeriodLocked ? 'Otro Periodo' : 'Añadir'))}
+                                                {isSelected ? 
+                                                <><CheckIcon className="w-5 h-5 inline-block mr-1" /><span>Añadido</span></> : (isFull ? 'Lleno' : (isPeriodLocked ? 'Otro Periodo' : 'Añadir'))}
                                             </button>
                                         </div>
                                     </div>
@@ -436,7 +440,8 @@ const RegistrationWorkflow: React.FC<{ user: User; role: 'participant' | 'instru
             <div className="flex flex-col items-center justify-center pt-4">
                 {submitError && <div className="mb-4 p-4 text-center text-red-800 bg-red-100 rounded-lg w-full max-w-2xl">{submitError}</div>}
                 <button type="submit" disabled={!isFormValid || submitting} className="w-full max-w-md px-8 py-4 bg-green-600 text-white font-bold text-lg rounded-lg shadow-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center">
-                    {submitting ? <><LoadingIcon className="w-6 h-6 mr-3" /> Procesando...</> : submitButtonText}
+                    {submitting ? 
+                    <><LoadingIcon className="w-6 h-6 mr-3" /> Procesando...</> : submitButtonText}
                 </button>
                  {!isFormValid && validationMessage && <p className="text-sm text-red-500 mt-2 text-center font-semibold">{validationMessage}</p>}
             </div>
