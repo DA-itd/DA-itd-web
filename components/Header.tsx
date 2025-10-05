@@ -1,3 +1,5 @@
+// FIX: Import React to use it as a module, which is standard practice.
+import React from 'react';
 import { User } from '../types.ts';
 
 interface HeaderProps {
@@ -5,10 +7,8 @@ interface HeaderProps {
   onLogout: () => void;
 }
 
-// @ts-ignore: React is a global variable from the script tag in index.html
 const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
   return (
-    // @ts-ignore: React is a global variable from the script tag in index.html
     <header className="bg-white shadow-md">
       <div className="container mx-auto px-4 md:px-8 py-4 flex justify-between items-center">
         <div className="flex items-center space-x-4">

@@ -1,3 +1,5 @@
+// FIX: Import React to use it as a module, which is standard practice.
+import React from 'react';
 import { User } from './types.ts';
 import Header from './components/Header.tsx';
 import LoginScreen from './components/LoginScreen.tsx';
@@ -16,14 +18,10 @@ const decodeJwt = (token: string) => {
   }
 };
 
-// @ts-ignore: React is a global variable from the script tag in index.html
 const App: React.FC = () => {
-  // @ts-ignore: React is a global variable from the script tag in index.html
   const [user, setUser] = React.useState<User | null>(null);
-  // @ts-ignore: React is a global variable from the script tag in index.html
   const [role, setRole] = React.useState<Role | null>(null);
 
-  // @ts-ignore: React is a global variable from the script tag in index.html
   const handleLoginSuccess = React.useCallback((credential: string) => {
     const payload = decodeJwt(credential);
     if (payload) {
@@ -38,7 +36,6 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // @ts-ignore: React is a global variable from the script tag in index.html
   const handleLogout = React.useCallback(() => {
     setUser(null);
     setRole(null);
@@ -65,7 +62,6 @@ const App: React.FC = () => {
   }
 
   return (
-    // @ts-ignore: React is a global variable from the script tag in index.html
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
       <Header user={user} onLogout={handleLogout} />
       <main className="container mx-auto p-4 md:p-8">
