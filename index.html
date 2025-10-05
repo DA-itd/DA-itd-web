@@ -7,33 +7,34 @@
     <title>Sistema de Inscripción a Cursos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- ES Module Shims for importmap support -->
-    <script async src="https://ga.jspm.io/npm:es-module-shims@1.10.0/dist/es-module-shims.js"></script>
-
-    <!-- Babel for on-the-fly TSX -> JS transpilation -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
     <!--
-      Este es el ÚNICO y CORRECTO importmap. 
-      Le dice al navegador dónde encontrar React sin conflictos y con la sintaxis correcta.
+      MÉTODO A PRUEBA DE ERRORES:
+      Cargamos React y ReactDOM directamente. Esto crea variables globales
+      que nuestra aplicación puede usar sin necesidad de 'importmap'.
     -->
-    <script type="importmap">
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <!-- Babel para transpilar TSX -> JS en el navegador -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@18.2.0",
-    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
     "react/": "https://aistudiocdn.com/react@^19.2.0/"
   }
 }
 </script>
-  </head>
+<link rel="stylesheet" href="/index.css">
+</head>
   <body class="bg-gray-100">
     <div id="root"></div>
-    <!-- 
-      Cargamos nuestra aplicación como un módulo. Babel lo traducirá,
-      y el navegador usará el importmap de arriba para resolver los 'import'.
+    <!--
+      Cargamos nuestra aplicación. Se elimina 'data-type="module"' para
+      desactivar el sistema que causaba el conflicto.
     -->
-    <script type="text/babel" data-presets="react,typescript" src="./index.tsx" data-type="module"></script>
-  </body>
+    <script type="text/babel" data-presets="react,typescript" src="./index.tsx"></script>
+  <script type="module" src="/index.tsx"></script>
+</body>
 </html>
