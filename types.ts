@@ -1,7 +1,7 @@
 export interface User {
   name: string;
   email: string;
-  imageUrl?: string;
+  picture?: string;
 }
 
 export interface Teacher {

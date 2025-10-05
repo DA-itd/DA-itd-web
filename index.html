@@ -8,15 +8,15 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!--
-      MÉTODO A PRUEBA DE ERRORES:
-      Cargamos React y ReactDOM directamente. Esto crea variables globales
-      que nuestra aplicación puede usar sin necesidad de 'importmap'.
+      MÉTODO A PRUEBA DE FANTASMAS:
+      Cargamos React, ReactDOM y Babel directamente. Este método es simple y robusto.
     -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-
-    <!-- Babel para transpilar TSX -> JS en el navegador -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Script de Google para el inicio de sesión real -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script type="importmap">
 {
   "imports": {

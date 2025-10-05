@@ -7,22 +7,39 @@ import RoleSelectionScreen from './components/RoleSelectionScreen.tsx';
 
 type Role = 'participant' | 'instructor';
 
+// Helper function to decode JWT
+const decodeJwt = (token: string) => {
+  try {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch (e) {
+    console.error("Error decoding JWT:", e);
+    return null;
+  }
+};
+
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<Role | null>(null);
 
-  const handleLogin = useCallback(() => {
-    // This is a mock login. In a real app, this would involve an OAuth flow.
-    setUser({
-      name: 'Usuario de Prueba',
-      email: 'test.user@itdurango.edu.mx',
-      imageUrl: `https://picsum.photos/seed/testuser/100/100`,
-    });
+  const handleLoginSuccess = useCallback((credential: string) => {
+    const payload = decodeJwt(credential);
+    if (payload) {
+      setUser({
+        name: payload.name,
+        email: payload.email,
+        picture: payload.picture,
+      });
+    } else {
+      // Handle login error, maybe show a notification
+      alert("Error al iniciar sesión. Por favor, intente de nuevo.");
+    }
   }, []);
 
   const handleLogout = useCallback(() => {
     setUser(null);
     setRole(null);
+    // In a real app with Google Sign-In, you might also want to revoke the session
+    // google.accounts.id.disableAutoSelect();
   }, []);
 
   const handleRoleSelection = (selectedRole: Role) => {
@@ -35,7 +52,7 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     if (!user) {
-      return <LoginScreen onLogin={handleLogin} />;
+      return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
     }
     if (!role) {
       return <RoleSelectionScreen onSelectRole={handleRoleSelection} />;
