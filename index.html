@@ -2,7 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <!-- Ruta corregida para GitHub Pages -->
+    <link rel="icon" type="image/svg+xml" href="/DA-itd-web/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sistema de Inscripción a Cursos</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -15,7 +16,7 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 
     <!-- Babel para transpilar TSX -> JS en el navegador -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
   <script type="importmap">
 {
   "imports": {
@@ -25,15 +26,13 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
 </head>
   <body class="bg-gray-100">
     <div id="root"></div>
     <!-- 
       Cargamos nuestra aplicación como un script normal, NO como un módulo.
-      Esto ignora cualquier `importmap` que el "fantasma" pueda añadir.
+      La ruta está corregida para que funcione en GitHub Pages.
     -->
-    <script type="text/babel" data-presets="react,typescript" src="./index.tsx"></script>
-  <script type="module" src="/index.tsx"></script>
-</body>
+    <script type="text/babel" data-presets="react" src="/DA-itd-web/index.tsx"></script>
+  </body>
 </html>
