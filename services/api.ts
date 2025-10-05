@@ -30,21 +30,42 @@ const fileToBase64 = (file: File): Promise<any> => {
     });
 };
 
+// Función auxiliar para manejar las respuestas de la API de forma robusta
+const handleApiResponse = async (response: Response) => {
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Respuesta no exitosa del servidor:", errorText);
+        // Intentamos mostrar un error más útil si es la página de error de Google
+        if (errorText.includes("Google Apps Script")) {
+            throw new Error(`Error en el servidor de Google Apps Script (código: ${response.status}). Revise la configuración de permisos del script y de la Hoja de Cálculo.`);
+        }
+        throw new Error(`Error de red o del servidor (código: ${response.status}).`);
+    }
+
+    const result = await response.json();
+
+    if (!result.success) {
+        console.error("Error reportado por la API:", result.message);
+        throw new Error(result.message || 'La API reportó un error sin mensaje específico.');
+    }
+
+    return result;
+}
+
+
 // --- FUNCIONES DE API REALES ---
 
 export const getTeachers = async (): Promise<Teacher[]> => {
   if (!SCRIPT_URL.startsWith('https://')) throw new Error('La URL del script no ha sido configurada. Revisa los comentarios en el archivo services/api.ts y pega la URL de tu script desplegado.');
   const response = await fetch(`${SCRIPT_URL}?action=getTeachers`);
-  const result = await response.json();
-  if (!result.success) throw new Error(result.message);
+  const result = await handleApiResponse(response);
   return result.data;
 };
 
 export const getCourses = async (): Promise<Course[]> => {
   if (!SCRIPT_URL.startsWith('https://')) throw new Error('La URL del script no ha sido configurada. Revisa los comentarios en el archivo services/api.ts y pega la URL de tu script desplegado.');
   const response = await fetch(`${SCRIPT_URL}?action=getCourses`);
-  const result = await response.json();
-  if (!result.success) throw new Error(result.message);
+  const result = await handleApiResponse(response);
   return result.data.map((course: any) => ({
       ...course,
       registrations: course.registrations || 0
@@ -54,8 +75,7 @@ export const getCourses = async (): Promise<Course[]> => {
 export const getDepartments = async (): Promise<Department[]> => {
   if (!SCRIPT_URL.startsWith('https://')) throw new Error('La URL del script no ha sido configurada. Revisa los comentarios en el archivo services/api.ts y pega la URL de tu script desplegado.');
   const response = await fetch(`${SCRIPT_URL}?action=getDepartments`);
-  const result = await response.json();
-  if (!result.success) throw new Error(result.message);
+  const result = await handleApiResponse(response);
   return result.data;
 };
 
@@ -72,27 +92,14 @@ export const submitRegistration = async (data: RegistrationData): Promise<{ mess
   
   const response = await fetch(SCRIPT_URL, {
     method: 'POST',
-    mode: 'cors', // Modo correcto para comunicación entre sitios
+    mode: 'cors',
     body: JSON.stringify(submissionData),
-    // Apps Script a veces prefiere text/plain cuando se envía JSON en el cuerpo.
-    // Si da problemas, puedes cambiarlo, pero esto suele ser robusto.
     headers: {
       'Content-Type': 'text/plain;charset=utf-8',
     },
   });
   
-  // Ahora sí podemos leer la respuesta del script
-  const result = await response.json();
-  if (!result.success) throw new Error(result.message);
-
-  // Usamos el mensaje del script o generamos uno por defecto
-  let successMessage = result.message;
-  if (!successMessage) {
-      if (data.instructorDetails) {
-        successMessage = '¡Registro como instructor exitoso! Sus documentos han sido enviados para revisión.';
-      } else {
-        successMessage = `¡Inscripción exitosa! Se ha registrado a ${data.selectedCourses.length} curso(s). Recibirá un correo de confirmación.`;
-      }
-  }
-  return { message: successMessage };
+  const result = await handleApiResponse(response);
+  
+  return { message: result.message };
 };
