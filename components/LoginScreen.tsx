@@ -1,3 +1,6 @@
+// FIX: Import React to use it as a module, which is standard practice.
+import React from 'react';
+
 // Declaramos 'google' para que TypeScript no se queje, ya que se carga desde un script externo.
 declare const google: any;
 
@@ -5,12 +8,9 @@ interface LoginScreenProps {
   onLoginSuccess: (credential: string) => void;
 }
 
-// @ts-ignore - React is a global variable from the script in index.html
 const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
-  // @ts-ignore - React is a global variable from the script in index.html
   const googleButtonRef = React.useRef<HTMLDivElement>(null);
 
-  // @ts-ignore - React is a global variable from the script in index.html
   React.useEffect(() => {
     if (!google) {
       console.error("Google's script did not load.");

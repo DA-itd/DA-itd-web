@@ -1,10 +1,11 @@
+// FIX: Import React to use it as a module, which is standard practice.
+import React from 'react';
 import { UserPlusIcon, PresentationIcon } from './icons.tsx';
 
 interface RoleSelectionScreenProps {
   onSelectRole: (role: 'participant' | 'instructor') => void;
 }
 
-// @ts-ignore - React is a global variable from the script in index.html
 const RoleSelectionScreen: React.FC<RoleSelectionScreenProps> = ({ onSelectRole }) => {
   return (
     <div className="text-center">
