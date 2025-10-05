@@ -6,22 +6,726 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sistema de Inscripción a Cursos</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React and ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <!-- Babel for JSX Transpilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script type="importmap">
+<script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@18.2.0",
-    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
+    "react": "https://aistudiocdn.com/react@^19.2.0"
   }
 }
 </script>
 </head>
   <body class="bg-gray-100">
     <div id="root"></div>
-    <!-- Changed type to text/babel to be processed by Babel -->
-    <script type="text/babel" data-type="module" src="./index.tsx"></script>
+    <script type="text/babel">
+// Deconstruct React hooks for easier use
+const { useState, useEffect, useCallback, useMemo } = React;
+
+// --- ICONS ---
+const CheckIcon = ({className}) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className || "w-6 h-6"}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+    </svg>
+);
+const XIcon = ({className}) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-6 h-6"}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+);
+const UploadIcon = ({className}) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-6 h-6"}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l-3.75 3.75M12 9.75l3.75 3.75M12 19.5a7.5 7.5 0 100-15 7.5 7.5 0 000 15z" />
+    </svg>
+);
+const DocumentIcon = ({className}) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-6 h-6"}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+    </svg>
+);
+const LoadingIcon = ({ className }) => (
+    <svg className={`animate-spin ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+);
+const UserPlusIcon = ({className}) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-6 h-6"}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.5 21.75c-2.676 0-5.216-.584-7.5-1.615z" />
+    </svg>
+);
+const PresentationIcon = ({className}) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-6 h-6"}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125v-1.5c0-.621.504-1.125 1.125-1.125h17.25c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h.008v.015h-.008v-.015zm17.25 0h.008v.015h-.008v-.015zM8.25 2.25h7.5M12 18v-12m0 0l-3.75 3.75M12 6l3.75 3.75" />
+    </svg>
+);
+
+// --- API SERVICE ---
+const SCRIPT_URL = "URL_DE_TU_SCRIPT_DESPLEGADO";
+
+const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+            const result = reader.result;
+            resolve({
+                name: file.name,
+                mimeType: file.type,
+                content: result.split(',')[1]
+            });
+        };
+        reader.onerror = error => reject(error);
+    });
+};
+
+const getTeachers = async () => {
+  if (!SCRIPT_URL.startsWith('https://')) throw new Error('La URL del script no ha sido configurada. Revisa el archivo services/api.ts');
+  const response = await fetch(`${SCRIPT_URL}?action=getTeachers`);
+  const result = await response.json();
+  if (!result.success) throw new Error(result.message);
+  return result.data;
+};
+const getCourses = async () => {
+  if (!SCRIPT_URL.startsWith('https://')) throw new Error('La URL del script no ha sido configurada.');
+  const response = await fetch(`${SCRIPT_URL}?action=getCourses`);
+  const result = await response.json();
+  if (!result.success) throw new Error(result.message);
+  return result.data.map((course) => ({
+      ...course,
+      registrations: course.registrations || 0
+  }));
+};
+const getDepartments = async () => {
+  if (!SCRIPT_URL.startsWith('https://')) throw new Error('La URL del script no ha sido configurada.');
+  const response = await fetch(`${SCRIPT_URL}?action=getDepartments`);
+  const result = await response.json();
+  if (!result.success) throw new Error(result.message);
+  return result.data;
+};
+const submitRegistration = async (data) => {
+  if (!SCRIPT_URL.startsWith('https://')) throw new Error('La URL del script no ha sido configurada.');
+  let submissionData = { ...data };
+
+  if (data.instructorDetails) {
+      const { cv, ficha } = data.instructorDetails;
+      submissionData.instructorDetails.cv = cv ? await fileToBase64(cv) : null;
+      submissionData.instructorDetails.ficha = ficha ? await fileToBase64(ficha) : null;
+  }
+  
+  const response = await fetch(SCRIPT_URL, {
+    method: 'POST',
+    mode: 'cors',
+    body: JSON.stringify(submissionData),
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+  });
+  
+  const result = await response.json();
+  if (!result.success) throw new Error(result.message);
+
+  let successMessage = result.message;
+  if (!successMessage) {
+      if (data.instructorDetails) {
+        successMessage = '¡Registro como instructor exitoso! Sus documentos han sido enviados para revisión.';
+      } else {
+        successMessage = `¡Inscripción exitosa! Se ha registrado a ${data.selectedCourses.length} curso(s). Recibirá un correo de confirmación.`;
+      }
+  }
+  return { message: successMessage };
+};
+
+// --- COMPONENTS ---
+
+const Header = ({ user, onLogout }) => {
+  return (
+    <header className="bg-white shadow-md">
+      <div className="container mx-auto px-4 md:px-8 py-4 flex justify-between items-center">
+        <div>
+          <h1 className="text-xl md:text-3xl font-bold text-blue-800">
+            Sistema de Inscripción a Cursos de Actualización Docente
+          </h1>
+          <p className="text-sm md:text-md text-gray-600">
+            Instituto Tecnológico de Durango, Coordinación de Actualización Docente
+          </p>
+        </div>
+        {user && (
+          <div className="flex items-center space-x-4">
+            <div className="text-right">
+              <p className="font-semibold text-sm">{user.name}</p>
+              <p className="text-xs text-gray-500">{user.email}</p>
+            </div>
+            {user.imageUrl && <img src={user.imageUrl} alt="User" className="w-10 h-10 rounded-full" />}
+            <button
+              onClick={onLogout}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+            >
+              Salir
+            </button>
+          </div>
+        )}
+      </div>
+    </header>
+  );
+};
+
+const GoogleIcon = () => (
+    <svg className="w-5 h-5 mr-3" viewBox="0 0 48 48">
+        <path fill="#4285F4" d="M24 9.5c3.23 0 6.13 1.11 8.4 3.29l6.39-6.39C34.81 2.97 29.83 1 24 1 14.89 1 7.21 6.35 4.38 14.39l7.84 6.07C13.84 14.12 18.52 9.5 24 9.5z"></path>
+        <path fill="#34A853" d="M46.38 24.51c0-1.65-.15-3.25-.43-4.8H24v9.09h12.57c-.55 2.93-2.16 5.43-4.66 7.13l7.63 5.92C44.13 37.5 46.38 31.56 46.38 24.51z"></path>
+        <path fill="#FBBC05" d="M12.22 20.46c-.53-1.6-1.02-3.3-1.02-5.06s.49-3.46 1.02-5.06l-7.84-6.07C2.97 7.21 1 11.97 1 17.4c0 5.43 1.97 10.19 5.38 13.87l7.84-6.81z"></path>
+        <path fill="#EA4335" d="M24 47c5.83 0 10.81-1.97 14.39-5.38l-7.63-5.92c-1.92 1.29-4.38 2.06-7.14 2.06-5.48 0-10.16-4.62-11.78-10.84l-7.84 6.07C7.21 40.65 14.89 47 24 47z"></path>
+        <path fill="none" d="M0 0h48v48H0z"></path>
+    </svg>
+);
+const LoginScreen = ({ onLogin }) => {
+  return (
+    <div className="flex flex-col items-center justify-center mt-16">
+      <div className="bg-white p-10 rounded-xl shadow-lg text-center max-w-md w-full">
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Bienvenido</h2>
+        <p className="text-gray-600 mb-6">
+          Para continuar, por favor inicie sesión con su cuenta institucional
+          (@itdurango.edu.mx) o Gmail.
+        </p>
+        <button
+          onClick={onLogin}
+          className="w-full flex items-center justify-center bg-white border border-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-lg hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          <GoogleIcon />
+          Iniciar Sesión con Google
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const RoleSelectionScreen = ({ onSelectRole }) => {
+  return (
+    <div className="text-center">
+      <h2 className="text-3xl font-bold text-gray-800 mb-4">Bienvenido al Sistema de Inscripción</h2>
+      <p className="text-lg text-gray-600 mb-10">Por favor, seleccione el motivo de su visita.</p>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        <button
+          onClick={() => onSelectRole('participant')}
+          className="group flex flex-col items-center justify-center p-8 bg-blue-600 text-white rounded-xl shadow-lg hover:bg-blue-700 transition-all duration-300 transform hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-blue-300"
+          aria-label="Inscribirme a cursos de actualización docente"
+        >
+          <UserPlusIcon className="w-20 h-20 mb-4 transition-transform duration-300 group-hover:scale-110" />
+          <h3 className="text-2xl font-bold">Inscripción a Cursos</h3>
+          <p className="mt-2 text-blue-100">Seleccione esta opción para registrarse en los cursos de actualización docente.</p>
+        </button>
+
+        <button
+          onClick={() => onSelectRole('instructor')}
+          className="group flex flex-col items-center justify-center p-8 bg-rose-800 text-white rounded-xl shadow-lg hover:bg-rose-900 transition-all duration-300 transform hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-rose-300"
+          aria-label="Registrarme como instructor de un curso"
+        >
+          <PresentationIcon className="w-20 h-20 mb-4 transition-transform duration-300 group-hover:scale-110" />
+          <h3 className="text-2xl font-bold">Soy Instructor</h3>
+          <p className="mt-2 text-rose-100">Seleccione esta opción para registrarse como instructor y subir su documentación.</p>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const RegistrationWorkflow = ({ user, role, onLogout, onReturnToRoleSelection }) => {
+    // Data states
+    const [teachers, setTeachers] = useState([]);
+    const [courses, setCourses] = useState([]);
+    const [departments, setDepartments] = useState([]);
+    
+    // Form states
+    const [name, setName] = useState('');
+    const [curp, setCurp] = useState('');
+    const [email, setEmail] = useState('');
+    const [gender, setGender] = useState('');
+    const [department, setDepartment] = useState('');
+    
+    const [autocompleteSuggestions, setAutocompleteSuggestions] = useState([]);
+    const [isAutocompleteOpen, setIsAutocompleteOpen] = useState(false);
+    const [isNewTeacher, setIsNewTeacher] = useState(false);
+
+    const [selectedCourses, setSelectedCourses] = useState([]);
+    const [selectedPeriod, setSelectedPeriod] = useState(null);
+    
+    // UI states
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [submitting, setSubmitting] = useState(false);
+    const [submitSuccess, setSubmitSuccess] = useState(null);
+    const [submitError, setSubmitError] = useState(null);
+    const [registrationComplete, setRegistrationComplete] = useState(false);
+
+    // Instructor states
+    const [instructorCourseId, setInstructorCourseId] = useState('');
+    const [cvFile, setCvFile] = useState(null);
+    const [fichaFile, setFichaFile] = useState(null);
+    const [fileErrors, setFileErrors] = useState({});
+    
+    const isInstructorMode = useMemo(() => role === 'instructor', [role]);
+    const MAX_COURSES = 3;
+    const MAX_REGISTRATIONS_PER_COURSE = 30;
+    const MAX_FILE_SIZE_MB = 2;
+    const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const [teachersData, coursesData, departmentsData] = await Promise.all([
+                    getTeachers(),
+                    getCourses(),
+                    getDepartments(),
+                ]);
+                setTeachers(teachersData);
+                setCourses(coursesData);
+                setDepartments(departmentsData);
+            } catch (err) {
+                setError('No se pudieron cargar los datos. Por favor, intente de nuevo más tarde.');
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
+
+    const handleNameChange = (e) => {
+        const value = e.target.value.toUpperCase();
+        setName(value);
+        if (value.length > 2) {
+            const filtered = teachers.filter(t => t.NombreCompleto.toUpperCase().includes(value));
+            setAutocompleteSuggestions(filtered);
+            setIsAutocompleteOpen(true);
+        } else {
+            setAutocompleteSuggestions([]);
+            setIsAutocompleteOpen(false);
+        }
+        setIsNewTeacher(true); 
+        setCurp('');
+        setEmail('');
+    };
+
+    const handleSelectTeacher = (teacher) => {
+        setName(teacher.NombreCompleto);
+        setCurp(teacher.Curp);
+        setEmail(teacher.Email);
+        setIsAutocompleteOpen(false);
+        setAutocompleteSuggestions([]);
+        setIsNewTeacher(false);
+    };
+
+    const handleAddNewTeacher = () => {
+        setCurp('');
+        setEmail('');
+        setIsNewTeacher(true);
+        setIsAutocompleteOpen(false);
+    }
+    
+    const checkConflict = (newCourse, existingCourses) => {
+        for (const existingCourse of existingCourses) {
+            if (existingCourse.Periodo === newCourse.Periodo) {
+                const [start1, end1] = existingCourse.Horario.replace(' hrs', '').split(' a ');
+                const [start2, end2] = newCourse.Horario.replace(' hrs', '').split(' a ');
+                if (Math.max(parseFloat(start1), parseFloat(start2)) < Math.min(parseFloat(end1), parseFloat(end2))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
+    
+    const handleSelectCourse = (course) => {
+        if (selectedCourses.length >= MAX_COURSES) {
+            alert(`No puede seleccionar más de ${MAX_COURSES} cursos.`);
+            return;
+        }
+        if (selectedCourses.find(c => c.Id_Curso === course.Id_Curso)) {
+            alert('Este curso ya ha sido seleccionado.');
+            return;
+        }
+        if (checkConflict(course, selectedCourses)) {
+            alert('El horario de este curso se empalma con otro curso seleccionado.');
+            return;
+        }
+        
+        if (selectedCourses.length === 0) {
+            setSelectedPeriod(course.Periodo);
+        }
+        setSelectedCourses(prev => [...prev, course]);
+    };
+
+    const handleRemoveCourse = (courseId) => {
+        setSelectedCourses(prev => {
+            const newSelected = prev.filter(c => c.Id_Curso !== courseId);
+            if (newSelected.length === 0) {
+                setSelectedPeriod(null);
+            }
+            return newSelected;
+        });
+    };
+
+    const isCourseFull = (course) => {
+        return (course.registrations || 0) >= MAX_REGISTRATIONS_PER_COURSE;
+    }
+
+    const filteredCourses = useMemo(() => courses, [courses]);
+    
+    const isFormValid = useMemo(() => {
+        const teacherInfoValid = name && curp && email && gender && department;
+        if (!teacherInfoValid) return false;
+
+        if (isInstructorMode) {
+            return !!instructorCourseId;
+        } else {
+            return selectedCourses.length > 0;
+        }
+    }, [name, curp, email, gender, department, selectedCourses, isInstructorMode, instructorCourseId]);
+
+    const getValidationMessage = () => {
+        const messages = [];
+        if (!name || !curp || !email || !gender || !department) {
+            messages.push('información del docente');
+        }
+        
+        if (isInstructorMode) {
+            if (!instructorCourseId) {
+                messages.push('seleccionar el curso que impartirá');
+            }
+        } else {
+            if (selectedCourses.length === 0) {
+                messages.push('seleccionar al menos un curso para tomar');
+            }
+        }
+
+        if (messages.length === 0) return null;
+        return `Por favor, complete los siguientes campos: ${messages.join(', ')}.`;
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!isFormValid) {
+            setSubmitError(getValidationMessage() || 'Por favor, complete todos los campos requeridos.');
+            return;
+        }
+        setSubmitting(true);
+        setSubmitError(null);
+        setSubmitSuccess(null);
+
+        const registrationData = {
+            user,
+            teacherInfo: {
+                NombreCompleto: name,
+                Curp: curp,
+                Email: email,
+                Genero: gender,
+                Departamento: department
+            },
+            selectedCourses,
+            ...(isInstructorMode && {
+                instructorDetails: {
+                    teachingCourseId: instructorCourseId,
+                    cv: cvFile,
+                    ficha: fichaFile
+                }
+            })
+        };
+        
+        try {
+            const response = await submitRegistration(registrationData);
+            setSubmitSuccess(response.message);
+            setRegistrationComplete(true);
+        } catch (error) {
+            setSubmitError(error.message || 'Ocurrió un error al enviar la inscripción.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    if (loading) return <div className="flex justify-center items-center h-64"><LoadingIcon className="w-12 h-12 text-blue-600" /> <span className="ml-4 text-xl">Cargando datos...</span></div>;
+    if (error) return <div className="text-center text-red-600 bg-red-100 p-4 rounded-lg">{error}</div>;
+
+    if (registrationComplete) {
+        return (
+            <div className="p-8 bg-white rounded-xl shadow-lg text-center max-w-2xl mx-auto">
+                <CheckIcon className="w-16 h-16 text-green-500 mx-auto" />
+                <h2 className="text-2xl font-bold text-gray-900 mt-4">¡Operación Exitosa!</h2>
+                <p className="text-gray-600 mt-2">{submitSuccess}</p>
+                 <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
+                    <button onClick={onReturnToRoleSelection} className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors">
+                        Volver al Menú
+                    </button>
+                    <button onClick={onLogout} className="px-6 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition-colors">
+                        Salir
+                    </button>
+                </div>
+            </div>
+        )
+    }
+
+    const FileInput = ({ label, file, setFile, accept, error, setError }) => {
+        const handleFileChange = (e) => {
+            const selectedFile = e.target.files ? e.target.files[0] : null;
+            e.target.value = '';
+            if (selectedFile) {
+                if (selectedFile.size > MAX_FILE_SIZE_BYTES) {
+                    setError(`El archivo excede el tamaño máximo de ${MAX_FILE_SIZE_MB}MB.`);
+                    setFile(null);
+                } else if (!accept.includes(selectedFile.type)) {
+                    setError('Tipo de archivo no válido. Solo se permiten PDF.');
+                    setFile(null);
+                } else {
+                    setError(null);
+                    setFile(selectedFile);
+                }
+            }
+        };
+
+        return (
+            <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700">{label}</label>
+                <div className={`mt-1 flex items-center justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md ${error ? 'border-red-500' : 'border-gray-300'}`}>
+                    {file ? (
+                        <div className="text-center">
+                            <DocumentIcon className="mx-auto h-12 w-12 text-gray-400" />
+                            <p className="mt-2 text-sm text-gray-600">{file.name}</p>
+                            <button onClick={() => { setFile(null); setError(null); }} className="text-xs text-red-500 hover:underline mt-1">Quitar</button>
+                        </div>
+                    ) : (
+                        <div className="space-y-1 text-center">
+                            <UploadIcon className="mx-auto h-12 w-12 text-gray-400" />
+                            <div className="flex text-sm text-gray-600">
+                                <label htmlFor={`file-upload-${label}`} className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                                    <span>Subir un archivo</span>
+                                    <input id={`file-upload-${label}`} name={`file-upload-${label}`} type="file" className="sr-only" accept={accept} onChange={handleFileChange} />
+                                </label>
+                                <p className="pl-1">o arrastrar y soltar</p>
+                            </div>
+                            <p className="text-xs text-gray-500">PDF (no imágenes escaneadas) hasta {MAX_FILE_SIZE_MB}MB</p>
+                        </div>
+                    )}
+                </div>
+                {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+            </div>
+        );
+    };
+
+    const validationMessage = getValidationMessage();
+    const submitButtonText = isInstructorMode ? 'Finalizar Registro de Instructor' : 'Finalizar Inscripción';
+    const formTitle = isInstructorMode ? 'Registro para Instructores' : 'Inscripción a Cursos';
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-8">
+            <h2 className="text-3xl font-bold text-gray-800 text-center">{formTitle}</h2>
+
+            {isInstructorMode && (
+                 <div className="p-8 bg-white rounded-xl shadow-lg">
+                    <h3 className="text-xl font-bold text-gray-900 border-b pb-4 mb-6">1. Curso a Impartir y Documentación</h3>
+                    <div className="space-y-6">
+                        <div>
+                            <label htmlFor="instructorCourse" className="block text-sm font-medium text-gray-700">Seleccione el curso que impartirá</label>
+                            <select id="instructorCourse" value={instructorCourseId} onChange={e => setInstructorCourseId(e.target.value)} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" required>
+                                <option value="">Seleccione un curso...</option>
+                                {courses.map(course => (
+                                    <option key={course.Id_Curso} value={course.Id_Curso}>{course.Nombre_curso}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           <FileInput label="Curriculum Vitae (PDF)" file={cvFile} setFile={setCvFile} accept="application/pdf" error={fileErrors.cv} setError={err => setFileErrors(prev => ({...prev, cv: err || undefined}))} />
+                           <FileInput label="Ficha Técnica (PDF)" file={fichaFile} setFile={setFichaFile} accept="application/pdf" error={fileErrors.ficha} setError={err => setFileErrors(prev => ({...prev, ficha: err || undefined}))} />
+                        </div>
+                        <div className="mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 rounded-r-lg">
+                            <p className="font-bold">Nota Importante:</p>
+                            <p className="text-sm">Solo se aceptan archivos en formato PDF que no sean imágenes escaneadas. Sus documentos serán revisados; si se encuentra alguna inconsistencia, se le contactará por correo electrónico con las indicaciones correspondientes.</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+           
+            <div className="p-8 bg-white rounded-xl shadow-lg">
+                <h2 className="text-xl font-bold text-gray-900 border-b pb-4 mb-6">{isInstructorMode ? '2.' : '1.'} Información del Docente</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="relative">
+                        <label htmlFor="name" className="block text-sm font-medium text-gray-700">Nombre Completo</label>
+                        <input type="text" id="name" value={name} onChange={handleNameChange} onFocus={() => { if(name.length > 2) setIsAutocompleteOpen(true); }} onBlur={() => setTimeout(() => setIsAutocompleteOpen(false), 200)} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Escriba su nombre para buscar..." required />
+                        {isAutocompleteOpen && (autocompleteSuggestions.length > 0 || name.length > 2) && (
+                             <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                                {autocompleteSuggestions.map(teacher => (
+                                    <div key={teacher.Curp} onMouseDown={() => handleSelectTeacher(teacher)} className="px-4 py-2 hover:bg-gray-100 cursor-pointer">{teacher.NombreCompleto}</div>
+                                ))}
+                                <div onMouseDown={handleAddNewTeacher} className="px-4 py-3 bg-gray-50 text-sm text-blue-600 hover:bg-gray-100 cursor-pointer font-semibold">+ No estoy en la lista, registrar nuevo.</div>
+                            </div>
+                        )}
+                    </div>
+                    <div>
+                        <label htmlFor="curp" className="block text-sm font-medium text-gray-700">CURP</label>
+                        <input type="text" id="curp" value={curp} onChange={e => setCurp(e.target.value.toUpperCase())} readOnly={!isNewTeacher} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm read-only:bg-gray-100" required />
+                    </div>
+                    <div>
+                        <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+                        <input type="email" id="email" value={email} onChange={e => setEmail(e.target.value)} readOnly={!isNewTeacher} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm read-only:bg-gray-100" required />
+                    </div>
+                     <div>
+                        <label htmlFor="gender" className="block text-sm font-medium text-gray-700">Género</label>
+                        <select id="gender" value={gender} onChange={e => setGender(e.target.value)} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" required>
+                            <option value="">Seleccione...</option>
+                            <option value="Masculino">Masculino</option>
+                            <option value="Femenino">Femenino</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+                    <div className="md:col-span-2">
+                        <label htmlFor="department" className="block text-sm font-medium text-gray-700">Departamento de Adscripción</label>
+                        <select id="department" value={department} onChange={e => setDepartment(e.target.value)} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" required>
+                            <option value="">Seleccione un departamento...</option>
+                            {departments.map(d => (<option key={d.NombreDepartamento} value={d.NombreDepartamento}>{d.NombreDepartamento}</option>))}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            {!isInstructorMode && (
+                <div className="p-8 bg-white rounded-xl shadow-lg">
+                     <h2 className="text-xl font-bold text-gray-900 border-b pb-4 mb-6">2. Selección de Cursos</h2>
+                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="lg:col-span-2">
+                            <h3 className="font-semibold text-lg mb-4">Cursos Disponibles</h3>
+                            <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+                               {filteredCourses.map(course => {
+                                    const isSelected = selectedCourses.some(c => c.Id_Curso === course.Id_Curso);
+                                    const isFull = isCourseFull(course);
+                                    const isPeriodLocked = selectedPeriod && course.Periodo !== selectedPeriod;
+                                    const isDisabled = isSelected || isFull || isPeriodLocked;
+                                    const periodColorClass = course.Periodo === 'PERIODO_1' ? 'border-l-4 border-l-teal-400' : 'border-l-4 border-l-indigo-400';
+
+                                    return (
+                                    <div key={course.Id_Curso} className={`p-4 border rounded-lg transition-all ${periodColorClass} ${isSelected ? 'bg-blue-50 border-blue-300' : 'bg-white'} ${isPeriodLocked ? 'bg-gray-100 opacity-60' : ''} ${isFull ? 'bg-gray-200 opacity-60' : ''}`}>
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="font-bold text-blue-800">{course.Nombre_curso}</p>
+                                                <p className="text-xs text-gray-500">{course.Id_Curso}</p>
+                                                <div className="text-sm text-gray-700 mt-2 space-y-1">
+                                                    <p><strong>Periodo:</strong> {course.FechaVisible}</p>
+                                                    <p><strong>Horario:</strong> {course.Horario}</p>
+                                                    <p><strong>Lugar:</strong> {course.Lugar} | <strong>Horas:</strong> {course.Horas} | <strong>Tipo:</strong> {course.Tipo}</p>
+                                                </div>
+                                            </div>
+                                            <button type="button" onClick={() => !isDisabled && handleSelectCourse(course)} disabled={isDisabled} className={`ml-4 px-4 py-2 text-sm font-medium rounded-md transition-colors w-24 flex-shrink-0 ${isSelected ? 'bg-green-500 text-white cursor-default' : 'bg-green-500 text-white'} ${!isSelected && 'bg-blue-600 hover:bg-blue-700'} disabled:bg-gray-400 disabled:cursor-not-allowed`}>
+                                                {isSelected ? <><CheckIcon className="w-5 h-5 inline-block mr-1" /><span>Añadido</span></> : (isFull ? 'Lleno' : (isPeriodLocked ? 'Otro Periodo' : 'Añadir'))}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                        <div className="lg:col-span-1">
+                            <div className="sticky top-8 bg-gray-50 p-6 rounded-lg border">
+                                <h3 className="font-semibold text-lg mb-4 text-center">Mis Cursos ({selectedCourses.length}/{MAX_COURSES})</h3>
+                                {selectedCourses.length === 0 ? (
+                                    <p className="text-center text-gray-500">Aún no ha seleccionado cursos.</p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {selectedCourses.map(course => (
+                                            <div key={course.Id_Curso} className="p-3 bg-white rounded-md shadow-sm flex justify-between items-center">
+                                                <div>
+                                                    <p className="font-semibold text-sm">{course.Nombre_curso}</p>
+                                                    <p className="text-xs text-gray-500">{course.Horario}</p>
+                                                </div>
+                                                <button type="button" onClick={() => handleRemoveCourse(course.Id_Curso)} className="text-red-500 hover:text-red-700">
+                                                    <XIcon className="w-5 h-5"/>
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                 <div className="mt-6 pt-4 border-t font-bold text-center">
+                                    Total de Horas: {selectedCourses.reduce((acc, c) => acc + c.Horas, 0)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
+            <div className="flex flex-col items-center justify-center pt-4">
+                {submitError && <div className="mb-4 p-4 text-center text-red-800 bg-red-100 rounded-lg w-full max-w-2xl">{submitError}</div>}
+                <button type="submit" disabled={!isFormValid || submitting} className="w-full max-w-md px-8 py-4 bg-green-600 text-white font-bold text-lg rounded-lg shadow-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center">
+                    {submitting ? <><LoadingIcon className="w-6 h-6 mr-3" /> Procesando...</> : submitButtonText}
+                </button>
+                 {!isFormValid && validationMessage && <p className="text-sm text-red-500 mt-2 text-center font-semibold">{validationMessage}</p>}
+            </div>
+        </form>
+    );
+};
+
+const App = () => {
+  const [user, setUser] = useState(null);
+  const [role, setRole] = useState(null);
+
+  const handleLogin = useCallback(() => {
+    setUser({
+      name: 'Usuario de Prueba',
+      email: 'test.user@itdurango.edu.mx',
+      imageUrl: `https://picsum.photos/seed/testuser/100/100`,
+    });
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    setUser(null);
+    setRole(null);
+  }, []);
+
+  const handleRoleSelection = (selectedRole) => {
+    setRole(selectedRole);
+  }
+
+  const handleReturnToRoleSelection = () => {
+    setRole(null);
+  }
+
+  const renderContent = () => {
+    if (!user) {
+      return <LoginScreen onLogin={handleLogin} />;
+    }
+    if (!role) {
+      return <RoleSelectionScreen onSelectRole={handleRoleSelection} />;
+    }
+    return <RegistrationWorkflow user={user} role={role} onLogout={handleLogout} onReturnToRoleSelection={handleReturnToRoleSelection} />;
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
+      <Header user={user} onLogout={handleLogout} />
+      <main className="container mx-auto p-4 md:p-8">
+        {renderContent()}
+      </main>
+      <footer className="text-center py-4 text-gray-500 text-sm">
+        <p>&copy; {new Date().getFullYear()} Instituto Tecnológico de Durango. Todos los derechos reservados.</p>
+      </footer>
+    </div>
+  );
+};
+
+// --- RENDER APP ---
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+  throw new Error("Could not find root element to mount to");
+}
+
+const root = ReactDOM.createRoot(rootElement);
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+
+    </script>
   </body>
 </html>
