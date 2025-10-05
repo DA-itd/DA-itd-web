@@ -1,7 +1,16 @@
 import { Teacher, Course, Department, RegistrationData } from '../types.ts';
 
-// ¡IMPORTANTE! Reemplaza esta URL con la URL que obtengas al desplegar tu Google Apps Script.
-const SCRIPT_URL = "URL_DE_TU_SCRIPT_DESPLEGADO";
+// --- PASO CRÍTICO DE CONFIGURACIÓN ---
+//
+// 1. Ve a script.google.com y crea un nuevo proyecto de Google Apps Script.
+// 2. Pega el código del backend (el archivo Code.gs que te proporcioné en el chat anterior).
+// 3. En ESE archivo de script, reemplaza los placeholders con los IDs que ya tienes:
+//    - SPREADSHEET_ID = "1e12Sl5Hd8Ot48C914jT8-vkpXuDzPQuFnPm63kPQWVs"
+//    - DRIVE_FOLDER_ID = "1nwzLS81ct3ZoimPqJsikznQxhzg3_86T"
+// 4. Implementa el script como "Aplicación web" (con acceso para "Cualquier persona").
+// 5. Google te dará una URL. ¡ESA URL es la que debes pegar aquí abajo!
+//
+const SCRIPT_URL = "PEGA_AQUÍ_LA_URL_DE_TU_APLICACIÓN_WEB_DESPLEGADA";
 
 // Función auxiliar para convertir un archivo a formato Base64
 const fileToBase64 = (file: File): Promise<any> => {
@@ -24,7 +33,7 @@ const fileToBase64 = (file: File): Promise<any> => {
 // --- FUNCIONES DE API REALES ---
 
 export const getTeachers = async (): Promise<Teacher[]> => {
-  if (!SCRIPT_URL.startsWith('https://')) throw new Error('La URL del script no ha sido configurada. Revisa el archivo services/api.ts');
+  if (!SCRIPT_URL.startsWith('https://')) throw new Error('La URL del script no ha sido configurada. Revisa los comentarios en el archivo services/api.ts y pega la URL de tu script desplegado.');
   const response = await fetch(`${SCRIPT_URL}?action=getTeachers`);
   const result = await response.json();
   if (!result.success) throw new Error(result.message);
@@ -32,7 +41,7 @@ export const getTeachers = async (): Promise<Teacher[]> => {
 };
 
 export const getCourses = async (): Promise<Course[]> => {
-  if (!SCRIPT_URL.startsWith('https://')) throw new Error('La URL del script no ha sido configurada.');
+  if (!SCRIPT_URL.startsWith('https://')) throw new Error('La URL del script no ha sido configurada. Revisa los comentarios en el archivo services/api.ts y pega la URL de tu script desplegado.');
   const response = await fetch(`${SCRIPT_URL}?action=getCourses`);
   const result = await response.json();
   if (!result.success) throw new Error(result.message);
@@ -43,7 +52,7 @@ export const getCourses = async (): Promise<Course[]> => {
 };
 
 export const getDepartments = async (): Promise<Department[]> => {
-  if (!SCRIPT_URL.startsWith('https://')) throw new Error('La URL del script no ha sido configurada.');
+  if (!SCRIPT_URL.startsWith('https://')) throw new Error('La URL del script no ha sido configurada. Revisa los comentarios en el archivo services/api.ts y pega la URL de tu script desplegado.');
   const response = await fetch(`${SCRIPT_URL}?action=getDepartments`);
   const result = await response.json();
   if (!result.success) throw new Error(result.message);
@@ -51,7 +60,7 @@ export const getDepartments = async (): Promise<Department[]> => {
 };
 
 export const submitRegistration = async (data: RegistrationData): Promise<{ message: string }> => {
-  if (!SCRIPT_URL.startsWith('https://')) throw new Error('La URL del script no ha sido configurada.');
+  if (!SCRIPT_URL.startsWith('https://')) throw new Error('La URL del script no ha sido configurada. Revisa los comentarios en el archivo services/api.ts y pega la URL de tu script desplegado.');
   let submissionData: any = { ...data };
 
   // Si hay archivos, los convertimos a Base64 antes de enviar
