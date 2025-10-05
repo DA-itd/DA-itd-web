@@ -24,7 +24,7 @@ const RegistrationWorkflow: React.FC<{ user: User; role: 'participant' | 'instru
     
     const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<Teacher[]>([]);
     const [isAutocompleteOpen, setIsAutocompleteOpen] = useState(false);
-    const [isNewTeacher, setIsNewTeacher] = useState(true);
+    const [isNewTeacher, setIsNewTeacher] = useState(false);
 
     const [selectedCourses, setSelectedCourses] = useState<Course[]>([]);
     const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
@@ -77,11 +77,9 @@ const RegistrationWorkflow: React.FC<{ user: User; role: 'participant' | 'instru
             setAutocompleteSuggestions([]);
             setIsAutocompleteOpen(false);
         }
-        
-        const isKnownTeacher = teachers.some(
-          t => t.NombreCompleto === value && t.Curp === curp && t.Email === email
-        );
-        setIsNewTeacher(!isKnownTeacher);
+        setIsNewTeacher(true); 
+        setCurp('');
+        setEmail('');
     };
 
     const handleSelectTeacher = (teacher: Teacher) => {
