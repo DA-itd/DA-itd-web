@@ -7,16 +7,15 @@
     <title>Sistema de Inscripción a Cursos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!--
-      MÉTODO A PRUEBA DE FANTASMAS:
-      Cargamos React, ReactDOM y Babel directamente. Este método es simple y robusto.
-    -->
+    <!-- Librería de Google para el inicio de sesión -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
+    <!-- MÉTODO "A PRUEBA DE FANTASMAS": Cargar React y ReactDOM como scripts globales -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- Script de Google para el inicio de sesión real -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Babel para transpilar TSX -> JS en el navegador -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script type="importmap">
 {
   "imports": {
@@ -30,9 +29,9 @@
 </head>
   <body class="bg-gray-100">
     <div id="root"></div>
-    <!--
-      Cargamos nuestra aplicación. Se elimina 'data-type="module"' para
-      desactivar el sistema que causaba el conflicto.
+    <!-- 
+      Cargamos nuestra aplicación como un script normal, NO como un módulo.
+      Esto ignora cualquier `importmap` que el "fantasma" pueda añadir.
     -->
     <script type="text/babel" data-presets="react,typescript" src="./index.tsx"></script>
   <script type="module" src="/index.tsx"></script>
