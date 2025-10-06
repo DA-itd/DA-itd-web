@@ -1,14 +1,42 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Sistema de inscripción a cursos de actualización docente" />
-    <title>Sistema de Inscripción a Cursos</title>
+    <!-- Ruta relativa para que funcione en cualquier entorno -->
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sistema de Inscripción a Cursos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Librería de Google para el inicio de sesión -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
+    <!-- ES Module Shims para compatibilidad con importmap en todos los navegadores -->
+    <script async src="https://ga.jspm.io/npm:es-module-shims@1.10.0/dist/es-module-shims.js"></script>
+
+    <!-- Babel v7 para transpilar TSX -> JS en el navegador -->
+    <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+
+    <!--
+      Este es el importmap final y limpio. Define dónde encontrar React
+      como MÓDULOS, para que sea compatible con los "import" de los .tsx.
+    -->
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.2.0",
+        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client"
+      }
+    }
+    </script>
   </head>
   <body class="bg-gray-100">
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
+    <!-- 
+      Cargamos nuestra aplicación como un MÓDULO estándar.
+      Esto hace que sea compatible con los "import" de tus archivos .tsx.
+      La ruta es relativa para que funcione correctamente en GitHub Pages.
+    -->
+    <script type="text/babel" data-presets="react,typescript" src="./index.tsx" type="module"></script>
   </body>
-</html>
+</html>>
