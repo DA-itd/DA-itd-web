@@ -1,77 +1,32 @@
-// Fix: Import React and hooks for module-based TSX file.
-import React, { useState, useCallback } from 'react';
-import { User } from './types.ts';
-import Header from './components/Header.tsx';
-import LoginScreen from './components/LoginScreen.tsx';
-import RegistrationWorkflow from './components/RegistrationWorkflow.tsx';
-import RoleSelectionScreen from './components/RoleSelectionScreen.tsx';
+import React from "react";
 
-type Role = 'participant' | 'instructor';
-
-// Helper function to decode JWT
-const decodeJwt = (token: string) => {
-  try {
-    return JSON.parse(atob(token.split('.')[1]));
-  } catch (e) {
-    console.error("Error decoding JWT:", e);
-    return null;
-  }
-};
-
-const App: React.FC = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [role, setRole] = useState<Role | null>(null);
-
-  const handleLoginSuccess = useCallback((credential: string) => {
-    const payload = decodeJwt(credential);
-    if (payload) {
-      setUser({
-        name: payload.name,
-        email: payload.email,
-        picture: payload.picture,
-      });
-    } else {
-      // Handle login error, maybe show a notification
-      alert("Error al iniciar sesión. Por favor, intente de nuevo.");
-    }
-  }, []);
-
-  const handleLogout = useCallback(() => {
-    setUser(null);
-    setRole(null);
-    // In a real app with Google Sign-In, you might also want to revoke the session
-    // google.accounts.id.disableAutoSelect();
-  }, []);
-
-  const handleRoleSelection = (selectedRole: Role) => {
-    setRole(selectedRole);
-  }
-
-  const handleReturnToRoleSelection = () => {
-    setRole(null);
-  }
-
-  const renderContent = () => {
-    if (!user) {
-      return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
-    }
-    if (!role) {
-      return <RoleSelectionScreen onSelectRole={handleRoleSelection} />;
-    }
-    return <RegistrationWorkflow user={user} role={role} onLogout={handleLogout} onReturnToRoleSelection={handleReturnToRoleSelection} />;
-  }
-
+export default function App() {
   return (
-    <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
-      <Header user={user} onLogout={handleLogout} />
-      <main className="container mx-auto p-4 md:p-8">
-        {renderContent()}
-      </main>
-      <footer className="text-center py-4 text-gray-500 text-sm">
-        <p>&copy; {new Date().getFullYear()} Instituto Tecnológico de Durango. Todos los derechos reservados.</p>
-      </footer>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-center p-6">
+      <h1 className="text-3xl font-bold text-blue-600 mb-4">
+        Sistema de Inscripción a Cursos
+      </h1>
+      <p className="text-gray-700 mb-6 max-w-xl">
+        Bienvenido(a) al sistema de inscripción. Inicia sesión con tu cuenta institucional para consultar y registrarte en los cursos disponibles.
+      </p>
+
+      {/* Componente de Google Sign-In */}
+      <div
+        id="g_id_onload"
+        data-client_id="TU_CLIENT_ID_DE_GOOGLE.apps.googleusercontent.com"
+        data-login_uri="/login"
+        data-auto_prompt="false"
+      ></div>
+
+      <div
+        className="g_id_signin"
+        data-type="standard"
+        data-shape="rectangular"
+        data-theme="outline"
+        data-text="sign_in_with"
+        data-size="large"
+        data-logo_alignment="left"
+      ></div>
     </div>
   );
-};
-
-export default App;
+}
