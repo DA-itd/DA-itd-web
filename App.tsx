@@ -1,4 +1,4 @@
-// Fix: Import React to use hooks and JSX.
+// Fix: Import React to support JSX and React hooks.
 import React from 'react';
 import { User } from './types.ts';
 import Header from './components/Header.tsx';

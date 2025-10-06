@@ -1,4 +1,4 @@
-// Fix: Import React to use hooks and JSX.
+// Fix: Import React to support JSX and React hooks.
 import React from 'react';
 import { User, Teacher, Course, Department, RegistrationData } from '../types.ts';
 import { getTeachers, getCourses, getDepartments, submitRegistration } from '../services/api.ts';

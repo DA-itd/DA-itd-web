@@ -1,4 +1,4 @@
-// Fix: Import React and ReactDOM to use them as modules.
+// Fix: Import React and ReactDOM to support JSX and createRoot.
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';

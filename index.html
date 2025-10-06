@@ -11,32 +11,26 @@
     <!-- Librería de Google para el inicio de sesión -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     
-    <!-- ES Module Shims para compatibilidad con importmap en todos los navegadores -->
-    <script async src="https://ga.jspm.io/npm:es-module-shims@1.10.0/dist/es-module-shims.js"></script>
+    <!-- MÉTODO "A PRUEBA DE FANTASMAS": Cargar React y ReactDOM como scripts globales -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 
-    <!-- Babel v7 para transpilar TSX -> JS en el navegador -->
+    <!-- Babel v7 para transpilar TSX -> JS en el navegador (versión moderna y funcional) -->
     <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
 
     <!--
-      Este es el importmap final y limpio. Define dónde encontrar React
-      como MÓDULOS, para que sea compatible con los "import" de los .tsx.
+      NOTA IMPORTANTE: La sección <script type="importmap"> ha sido
+      ELIMINADA POR COMPLETO para evitar el conflicto que causa todos los errores.
     -->
-    <script type="importmap">
-    {
-      "imports": {
-        "react": "https://esm.sh/react@18.2.0",
-        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client"
-      }
-    }
-    </script>
-  </head>
+  <link rel="stylesheet" href="/index.css">
+</head>
   <body class="bg-gray-100">
     <div id="root"></div>
     <!-- 
-      Cargamos nuestra aplicación como un MÓDULO estándar.
-      Esto hace que sea compatible con los "import" de tus archivos .tsx.
+      Cargamos nuestra aplicación como un script normal, NO como un módulo.
       La ruta es relativa para que funcione correctamente en GitHub Pages.
     -->
-    <script type="text/babel" data-presets="react,typescript" src="./index.tsx" type="module"></script>
-  </body>
+    <script type="text/babel" data-presets="react,typescript" src="./index.tsx"></script>
+  <script type="module" src="/index.tsx"></script>
+</body>
 </html>
