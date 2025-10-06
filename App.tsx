@@ -13,7 +13,7 @@ export default function App() {
       {/* Componente de Google Sign-In */}
       <div
         id="g_id_onload"
-        data-client_id="TU_CLIENT_ID_DE_GOOGLE.apps.googleusercontent.com"
+        data-client_id="524996225715-5l95j3lces5hi49c19rfgotdrfo2seq1.apps.googleusercontent.com"
         data-login_uri="/login"
         data-auto_prompt="false"
       ></div>
