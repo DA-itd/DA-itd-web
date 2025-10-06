@@ -1,5 +1,5 @@
-// Fix: Import React for module-based TSX file.
-import React from 'react';
+// Fix: Import React and hooks for module-based TSX file.
+import React, { useRef, useEffect } from 'react';
 
 // Declaramos 'google' para que TypeScript no se queje, ya que se carga desde un script externo.
 declare const google: any;
@@ -9,9 +9,9 @@ interface LoginScreenProps {
 }
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
-  const googleButtonRef = React.useRef<HTMLDivElement>(null);
+  const googleButtonRef = useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!google) {
       console.error("Google's script did not load.");
       return;
