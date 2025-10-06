@@ -1,3 +1,4 @@
+// Fix: Import React for module-based TSX file.
 import React from 'react';
 
 export const CheckIcon: React.FC<{className?: string}> = ({className}) => (

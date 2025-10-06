@@ -1,4 +1,4 @@
-// Fix: Import React to support JSX.
+// Fix: Import React for module-based TSX file.
 import React from 'react';
 import { User } from '../types.ts';
 

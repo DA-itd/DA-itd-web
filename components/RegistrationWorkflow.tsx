@@ -1,4 +1,4 @@
-// Fix: Import React to support JSX and React hooks.
+// Fix: Import React for module-based TSX file.
 import React from 'react';
 import { User, Teacher, Course, Department, RegistrationData } from '../types.ts';
 import { getTeachers, getCourses, getDepartments, submitRegistration } from '../services/api.ts';
@@ -10,7 +10,6 @@ const MAX_FILE_SIZE_MB = 2;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 const RegistrationWorkflow: React.FC<{ user: User; role: 'participant' | 'instructor'; onLogout: () => void; onReturnToRoleSelection: () => void; }> = ({ user, role, onLogout, onReturnToRoleSelection }) => {
-    // Data states
     const [teachers, setTeachers] = React.useState<Teacher[]>([]);
     const [courses, setCourses] = React.useState<Course[]>([]);
     const [departments, setDepartments] = React.useState<Department[]>([]);

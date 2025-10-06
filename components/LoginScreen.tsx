@@ -1,4 +1,4 @@
-// Fix: Import React to support JSX and React hooks.
+// Fix: Import React for module-based TSX file.
 import React from 'react';
 
 // Declaramos 'google' para que TypeScript no se queje, ya que se carga desde un script externo.
