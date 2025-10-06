@@ -19,7 +19,7 @@
 
     <!--
       Este es el importmap final y limpio. Define dónde encontrar React
-      como MÓDULOS. No hay scripts UMD que entren en conflicto.
+      como MÓDULOS, para que sea compatible con los "import" de los .tsx.
     -->
     <script type="importmap">
     {
@@ -34,8 +34,8 @@
     <div id="root"></div>
     <!-- 
       Cargamos nuestra aplicación como un MÓDULO estándar.
-      La ruta es relativa para que funcione correctamente en GitHub Pages.
       Esto hace que sea compatible con los "import" de tus archivos .tsx.
+      La ruta es relativa para que funcione correctamente en GitHub Pages.
     -->
     <script type="text/babel" data-presets="react,typescript" src="./index.tsx" type="module"></script>
   </body>
