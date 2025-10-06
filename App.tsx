@@ -9,12 +9,38 @@ export default function App() {
     curso: "",
   });
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  try {
+    const response = await fetch(
+      "https://script.google.com/macros/s/AKfycbzYJgSKAg0uVC3Z_EQbCGNXwCnPh8x2Y195nrOshyHh0rGHgZABcBZy_2uuJAyVprte/exec", // 🔗 Reemplaza con tu URL real del Apps Script
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      }
+    );
+
+    const result = await response.json();
+
+    if (result.status === "success") {
+      alert("✅ Registro enviado correctamente.");
+      // Limpia el formulario
+      setFormData({
+        nombre: "",
+        curp: "",
+        email: "",
+        departamento: "",
+        curso: "",
+      });
+    } else {
+      alert("⚠️ Error: " + result.message);
+    }
+  } catch (error) {
+    alert("❌ No se pudo conectar con el servidor: " + error);
+  }
+};
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
