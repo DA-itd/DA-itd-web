@@ -1,32 +1,155 @@
-import React from "react";
+import React, { useState } from "react";
 
 export default function App() {
+  const [formData, setFormData] = useState({
+    nombre: "",
+    curp: "",
+    email: "",
+    departamento: "",
+    curso: "",
+  });
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("Datos enviados:", formData);
+    alert("Registro enviado correctamente (simulado). ✅");
+    // Aquí puedes conectar con Google Sheets API o un endpoint
+  };
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-center p-6">
-      <h1 className="text-3xl font-bold text-blue-600 mb-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6">
+      <h1 className="text-3xl font-bold text-blue-600 mb-2 text-center">
         Sistema de Inscripción a Cursos
       </h1>
-      <p className="text-gray-700 mb-6 max-w-xl">
-        Bienvenido(a) al sistema de inscripción. Inicia sesión con tu cuenta institucional para consultar y registrarte en los cursos disponibles.
+      <p className="text-gray-600 mb-8 text-center">
+        Completa el siguiente formulario para registrarte.
       </p>
 
-      {/* Componente de Google Sign-In */}
-      <div
-        id="g_id_onload"
-        data-client_id="524996225715-5l95j3lces5hi49c19rfgotdrfo2seq1.apps.googleusercontent.com"
-        data-login_uri="/login"
-        data-auto_prompt="false"
-      ></div>
+      {/* FORMULARIO */}
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white shadow-lg rounded-2xl p-6 w-full max-w-md space-y-4"
+      >
+        {/* Nombre */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Nombre completo
+          </label>
+          <input
+            type="text"
+            name="nombre"
+            value={formData.nombre}
+            onChange={handleChange}
+            required
+            className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Ej. Juan Pérez"
+          />
+        </div>
 
-      <div
-        className="g_id_signin"
-        data-type="standard"
-        data-shape="rectangular"
-        data-theme="outline"
-        data-text="sign_in_with"
-        data-size="large"
-        data-logo_alignment="left"
-      ></div>
+        {/* CURP */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            CURP
+          </label>
+          <input
+            type="text"
+            name="curp"
+            value={formData.curp}
+            onChange={handleChange}
+            required
+            className="w-full p-2 border border-gray-300 rounded-lg uppercase focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Ej. PEXJ800101HDFRZN09"
+          />
+        </div>
+
+        {/* Email */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Correo institucional
+          </label>
+          <input
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            required
+            className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Ej. juan.perez@itdurango.edu.mx"
+          />
+        </div>
+
+        {/* Departamento */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Departamento
+          </label>
+          <select
+            name="departamento"
+            value={formData.departamento}
+            onChange={handleChange}
+            required
+            className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Selecciona una opción</option>
+            <option value="Sistemas y Computación">Sistemas y Computación</option>
+            <option value="Industrial">Industrial</option>
+            <option value="Electrónica">Electrónica</option>
+            <option value="Gestión Empresarial">Gestión Empresarial</option>
+            <option value="Química">Química</option>
+            <option value="Ciencias Básicas">Ciencias Básicas</option>
+            <option value="Administración">Administración</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+
+        {/* Curso */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Curso solicitado
+          </label>
+          <select
+            name="curso"
+            value={formData.curso}
+            onChange={handleChange}
+            required
+            className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Selecciona un curso</option>
+            <option value="Inteligencia Artificial para Docentes">
+              Inteligencia Artificial para Docentes
+            </option>
+            <option value="Metodologías Activas de Enseñanza">
+              Metodologías Activas de Enseñanza
+            </option>
+            <option value="Seguridad y Hacking Ético con IA">
+              Seguridad y Hacking Ético con IA
+            </option>
+            <option value="Marco Legal en la Ética de la Investigación">
+              Marco Legal en la Ética de la Investigación
+            </option>
+          </select>
+        </div>
+
+        {/* Botón */}
+        <button
+          type="submit"
+          className="w-full bg-blue-600 text-white font-medium py-2 rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          Enviar inscripción
+        </button>
+      </form>
+
+      {/* Mensaje */}
+      <p className="text-gray-500 text-sm mt-6">
+        Tu información será enviada al sistema de actualización docente.
+      </p>
     </div>
   );
 }
