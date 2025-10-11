@@ -37,8 +37,9 @@ interface RegistrationResult {
   registrationId: string;
 }
 
-// FIX: Omitted 'selectedCourses' from FormData to avoid type conflict.
-interface SubmissionData extends Omit<FormData, 'selectedCourses'> {
+// FIX: Remapped 'department' to 'DepartamentoSeleccionado' to match the backend sheet column.
+interface SubmissionData extends Omit<FormData, 'selectedCourses' | 'department'> {
+  DepartamentoSeleccionado: string;
   timestamp: string;
   selectedCourses: {
     id: string;
@@ -47,6 +48,7 @@ interface SubmissionData extends Omit<FormData, 'selectedCourses'> {
     location: string;
     schedule: string;
   }[];
+  previousRegistrationIds?: string[];
 }
 
 // =============================================================================
@@ -173,6 +175,7 @@ const getRegistrationByCurp = async (curp: string): Promise<string[]> => {
         const url = new URL(APPS_SCRIPT_URL);
         url.searchParams.append('action', 'lookupByCurp');
         url.searchParams.append('curp', curp);
+        url.searchParams.append('_', new Date().getTime().toString()); // Cache-busting parameter
         
         const response = await fetch(url.toString(), {
             method: 'GET',
@@ -229,6 +232,35 @@ const submitRegistration = async (submission: SubmissionData): Promise<Registrat
         throw new Error("La comunicación con el servidor falló. Verifique su conexión y la configuración del script de registro.");
     }
 };
+
+const cancelSingleCourse = async (payload: { curp: string; email: string; fullName: string; courseToCancel: { id: string; name: string } }): Promise<void> => {
+    const APPS_SCRIPT_URL = (window as any).CONFIG?.APPS_SCRIPT_URL;
+    if (!APPS_SCRIPT_URL) {
+        throw new Error("La URL de configuración de Google Apps Script no está disponible.");
+    }
+
+    // Add an 'action' property to the payload so the backend knows how to handle this request
+    const body = { ...payload, action: 'cancelSingle' };
+
+    try {
+        const response = await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'cors',
+            redirect: 'follow',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(body)
+        });
+
+        const result = await response.json();
+        if (!result || result.status !== 'success') {
+            throw new Error(result.message || 'Ocurrió un error en el servidor al cancelar el curso.');
+        }
+    } catch (error) {
+        console.error("Error cancelling single course via Google Apps Script:", error);
+        throw error; // Re-throw to be caught by the calling function
+    }
+};
+
 
 // =============================================================================
 // == COMPONENTS
@@ -293,6 +325,86 @@ const Stepper: React.FC<StepperProps> = ({ currentStep, steps }) => {
                         </React.Fragment>
                     );
                 })}
+            </div>
+        </div>
+    );
+};
+
+const ExistingRegistrationModal: React.FC<{
+    isOpen: boolean;
+    courses: Course[];
+    onModify: () => void;
+    onCancelAll: () => void;
+    onClose: () => void;
+    onDeleteCourse: (courseId: string) => Promise<void>;
+    isCancelling: boolean;
+    deletingCourseId: string | null;
+}> = ({ isOpen, courses, onModify, onCancelAll, onClose, onDeleteCourse, isCancelling, deletingCourseId }) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+            <div className="relative mx-auto p-8 border w-full max-w-lg shadow-lg rounded-md bg-white">
+                <h3 className="text-2xl font-bold text-gray-800">Registro Encontrado</h3>
+                <div className="mt-4">
+                    <p className="text-gray-600">Hemos detectado que ya tiene cursos registrados con este CURP. Puede eliminar cursos individualmente o modificar su selección completa.</p>
+                    <div className="mt-4 space-y-2 bg-gray-50 p-4 rounded-md border">
+                        {courses.length > 0 ? (
+                            courses.map(course => (
+                                <div key={course.id} className="flex items-center justify-between py-1">
+                                    <span className="font-semibold text-gray-700 flex-1 pr-4">{course.name}</span>
+                                    <button
+                                        onClick={() => onDeleteCourse(course.id)}
+                                        disabled={!!deletingCourseId}
+                                        className="bg-red-100 text-red-700 font-semibold py-1 px-3 rounded-md hover:bg-red-200 disabled:opacity-50 disabled:cursor-wait text-sm flex items-center transition-colors"
+                                    >
+                                        {deletingCourseId === course.id ? (
+                                            <>
+                                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-red-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                <span>Eliminando...</span>
+                                            </>
+                                        ) : (
+                                            <span>Eliminar</span>
+                                        )}
+                                    </button>
+                                </div>
+                            ))
+                        ) : (
+                             <p className="text-gray-500 italic">No tiene cursos registrados actualmente.</p>
+                        )}
+                    </div>
+                    <p className="text-gray-600 mt-6">¿Qué desea hacer?</p>
+                </div>
+                <div className="mt-8 flex flex-col sm:flex-row-reverse gap-3">
+                    <button
+                        onClick={onModify}
+                        className="w-full sm:w-auto bg-rose-800 text-white font-bold py-2 px-6 rounded-lg hover:bg-rose-900"
+                    >
+                        Modificar Selección
+                    </button>
+                    <button
+                        onClick={onCancelAll}
+                        disabled={isCancelling}
+                        className="w-full sm:w-auto bg-red-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-red-700 disabled:bg-red-300 flex items-center justify-center"
+                    >
+                         {isCancelling && (
+                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        )}
+                        {isCancelling ? 'Cancelando...' : 'Cancelar Inscripción'}
+                    </button>
+                    <button
+                        onClick={onClose}
+                        className="w-full sm:w-auto bg-gray-200 text-gray-800 font-bold py-2 px-6 rounded-lg hover:bg-gray-300 mt-2 sm:mt-0 sm:mr-auto"
+                    >
+                        Cerrar
+                    </button>
+                </div>
             </div>
         </div>
     );
@@ -396,16 +508,21 @@ interface Step1Props {
     teachers: Teacher[];
     allCourses: Course[];
     setSelectedCourses: (courses: Course[]) => void;
+    setOriginalSelectedCourses: (courses: Course[]) => void;
     onNext: () => void;
+    onCancelAll: () => Promise<void>;
 }
 
-const Step1PersonalInfo: React.FC<Step1Props> = ({ formData, setFormData, departments, teachers, allCourses, setSelectedCourses, onNext }) => {
+const Step1PersonalInfo: React.FC<Step1Props> = ({ formData, setFormData, departments, teachers, allCourses, setSelectedCourses, setOriginalSelectedCourses, onNext, onCancelAll }) => {
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [isCheckingCurp, setIsCheckingCurp] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [existingCourses, setExistingCourses] = useState<Course[]>([]);
+    const [isCancelling, setIsCancelling] = useState(false);
+    const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
     const lookupTriggered = useRef(false);
 
     useEffect(() => {
-        // Check for existing registration when CURP is valid and not already checked
         if (formData.curp.length === 18 && !lookupTriggered.current) {
             const checkForRegistration = async () => {
                 setIsCheckingCurp(true);
@@ -414,21 +531,73 @@ const Step1PersonalInfo: React.FC<Step1Props> = ({ formData, setFormData, depart
                 setIsCheckingCurp(false);
 
                 if (registeredCourseIds.length > 0) {
-                    if (window.confirm("Hemos encontrado un registro previo con este CURP. ¿Desea modificar su selección de cursos?")) {
-                        const preSelectedCourses = allCourses.filter(c => registeredCourseIds.includes(c.id));
-                        setSelectedCourses(preSelectedCourses);
-                        onNext(); // Directly go to Step 2
+                    const preSelectedCourses = allCourses.filter(c => registeredCourseIds.includes(c.id));
+                    if (preSelectedCourses.length > 0) {
+                        setExistingCourses(preSelectedCourses);
+                        setOriginalSelectedCourses(preSelectedCourses);
+                        setIsModalOpen(true);
                     }
                 }
             };
             checkForRegistration();
         }
-        // Reset the trigger if CURP changes
         if (formData.curp.length !== 18) {
             lookupTriggered.current = false;
         }
-    }, [formData.curp, onNext, allCourses, setSelectedCourses]);
+    }, [formData.curp, allCourses, setOriginalSelectedCourses]);
 
+    const handleCloseModal = () => setIsModalOpen(false);
+
+    const handleModifyRegistration = () => {
+        setSelectedCourses(existingCourses);
+        // Ensure original courses are set for comparison on submission
+        setOriginalSelectedCourses(existingCourses);
+        setIsModalOpen(false);
+        onNext();
+    };
+
+    const handleCancelRegistration = async () => {
+        if (window.confirm('¿Está seguro de que desea cancelar TODA su inscripción? Esta acción no se puede deshacer.')) {
+            setIsCancelling(true);
+            await onCancelAll();
+            setIsCancelling(false);
+            setIsModalOpen(false);
+        }
+    };
+    
+    const handleDeleteCourse = async (courseIdToDelete: string) => {
+        setDeletingCourseId(courseIdToDelete);
+        try {
+            const courseToDelete = existingCourses.find(c => c.id === courseIdToDelete);
+            if (!courseToDelete) {
+                throw new Error("No se encontró el curso para eliminar.");
+            }
+            
+            await cancelSingleCourse({
+                curp: formData.curp,
+                email: formData.email,
+                fullName: formData.fullName,
+                courseToCancel: {
+                    id: courseToDelete.id,
+                    name: courseToDelete.name,
+                }
+            });
+
+            const updatedCourses = existingCourses.filter(c => c.id !== courseIdToDelete);
+            setExistingCourses(updatedCourses);
+            setOriginalSelectedCourses(updatedCourses);
+
+            if (updatedCourses.length === 0) {
+                setIsModalOpen(false);
+            }
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Hubo un error al eliminar el curso.";
+            alert(`Error: ${errorMessage}`);
+        } finally {
+            setDeletingCourseId(null);
+        }
+    };
+    
     const validate = () => {
         const newErrors: { [key: string]: string } = {};
         if (!formData.fullName) newErrors.fullName = "Este campo es obligatorio.";
@@ -459,71 +628,110 @@ const Step1PersonalInfo: React.FC<Step1Props> = ({ formData, setFormData, depart
             finalValue = value.toUpperCase();
         }
 
-        setFormData(prev => ({ ...prev, [name]: finalValue }));
+        setFormData(prev => {
+            const newState = { ...prev, [name]: finalValue };
+
+            if (name === 'curp' && finalValue.length >= 11) {
+                const genderChar = finalValue.charAt(10).toUpperCase();
+                if (genderChar === 'H') {
+                    newState.gender = 'Hombre';
+                } else if (genderChar === 'M') {
+                    newState.gender = 'Mujer';
+                }
+            }
+            return newState;
+        });
     };
 
     const handleTeacherSelect = (teacher: Teacher) => {
         const { nombreCompleto, curp, email } = teacher;
+        const upperCurp = (curp || '').toUpperCase();
+        
+        let inferredGender = 'Mujer'; // Start with default
+        if (upperCurp.length >= 11) {
+            const genderChar = upperCurp.charAt(10).toUpperCase();
+            if (genderChar === 'H') {
+                inferredGender = 'Hombre';
+            } else if (genderChar === 'M') {
+                inferredGender = 'Mujer';
+            } else {
+                inferredGender = 'Otro';
+            }
+        }
+
         setFormData(prev => ({
             ...prev,
             fullName: (nombreCompleto || '').toUpperCase(),
-            curp: (curp || '').toUpperCase(),
+            curp: upperCurp,
             email: (email || '').toLowerCase(),
+            gender: inferredGender,
         }));
     };
 
     return (
-        <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold mb-6 text-gray-800">Información Personal</h2>
-            <form onSubmit={handleSubmit} noValidate>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">Nombre Completo *</label>
-                        <AutocompleteInput 
-                            teachers={teachers} 
-                            onSelect={handleTeacherSelect} 
-                            value={formData.fullName}
-                            onChange={handleChange}
-                            name="fullName"
-                            placeholder="Escriba su nombre completo"
-                        />
-                        {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>}
-                    </div>
-                    <div>
-                        <label htmlFor="curp" className="block text-sm font-medium text-gray-700">CURP *</label>
-                        <div className="relative">
-                            <input type="text" name="curp" id="curp" value={formData.curp} onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="18 caracteres" maxLength={18} required />
-                            {isCheckingCurp && <div className="absolute inset-y-0 right-0 flex items-center pr-3"><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div></div>}
+        <>
+            <ExistingRegistrationModal
+                isOpen={isModalOpen}
+                courses={existingCourses}
+                onModify={handleModifyRegistration}
+                onCancelAll={handleCancelRegistration}
+                onClose={handleCloseModal}
+                isCancelling={isCancelling}
+                onDeleteCourse={handleDeleteCourse}
+                deletingCourseId={deletingCourseId}
+            />
+            <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto">
+                <h2 className="text-2xl font-bold mb-6 text-gray-800">Información Personal</h2>
+                <form onSubmit={handleSubmit} noValidate>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">Nombre Completo *</label>
+                            <AutocompleteInput 
+                                teachers={teachers} 
+                                onSelect={handleTeacherSelect} 
+                                value={formData.fullName}
+                                onChange={handleChange}
+                                name="fullName"
+                                placeholder="Escriba su nombre completo"
+                            />
+                            {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>}
                         </div>
-                        {errors.curp && <p className="text-red-500 text-xs mt-1">{errors.curp}</p>}
+                        <div>
+                            <label htmlFor="curp" className="block text-sm font-medium text-gray-700">CURP *</label>
+                            <div className="relative">
+                                <input type="text" name="curp" id="curp" value={formData.curp} onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="18 caracteres" maxLength={18} required />
+                                {isCheckingCurp && <div className="absolute inset-y-0 right-0 flex items-center pr-3"><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div></div>}
+                            </div>
+                            {errors.curp && <p className="text-red-500 text-xs mt-1">{errors.curp}</p>}
+                        </div>
+                        <div>
+                            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email Institucional *</label>
+                            <input type="email" name="email" id="email" value={formData.email} onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="nombre@itdurango.edu.mx" required />
+                            {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+                        </div>
+                        <div>
+                            <label htmlFor="gender" className="block text-sm font-medium text-gray-700">Género *</label>
+                            <select name="gender" id="gender" value={formData.gender} onChange={handleChange} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md" required>
+                                <option>Mujer</option>
+                                <option>Hombre</option>
+                                <option>Otro</option>
+                            </select>
+                        </div>
+                        <div className="md:col-span-2">
+                            <label htmlFor="department" className="block text-sm font-medium text-gray-700">Departamento *</label>
+                            <select name="department" id="department" value={formData.department} onChange={handleChange} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md" required>
+                                <option value="">Seleccione un departamento</option>
+                                {departments.map(dep => <option key={dep} value={dep}>{dep}</option>)}
+                            </select>
+                            {errors.department && <p className="text-red-500 text-xs mt-1">{errors.department}</p>}
+                        </div>
                     </div>
-                    <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email Institucional *</label>
-                        <input type="email" name="email" id="email" value={formData.email} onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="nombre@itdurango.edu.mx" required />
-                        {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+                    <div className="mt-8 flex justify-end">
+                        <button type="submit" className="bg-rose-800 text-white font-bold py-2 px-6 rounded-lg hover:bg-rose-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-700">Continuar</button>
                     </div>
-                    <div>
-                        <label htmlFor="gender" className="block text-sm font-medium text-gray-700">Género *</label>
-                        <select name="gender" id="gender" value={formData.gender} onChange={handleChange} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md" required>
-                            <option>Mujer</option>
-                            <option>Hombre</option>
-                            <option>Otro</option>
-                        </select>
-                    </div>
-                    <div className="md:col-span-2">
-                        <label htmlFor="department" className="block text-sm font-medium text-gray-700">Departamento *</label>
-                        <select name="department" id="department" value={formData.department} onChange={handleChange} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md" required>
-                            <option value="">Seleccione un departamento</option>
-                            {departments.map(dep => <option key={dep} value={dep}>{dep}</option>)}
-                        </select>
-                        {errors.department && <p className="text-red-500 text-xs mt-1">{errors.department}</p>}
-                    </div>
-                </div>
-                <div className="mt-8 flex justify-end">
-                    <button type="submit" className="bg-rose-800 text-white font-bold py-2 px-6 rounded-lg hover:bg-rose-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-700">Continuar</button>
-                </div>
-            </form>
-        </div>
+                </form>
+            </div>
+        </>
     );
 };
 
@@ -769,6 +977,16 @@ interface Step4Props {
 }
 
 const Step4Success: React.FC<Step4Props> = ({ registrationResult, applicantName }) => {
+    const formatRegistrationId = (id: string): string => {
+        // Fix for duplicated prefix, e.g., "TNM-054-TNM-054..." becomes "TNM-054..."
+        let formattedId = id.replace(/^([A-Z0-9-]+)-\1-/, '$1-');
+        
+        // Also keep the fix for a duplicated year, just in case.
+        formattedId = formattedId.replace(/(\d{4})-\1/g, '$1');
+        
+        return formattedId;
+    };
+
     return (
         <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto text-center">
             <svg className="mx-auto h-16 w-16 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -788,7 +1006,7 @@ const Step4Success: React.FC<Step4Props> = ({ registrationResult, applicantName 
                         {registrationResult.map((result) => (
                             <li key={result.registrationId} className="p-3 bg-gray-50 rounded-md border border-gray-100">
                                 <p className="font-semibold text-gray-800">{result.courseName}</p>
-                                <p className="text-sm text-gray-500">Folio: <span className="font-mono bg-gray-200 text-gray-700 px-2 py-1 rounded">{result.registrationId}</span></p>
+                                <p className="text-sm text-gray-500">Folio: <span className="font-mono bg-gray-200 text-gray-700 px-2 py-1 rounded">{formatRegistrationId(result.registrationId)}</span></p>
                             </li>
                         ))}
                     </ul>
@@ -826,6 +1044,7 @@ const App: React.FC = () => {
     const [currentStep, setCurrentStep] = useState(1);
     const [formData, setFormData] = useState<FormData>(initialFormData);
     const [selectedCourses, setSelectedCourses] = useState<Course[]>([]);
+    const [originalSelectedCourses, setOriginalSelectedCourses] = useState<Course[]>([]);
     const [registrationResult, setRegistrationResult] = useState<RegistrationResult[]>([]);
 
     const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -879,6 +1098,7 @@ const App: React.FC = () => {
     const handleStartOver = () => {
         setFormData(initialFormData);
         setSelectedCourses([]);
+        setOriginalSelectedCourses([]);
         setRegistrationResult([]);
         setError(null);
         setCurrentStep(1);
@@ -888,8 +1108,11 @@ const App: React.FC = () => {
         // Clear previous errors before submitting
         setError(null);
 
+        const { department, ...restOfFormData } = formData;
+
         const submissionData: SubmissionData = {
-            ...formData,
+            ...restOfFormData,
+            DepartamentoSeleccionado: department,
             timestamp: new Date().toISOString(),
             selectedCourses: selectedCourses.map(c => ({
                 id: c.id,
@@ -899,6 +1122,11 @@ const App: React.FC = () => {
                 schedule: c.schedule,
             })),
         };
+        
+        // If this is a modification, include the original course IDs
+        if (originalSelectedCourses.length > 0) {
+            submissionData.previousRegistrationIds = originalSelectedCourses.map(c => c.id);
+        }
 
         const updatedFormData = { ...formData, selectedCourses: selectedCourses.map(c => c.id) };
         setFormData(updatedFormData);
@@ -916,6 +1144,27 @@ const App: React.FC = () => {
         }
     };
 
+    const handleCancelRegistration = async () => {
+        const { department, ...restOfFormData } = formData;
+        const submissionData: SubmissionData = {
+            ...restOfFormData,
+            DepartamentoSeleccionado: department,
+            timestamp: new Date().toISOString(),
+            selectedCourses: [], // Empty array signifies cancellation
+        };
+
+        try {
+            await submitRegistration(submissionData);
+            alert('Su inscripción ha sido cancelada exitosamente.');
+            handleStartOver();
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Hubo un error al cancelar su registro.";
+            alert(`Error: ${errorMessage}`);
+            setError(errorMessage);
+        }
+    };
+
+
     const renderStep = () => {
         // Centralized error display for submission errors on Step 3
         if (error && currentStep === 3) {
@@ -932,7 +1181,7 @@ const App: React.FC = () => {
         
         switch (currentStep) {
             case 1:
-                return <Step1PersonalInfo formData={formData} setFormData={setFormData} departments={departments} teachers={teachers} allCourses={courses} setSelectedCourses={setSelectedCourses} onNext={handleNext} />;
+                return <Step1PersonalInfo formData={formData} setFormData={setFormData} departments={departments} teachers={teachers} allCourses={courses} setSelectedCourses={setSelectedCourses} setOriginalSelectedCourses={setOriginalSelectedCourses} onNext={handleNext} onCancelAll={handleCancelRegistration} />;
             case 2:
                 return <Step2CourseSelection courses={courses} selectedCourses={selectedCourses} setSelectedCourses={setSelectedCourses} onNext={handleNext} onBack={handleBack} />;
             case 3:
