@@ -94,3 +94,48 @@ Ahora vamos a publicar la página web para que todo el mundo pueda verla.
 4.  **¡Listo!**
     -   GitHub te mostrará un enlace a tu sitio publicado (puede tardar un par de minutos en activarse). La URL será algo como `https://tu-usuario.github.io/tu-repositorio/`.
     -   ¡Visita el enlace y tu sistema de inscripción estará en línea y funcionando!
+
+---
+
+## Parte 4: Solución de Problemas (Troubleshooting)
+
+### Error Común: "Error de envío: La comunicación con el servidor falló"
+
+Este es el error más frecuente. Casi siempre significa que tu página web no puede contactar al script de Google. La causa #1 es que la URL del script en tu `index.html` es incorrecta o está desactualizada.
+
+---
+
+#### **Causa Principal: Acabas de modificar `Code.gs`**
+
+**¡IMPORTANTE!** Cada vez que editas y guardas tu archivo `Code.gs`, los cambios **no se publican automáticamente**. Debes actualizar tu implementación para que los cambios estén activos en la web.
+
+Sigue estos pasos **cada vez que modifiques el script**:
+
+1.  En tu proyecto de Apps Script, haz clic en el botón azul **`Implementar`** (Deploy) en la esquina superior derecha.
+2.  Selecciona **`Gestionar implementaciones`** (Manage deployments).
+3.  En la ventana que aparece, haz clic en el **ícono de lápiz (✏️)** para editar tu implementación activa.
+4.  En el menú desplegable **`Versión`** (Version), selecciona **`Nueva versión`** (New version).
+5.  Haz clic en el botón **`Implementar`** (Deploy).
+6.  Apps Script te mostrará la URL actualizada de la implementación. **¡COPIA ESTA URL!** Es la única URL que funcionará con tus nuevos cambios.
+7.  Abre tu archivo `index.html`, busca la sección `window.CONFIG` y **pega la nueva URL**, reemplazando la antigua.
+8.  Guarda `index.html` y vuelve a subirlo a tu hosting (por ejemplo, GitHub Pages).
+
+> **Alternativa:** Si prefieres, puedes usar `Implementar` > `Nueva implementación`. Esto también funciona, pero te creará múltiples implementaciones. Gestionar una sola es más ordenado.
+
+---
+
+#### Checklist de Diagnóstico General
+
+Si el error persiste después de actualizar la URL, revisa estos puntos:
+
+**1. ¿Los permisos de acceso son correctos?**
+   - **Problema:** El script no está configurado para ser accesible públicamente.
+   - **Solución:** Ve a `Implementar` > `Gestionar implementaciones`, edita (✏️) tu implementación y asegúrate de que la opción **`Quién tiene acceso`** (Who has access) esté configurada como **`Cualquier persona`** (Anyone).
+
+**2. ¿Hay errores dentro del script `Code.gs`?**
+   - **Problema:** El script tiene un error de programación que le impide ejecutarse.
+   - **Solución:** En el editor de Apps Script, haz clic en `Ejecuciones` (Executions) en el menú de la izquierda. Busca si hay ejecuciones con estado "Error". Haz clic en ellas para ver los detalles y los registros (`console.log`) que te ayudarán a encontrar el error.
+
+**3. ¿Configuraste el ID de la Hoja de Cálculo?**
+   - **Problema:** El script no sabe a qué hoja de cálculo conectarse.
+   - **Solución:** Asegúrate de que en la línea `var SPREADSHEET_ID = '...';` dentro de `Code.gs` hayas reemplazado el texto de ejemplo con el ID real de tu hoja de Google Sheets.

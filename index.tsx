@@ -228,8 +228,14 @@ const submitRegistration = async (submission: SubmissionData): Promise<Registrat
 
     } catch (error) {
         console.error("Error submitting registration to Google Apps Script:", error);
-        // **FIX**: Provide a more user-friendly error message
-        throw new Error("La comunicación con el servidor falló. Verifique su conexión y la configuración del script de registro.");
+        // This catch block handles fetch failures (network, CORS) or JSON parsing errors.
+        throw new Error(
+            "La comunicación con el servidor falló. Esto puede ocurrir por varias razones:\n\n" +
+            "1. **URL del Script Incorrecta:** La URL en `index.html` puede ser errónea o estar desactualizada. Si actualizó el script, debe crear una 'Nueva implementación' y usar la nueva URL generada.\n\n" +
+            "2. **Permisos del Script:** El script debe estar implementado con acceso para 'Cualquier persona'.\n\n" +
+            "3. **Conexión a Internet:** Verifique su conexión.\n\n" +
+            "Por favor, revise estos puntos o contacte al administrador del sistema."
+        );
     }
 };
 
@@ -257,7 +263,13 @@ const cancelSingleCourse = async (payload: { curp: string; email: string; fullNa
         }
     } catch (error) {
         console.error("Error cancelling single course via Google Apps Script:", error);
-        throw error; // Re-throw to be caught by the calling function
+        throw new Error(
+            "La comunicación con el servidor falló al intentar cancelar el curso. Esto puede ocurrir por varias razones:\n\n" +
+            "1. **URL del Script Incorrecta:** La URL en `index.html` puede ser errónea o estar desactualizada. Si actualizó el script, debe crear una 'Nueva implementación' y usar la nueva URL generada.\n\n" +
+            "2. **Permisos del Script:** El script debe estar implementado con acceso para 'Cualquier persona'.\n\n" +
+            "3. **Conexión a Internet:** Verifique su conexión.\n\n" +
+            "Por favor, revise estos puntos o contacte al administrador del sistema."
+        );
     }
 };
 
@@ -288,7 +300,7 @@ const Footer: React.FC = () => {
     return (
         <footer className="bg-blue-800 text-white text-center p-4 mt-auto">
             <p className="font-semibold">COORDINACIÓN DE ACTUALIZACIÓN DOCENTE - Desarrollo Académico</p>
-            <p className="text-sm">Todos los derechos reservados 2026.</p>
+            <p className="text-sm">Todos los derechos reservados {new Date().getFullYear()}.</p>
         </footer>
     );
 };
@@ -334,12 +346,10 @@ const ExistingRegistrationModal: React.FC<{
     isOpen: boolean;
     courses: Course[];
     onModify: () => void;
-    onCancelAll: () => void;
     onClose: () => void;
     onDeleteCourse: (courseId: string) => Promise<void>;
-    isCancelling: boolean;
     deletingCourseId: string | null;
-}> = ({ isOpen, courses, onModify, onCancelAll, onClose, onDeleteCourse, isCancelling, deletingCourseId }) => {
+}> = ({ isOpen, courses, onModify, onClose, onDeleteCourse, deletingCourseId }) => {
     if (!isOpen) return null;
 
     return (
@@ -356,18 +366,18 @@ const ExistingRegistrationModal: React.FC<{
                                     <button
                                         onClick={() => onDeleteCourse(course.id)}
                                         disabled={!!deletingCourseId}
-                                        className="bg-red-100 text-red-700 font-semibold py-1 px-3 rounded-md hover:bg-red-200 disabled:opacity-50 disabled:cursor-wait text-sm flex items-center transition-colors"
+                                        className="p-2 rounded-full text-gray-500 hover:bg-red-100 hover:text-red-700 transition-colors disabled:opacity-50 disabled:cursor-wait flex items-center justify-center"
+                                        aria-label="Eliminar curso"
                                     >
                                         {deletingCourseId === course.id ? (
-                                            <>
-                                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-red-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                </svg>
-                                                <span>Eliminando...</span>
-                                            </>
+                                            <svg className="animate-spin h-5 w-5 text-red-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
                                         ) : (
-                                            <span>Eliminar</span>
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" />
+                                            </svg>
                                         )}
                                     </button>
                                 </div>
@@ -384,19 +394,6 @@ const ExistingRegistrationModal: React.FC<{
                         className="w-full sm:w-auto bg-rose-800 text-white font-bold py-2 px-6 rounded-lg hover:bg-rose-900"
                     >
                         Modificar Selección
-                    </button>
-                    <button
-                        onClick={onCancelAll}
-                        disabled={isCancelling}
-                        className="w-full sm:w-auto bg-red-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-red-700 disabled:bg-red-300 flex items-center justify-center"
-                    >
-                         {isCancelling && (
-                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                        )}
-                        {isCancelling ? 'Cancelando...' : 'Cancelar Inscripción'}
                     </button>
                     <button
                         onClick={onClose}
@@ -510,15 +507,13 @@ interface Step1Props {
     setSelectedCourses: (courses: Course[]) => void;
     setOriginalSelectedCourses: (courses: Course[]) => void;
     onNext: () => void;
-    onCancelAll: () => Promise<void>;
 }
 
-const Step1PersonalInfo: React.FC<Step1Props> = ({ formData, setFormData, departments, teachers, allCourses, setSelectedCourses, setOriginalSelectedCourses, onNext, onCancelAll }) => {
+const Step1PersonalInfo: React.FC<Step1Props> = ({ formData, setFormData, departments, teachers, allCourses, setSelectedCourses, setOriginalSelectedCourses, onNext }) => {
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [isCheckingCurp, setIsCheckingCurp] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [existingCourses, setExistingCourses] = useState<Course[]>([]);
-    const [isCancelling, setIsCancelling] = useState(false);
     const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
     const lookupTriggered = useRef(false);
 
@@ -554,15 +549,6 @@ const Step1PersonalInfo: React.FC<Step1Props> = ({ formData, setFormData, depart
         setOriginalSelectedCourses(existingCourses);
         setIsModalOpen(false);
         onNext();
-    };
-
-    const handleCancelRegistration = async () => {
-        if (window.confirm('¿Está seguro de que desea cancelar TODA su inscripción? Esta acción no se puede deshacer.')) {
-            setIsCancelling(true);
-            await onCancelAll();
-            setIsCancelling(false);
-            setIsModalOpen(false);
-        }
     };
     
     const handleDeleteCourse = async (courseIdToDelete: string) => {
@@ -674,9 +660,7 @@ const Step1PersonalInfo: React.FC<Step1Props> = ({ formData, setFormData, depart
                 isOpen={isModalOpen}
                 courses={existingCourses}
                 onModify={handleModifyRegistration}
-                onCancelAll={handleCancelRegistration}
                 onClose={handleCloseModal}
-                isCancelling={isCancelling}
                 onDeleteCourse={handleDeleteCourse}
                 deletingCourseId={deletingCourseId}
             />
@@ -979,7 +963,7 @@ interface Step4Props {
 const Step4Success: React.FC<Step4Props> = ({ registrationResult, applicantName }) => {
     const formatRegistrationId = (id: string): string => {
         // Fix for duplicated prefix, e.g., "TNM-054-TNM-054..." becomes "TNM-054..."
-        let formattedId = id.replace(/^([A-Z0-9-]+)-\1-/, '$1-');
+        let formattedId = id.replace(/^([A-Z0-9-]+)-\1-/, '$1');
         
         // Also keep the fix for a duplicated year, just in case.
         formattedId = formattedId.replace(/(\d{4})-\1/g, '$1');
@@ -1151,6 +1135,7 @@ const App: React.FC = () => {
             DepartamentoSeleccionado: department,
             timestamp: new Date().toISOString(),
             selectedCourses: [], // Empty array signifies cancellation
+            previousRegistrationIds: originalSelectedCourses.map(c => c.id),
         };
 
         try {
@@ -1172,7 +1157,7 @@ const App: React.FC = () => {
                 <div className="w-full max-w-4xl mx-auto">
                      <div className="text-center bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6" role="alert">
                          <strong className="font-bold">Error de envío: </strong>
-                         <span className="block sm:inline">{error}</span>
+                         <span className="block sm:inline whitespace-pre-wrap">{error}</span>
                      </div>
                      <Step3Confirmation formData={formData} courses={selectedCourses} onBack={handleBack} onSubmit={handleSubmit} />
                 </div>
@@ -1181,7 +1166,7 @@ const App: React.FC = () => {
         
         switch (currentStep) {
             case 1:
-                return <Step1PersonalInfo formData={formData} setFormData={setFormData} departments={departments} teachers={teachers} allCourses={courses} setSelectedCourses={setSelectedCourses} setOriginalSelectedCourses={setOriginalSelectedCourses} onNext={handleNext} onCancelAll={handleCancelRegistration} />;
+                return <Step1PersonalInfo formData={formData} setFormData={setFormData} departments={departments} teachers={teachers} allCourses={courses} setSelectedCourses={setSelectedCourses} setOriginalSelectedCourses={setOriginalSelectedCourses} onNext={handleNext} />;
             case 2:
                 return <Step2CourseSelection courses={courses} selectedCourses={selectedCourses} setSelectedCourses={setSelectedCourses} onNext={handleNext} onBack={handleBack} />;
             case 3:
