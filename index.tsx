@@ -1,15 +1,56 @@
-// FIX: Import React and ReactDOM to resolve UMD global errors for React.StrictMode and ReactDOM.createRoot.
+// FIX: Import React and ReactDOM as modules, instead of relying on globals.
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
+
+// FIX: Add type definition for configuration injected from index.html
+declare global {
+    interface Window {
+        CONFIG?: {
+            APPS_SCRIPT_URL?: string;
+        };
+    }
+}
+
+
+// =============================================================================
+// == TYPES
+// =============================================================================
+interface IFormData {
+    fullName: string;
+    curp: string;
+    email: string;
+    gender: string;
+    department: string;
+    selectedCourses: any[];
+}
+
+interface Course {
+    id: string;
+    name: string;
+    dates: string;
+    period: string;
+    hours: number;
+    location: string;
+    schedule: string;
+    type: string;
+}
+
+interface Teacher {
+    nombreCompleto: string;
+    curp: string;
+    email: string;
+}
+
 
 // =============================================================================
 // == MAIN APP COMPONENT
 // =============================================================================
 
-const App: React.FC = () => {
+const App = () => {
     const [currentStep, setCurrentStep] = useState(1);
-    const [mode, setMode] = useState<'student' | 'instructor'>('student');
-    const [formData, setFormData] = useState<FormData>({
+    const [mode, setMode] = useState('student');
+    // FIX: Use IFormData interface for strong typing.
+    const [formData, setFormData] = useState<IFormData>({
         fullName: '',
         curp: '',
         email: '',
@@ -17,12 +58,13 @@ const App: React.FC = () => {
         department: '',
         selectedCourses: [],
     });
+    // FIX: Add explicit types for all state variables.
     const [allCourses, setAllCourses] = useState<Course[]>([]);
     const [teachers, setTeachers] = useState<Teacher[]>([]);
     const [departments, setDepartments] = useState<string[]>([]);
     const [selectedCourses, setSelectedCourses] = useState<Course[]>([]);
     const [originalSelectedCourses, setOriginalSelectedCourses] = useState<Course[]>([]);
-    const [registrationResult, setRegistrationResult] = useState<RegistrationResult[]>([]);
+    const [registrationResult, setRegistrationResult] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -76,7 +118,7 @@ const App: React.FC = () => {
     const handleSubmit = async () => {
         setError(null);
         try {
-            const submissionData: SubmissionData = {
+            const submissionData = {
                 timestamp: new Date().toISOString(),
                 fullName: formData.fullName,
                 curp: formData.curp,
@@ -179,55 +221,6 @@ const App: React.FC = () => {
 };
 
 // =============================================================================
-// == TYPES (from types.ts)
-// =============================================================================
-interface Teacher {
-  nombreCompleto: string;
-  curp: string;
-  email: string;
-}
-
-interface Course {
-  id: string;
-  name: string;
-  dates: string;
-  period: string;
-  // FIX: Made 'hours' property required to match implementation in getCourses and fix type predicate error.
-  hours: number;
-  location: string;
-  schedule: string;
-  type: string;
-}
-
-interface FormData {
-  fullName: string;
-  curp: string;
-  email: string;
-  gender: string;
-  department: string;
-  selectedCourses: string[];
-}
-
-interface RegistrationResult {
-  courseName: string;
-  registrationId: string;
-}
-
-// FIX: Remapped 'department' to 'DepartamentoSeleccionado' to match the backend sheet column.
-interface SubmissionData extends Omit<FormData, 'selectedCourses' | 'department'> {
-  DepartamentoSeleccionado: string;
-  timestamp: string;
-  selectedCourses: {
-    id: string;
-    name: string;
-    dates: string;
-    location: string;
-    schedule: string;
-  }[];
-  previousRegistrationIds?: string[];
-}
-
-// =============================================================================
 // == API SERVICE (from services/api.ts)
 // =============================================================================
 
@@ -247,7 +240,7 @@ const getTeachers = async (): Promise<Teacher[]> => {
         // **FIX**: Use a robust, index-based parser instead of a generic one.
         const lines = csvText.trim().replace(/\r\n?|\r/g, '\n').split('\n');
         
-        const cleanValue = (val: string) => {
+        const cleanValue = (val: string | undefined) => {
             let v = (val || '').trim();
             if (v.startsWith('"') && v.endsWith('"')) {
                 v = v.substring(1, v.length - 1).replace(/""/g, '"');
@@ -286,7 +279,7 @@ const getCourses = async (): Promise<Course[]> => {
         // **FIX**: Use a robust, index-based parser instead of a generic one.
         const lines = csvText.trim().replace(/\r\n?|\r/g, '\n').split('\n');
 
-        const cleanValue = (val: string) => {
+        const cleanValue = (val: string | undefined) => {
             let v = (val || '').trim();
             if (v.startsWith('"') && v.endsWith('"')) {
                 v = v.substring(1, v.length - 1).replace(/""/g, '"');
@@ -323,7 +316,7 @@ const getCourses = async (): Promise<Course[]> => {
     }
 };
 
-const mockDepartments: string[] = [
+const mockDepartments = [
     "DEPARTAMENTO DE SISTEMAS Y COMPUTACION",
     "DEPARTAMENTO DE INGENIERÍA ELÉCTRICA Y ELECTRÓNICA",
     "DEPARTamento DE CIENCIAS ECONOMICO-ADMINISTRATIVAS",
@@ -342,7 +335,7 @@ const getDepartments = (): Promise<string[]> => {
 };
 
 const getRegistrationByCurp = async (curp: string): Promise<string[]> => {
-    const APPS_SCRIPT_URL = (window as any).CONFIG?.APPS_SCRIPT_URL;
+    const APPS_SCRIPT_URL = window.CONFIG?.APPS_SCRIPT_URL;
     if (!APPS_SCRIPT_URL) {
         throw new Error("Google Apps Script URL is not configured.");
     }
@@ -373,10 +366,10 @@ const getRegistrationByCurp = async (curp: string): Promise<string[]> => {
 };
 
 
-const submitRegistration = async (submission: SubmissionData): Promise<RegistrationResult[]> => {
+const submitRegistration = async (submission: any): Promise<any[]> => {
     console.log("Submitting registration to backend:", submission);
     
-    const APPS_SCRIPT_URL = (window as any).CONFIG?.APPS_SCRIPT_URL;
+    const APPS_SCRIPT_URL = window.CONFIG?.APPS_SCRIPT_URL;
     if (!APPS_SCRIPT_URL) {
         console.error("Google Apps Script URL is not configured in index.html.");
         throw new Error("La URL de configuración no está disponible. Revise el archivo index.html.");
@@ -397,7 +390,7 @@ const submitRegistration = async (submission: SubmissionData): Promise<Registrat
 
         if (result && result.status === 'success') {
             console.log("Submission successful, received results:", result.data);
-            return result.data as RegistrationResult[];
+            return result.data;
         } else {
             throw new Error(result.message || 'Ocurrió un error en el servidor de registro.');
         }
@@ -415,8 +408,8 @@ const submitRegistration = async (submission: SubmissionData): Promise<Registrat
     }
 };
 
-const cancelSingleCourse = async (payload: { curp: string; email: string; fullName: string; courseToCancel: { id: string; name: string } }): Promise<void> => {
-    const APPS_SCRIPT_URL = (window as any).CONFIG?.APPS_SCRIPT_URL;
+const cancelSingleCourse = async (payload: any) => {
+    const APPS_SCRIPT_URL = window.CONFIG?.APPS_SCRIPT_URL;
     if (!APPS_SCRIPT_URL) {
         throw new Error("La URL de configuración de Google Apps Script no está disponible.");
     }
@@ -463,8 +456,8 @@ const fileToBase64 = (file: File): Promise<string> => {
     });
 };
 
-const submitInstructorProposal = async (data: { instructorName: string; instructorEmail: string; courseName: string; cvuFile: string; fichaFile: string; }) => {
-    const APPS_SCRIPT_URL = (window as any).CONFIG?.APPS_SCRIPT_URL;
+const submitInstructorProposal = async (data: any) => {
+    const APPS_SCRIPT_URL = window.CONFIG?.APPS_SCRIPT_URL;
     if (!APPS_SCRIPT_URL) {
         throw new Error("La URL de configuración no está disponible. Revise el archivo index.html.");
     }
@@ -500,7 +493,7 @@ const submitInstructorProposal = async (data: { instructorName: string; instruct
 // == COMPONENTS
 // =============================================================================
 
-const Header: React.FC = () => {
+const Header = () => {
     return (
         <header className="bg-white shadow-md">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -518,7 +511,7 @@ const Header: React.FC = () => {
     );
 };
 
-const Footer: React.FC = () => {
+const Footer = () => {
     return (
         <footer className="bg-blue-800 text-white text-center p-4 mt-auto">
             <p className="font-semibold">COORDINACIÓN DE ACTUALIZACIÓN DOCENTE - Desarrollo Académico</p>
@@ -530,10 +523,11 @@ const Footer: React.FC = () => {
 interface StepperProps {
     currentStep: number;
     steps: string[];
-    mode: 'student' | 'instructor';
-    onStepClick: (stepIndex: number) => void;
+    mode: string;
+    onStepClick: (index: number) => void;
 }
-const Stepper: React.FC<StepperProps> = ({ currentStep, steps, mode, onStepClick }) => {
+
+const Stepper = ({ currentStep, steps, mode, onStepClick }: StepperProps) => {
     const instructorStepIndex = 4;
 
     return (
@@ -574,14 +568,16 @@ const Stepper: React.FC<StepperProps> = ({ currentStep, steps, mode, onStepClick
     );
 };
 
-const ExistingRegistrationModal: React.FC<{
+interface ExistingRegistrationModalProps {
     isOpen: boolean;
     courses: Course[];
     onModify: () => void;
     onClose: () => void;
-    onDeleteCourse: (courseId: string) => Promise<void>;
+    onDeleteCourse: (courseId: string) => void;
     deletingCourseId: string | null;
-}> = ({ isOpen, courses, onModify, onClose, onDeleteCourse, deletingCourseId }) => {
+}
+
+const ExistingRegistrationModal = ({ isOpen, courses, onModify, onClose, onDeleteCourse, deletingCourseId }: ExistingRegistrationModalProps) => {
     if (!isOpen) return null;
 
     return (
@@ -639,17 +635,17 @@ const ExistingRegistrationModal: React.FC<{
     );
 };
 
-interface AutocompleteProps {
+interface AutocompleteInputProps {
     teachers: Teacher[];
     onSelect: (teacher: Teacher) => void;
     value: string;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    name?: string;
+    name: string;
     placeholder?: string;
     required?: boolean;
 }
 
-const AutocompleteInput: React.FC<AutocompleteProps> = ({ teachers, onSelect, value, onChange, name, placeholder, required = false }) => {
+const AutocompleteInput = ({ teachers, onSelect, value, onChange, name, placeholder, required = false }: AutocompleteInputProps) => {
     const [suggestions, setSuggestions] = useState<Teacher[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -731,18 +727,19 @@ const AutocompleteInput: React.FC<AutocompleteProps> = ({ teachers, onSelect, va
     );
 };
 
-interface Step1Props {
-    formData: FormData;
-    setFormData: React.Dispatch<React.SetStateAction<FormData>>;
+interface Step1PersonalInfoProps {
+    formData: IFormData;
+    setFormData: React.Dispatch<React.SetStateAction<IFormData>>;
     departments: string[];
     teachers: Teacher[];
     allCourses: Course[];
-    setSelectedCourses: (courses: Course[]) => void;
-    setOriginalSelectedCourses: (courses: Course[]) => void;
+    setSelectedCourses: React.Dispatch<React.SetStateAction<Course[]>>;
+    setOriginalSelectedCourses: React.Dispatch<React.SetStateAction<Course[]>>;
     onNext: () => void;
 }
 
-const Step1PersonalInfo: React.FC<Step1Props> = ({ formData, setFormData, departments, teachers, allCourses, setSelectedCourses, setOriginalSelectedCourses, onNext }) => {
+const Step1PersonalInfo = ({ formData, setFormData, departments, teachers, allCourses, setSelectedCourses, setOriginalSelectedCourses, onNext }: Step1PersonalInfoProps) => {
+    // FIX: Add explicit type for the errors state object.
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [isCheckingCurp, setIsCheckingCurp] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -818,6 +815,7 @@ const Step1PersonalInfo: React.FC<Step1Props> = ({ formData, setFormData, depart
     };
     
     const validate = () => {
+        // FIX: Add explicit type for newErrors to prevent "property does not exist on type '{}'" errors.
         const newErrors: { [key: string]: string } = {};
         if (!formData.fullName) newErrors.fullName = "Este campo es obligatorio.";
         if (!formData.curp) newErrors.curp = "Este campo es obligatorio.";
@@ -888,7 +886,7 @@ const Step1PersonalInfo: React.FC<Step1Props> = ({ formData, setFormData, depart
     };
 
     return (
-        <>
+        <React.Fragment>
             <ExistingRegistrationModal
                 isOpen={isModalOpen}
                 courses={existingCourses}
@@ -949,23 +947,23 @@ const Step1PersonalInfo: React.FC<Step1Props> = ({ formData, setFormData, depart
                     </div>
                 </form>
             </div>
-        </>
+        </React.Fragment>
     );
 };
 
-interface Step2Props {
+interface Step2CourseSelectionProps {
     courses: Course[];
     selectedCourses: Course[];
-    setSelectedCourses: (courses: Course[]) => void;
+    setSelectedCourses: React.Dispatch<React.SetStateAction<Course[]>>;
     onNext: () => void;
     onBack: () => void;
 }
 
-const Step2CourseSelection: React.FC<Step2Props> = ({ courses, selectedCourses, setSelectedCourses, onNext, onBack }) => {
+const Step2CourseSelection = ({ courses, selectedCourses, setSelectedCourses, onNext, onBack }: Step2CourseSelectionProps) => {
     const [error, setError] = useState<string | null>(null);
 
     // **FIX**: Fail-safe helper function to check for schedule conflicts.
-    const schedulesOverlap = (course1: Course, course2: Course): boolean => {
+    const schedulesOverlap = (course1: Course, course2: Course) => {
         // If dates are missing, different, or invalid, assume no conflict to prevent false positives.
         if (!course1.dates || !course2.dates || course1.dates !== course2.dates) {
             return false;
@@ -975,7 +973,7 @@ const Step2CourseSelection: React.FC<Step2Props> = ({ courses, selectedCourses, 
             return false;
         }
 
-        const parseTime = (schedule: string): [number, number] | null => {
+        const parseTime = (schedule: string) => {
             const matches = schedule.match(/(\d{1,2}:\d{2})/g);
             if (!matches || matches.length < 2) return null;
             const startTime = parseInt(matches[0].replace(':', ''), 10);
@@ -1018,7 +1016,7 @@ const Step2CourseSelection: React.FC<Step2Props> = ({ courses, selectedCourses, 
         setSelectedCourses(newSelection);
     };
     
-    const getCourseCardStatus = (course: Course): { isDisabled: boolean; classNames: string } => {
+    const getCourseCardStatus = (course: Course) => {
         const isSelected = selectedCourses.some(c => c.id === course.id);
 
         // Define base styles for periods for stronger visual differentiation
@@ -1115,14 +1113,14 @@ const Step2CourseSelection: React.FC<Step2Props> = ({ courses, selectedCourses, 
     );
 };
 
-interface Step3Props {
-    formData: FormData;
+interface Step3ConfirmationProps {
+    formData: IFormData;
     courses: Course[];
     onBack: () => void;
     onSubmit: () => Promise<void>;
 }
 
-const Step3Confirmation: React.FC<Step3Props> = ({ formData, courses, onBack, onSubmit }) => {
+const Step3Confirmation = ({ formData, courses, onBack, onSubmit }: Step3ConfirmationProps) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleSubmit = async () => {
@@ -1193,12 +1191,12 @@ const Step3Confirmation: React.FC<Step3Props> = ({ formData, courses, onBack, on
     );
 };
 
-interface Step4Props {
-    registrationResult: RegistrationResult[];
+interface Step4SuccessProps {
+    registrationResult: any[];
     applicantName: string;
 }
 
-const Step4Success: React.FC<Step4Props> = ({ registrationResult, applicantName }) => {
+const Step4Success = ({ registrationResult, applicantName }: Step4SuccessProps) => {
     return (
         <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto text-center">
             <svg className="mx-auto h-16 w-16 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -1210,8 +1208,8 @@ const Step4Success: React.FC<Step4Props> = ({ registrationResult, applicantName 
                 Se ha enviado un correo electrónico de confirmación con los detalles.
             </p>
             
-            {/* **FIX**: Add defensive check to prevent crash if registrationResult is not a valid array */}
-            {registrationResult && registrationResult.length > 0 ? (
+            {/* FIX: Add defensive check to prevent crash if registrationResult is not a valid array */}
+            {registrationResult && Array.isArray(registrationResult) && registrationResult.length > 0 ? (
                 <div className="mt-6 text-left border border-gray-200 rounded-lg p-6">
                     <h3 className="text-lg font-semibold text-gray-700 mb-4">Detalles de la Inscripción:</h3>
                     <ul className="space-y-3">
@@ -1247,7 +1245,7 @@ interface FileInputProps {
     acceptedFile: File | null;
 }
 
-const FileInput: React.FC<FileInputProps> = ({ id, label, onFileSelect, onError, acceptedFile }) => {
+const FileInput = ({ id, label, onFileSelect, onError, acceptedFile }: FileInputProps) => {
     const [isDragging, setIsDragging] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -1346,20 +1344,21 @@ const FileInput: React.FC<FileInputProps> = ({ id, label, onFileSelect, onError,
 };
 
 
-interface InstructorFormProps {
-    onBack: () => void;
-    teachers: Teacher[];
-    courses: Course[];
-}
 
-const formatCourseDates = (dates: string): string => {
+const formatCourseDates = (dates: string) => {
     if (!dates) return '';
     return dates.split(',')
                 .map(date => date.trim())
                 .join(' | ');
 };
 
-const InstructorForm: React.FC<InstructorFormProps> = ({ onBack, teachers, courses }) => {
+interface InstructorFormProps {
+    onBack: () => void;
+    teachers: Teacher[];
+    courses: Course[];
+}
+
+const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
     const [instructorName, setInstructorName] = useState('');
     const [instructorEmail, setInstructorEmail] = useState('');
     const [courseName, setCourseName] = useState('');
@@ -1429,7 +1428,7 @@ const InstructorForm: React.FC<InstructorFormProps> = ({ onBack, teachers, cours
         }
         acc[period].push(course);
         return acc;
-    }, {} as Record<string, Course[]>);
+    }, {} as { [key: string]: Course[] });
 
     return (
         <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto">
