@@ -1,6 +1,6 @@
 // Fix: Import React for module-based TSX file.
 import React from 'react';
-import { UserPlusIcon, PresentationIcon } from './icons.tsx';
+import { UserPlusIcon, PresentationIcon } from './icons';
 
 interface RoleSelectionScreenProps {
   onSelectRole: (role: 'participant' | 'instructor') => void;

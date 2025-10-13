@@ -1,8 +1,8 @@
 // Fix: Import React and hooks for module-based TSX file.
 import React, { useState, useEffect, useMemo } from 'react';
-import { User, Teacher, Course, Department, RegistrationData } from '../types.ts';
-import { getTeachers, getCourses, getDepartments, submitRegistration } from '../services/api.ts';
-import { CheckIcon, XIcon, UploadIcon, DocumentIcon, LoadingIcon } from './icons.tsx';
+import { User, Teacher, Course, Department, RegistrationData } from '../types';
+import { getTeachers, getCourses, getDepartments, submitRegistration } from '../services/api';
+import { CheckIcon, XIcon, UploadIcon, DocumentIcon, LoadingIcon } from './icons';
 
 const MAX_COURSES = 3;
 const MAX_REGISTRATIONS_PER_COURSE = 30;
