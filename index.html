@@ -1,16 +1,63 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Inscripción a Cursos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!--
+    =============================================================================
+    == MÉTODO DE CARGA DE REACT SIMPLIFICADO Y ROBUSTO
+    =============================================================================
+    == Cargamos las librerías directamente. Esto crea las variables globales
+    == `React` y `ReactDOM`, que es el método más fiable para un entorno
+    == sin un proceso de "build" como este.
+    =============================================================================
+    -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
-    <!-- Google Sign-In Library -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-  </head>
-  <body class="bg-gray-100">
+    <!-- Babel sigue siendo necesario para traducir nuestro código JSX y TypeScript -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="bg-gray-100">
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
-  </body>
+
+    <!-- 
+    =============================================================================
+    == CONFIGURACIÓN OBLIGATORIA
+    =============================================================================
+    == Reemplaza la siguiente URL de ejemplo con la URL de tu Google Apps Script.
+    =============================================================================
+    -->
+    <script>
+      window.CONFIG = {
+        APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzNtG0q3BidDIlB9fZOxw3ZuAmA7qnfclpXtbFXPyI-Frt79k6NA2Ho_AgZ6quU8ndOcQ/exec'
+      };
+    </script>
+    
+    <!--
+    =============================================================================
+    == SCRIPT DE LA APLICACIÓN
+    =============================================================================
+    == Usamos `text/babel` y le indicamos que use los presets de TypeScript y React
+    == para la transpilación en el navegador.
+    =============================================================================
+    -->
+    <script type="text/babel" data-presets="typescript,react" src="index.tsx"></script>
+<script type="module" src="/index.tsx"></script>
+</body>
 </html>
