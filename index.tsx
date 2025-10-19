@@ -1,7 +1,3 @@
-// FIX: Import React to resolve TypeScript errors about React being a UMD global.
-// This makes React available in the module scope for hooks, types, and JSX compilation.
-import React from 'react';
-
 // FIX: Add type definition for configuration injected from index.html
 declare global {
     interface Window {
@@ -12,6 +8,10 @@ declare global {
         ReactDOM: any;
     }
 }
+
+// FIX: Add React and ReactDOM imports to fix module errors.
+import React from 'react';
+import ReactDOM from 'react-dom/client';
 
 
 // =============================================================================
@@ -97,6 +97,12 @@ const App = () => {
     
     const handleNext = () => setCurrentStep(prev => prev < 4 ? prev + 1 : prev);
     const handleBack = () => setCurrentStep(prev => prev > 1 ? prev - 1 : prev);
+    const goToStep = (step: number) => {
+        if (step > 0 && step <= studentSteps.length) {
+            setCurrentStep(step);
+        }
+    };
+
 
     const handleStepClick = (stepIndex: number) => {
         const instructorStepIndex = studentSteps.length; // 4
@@ -121,6 +127,7 @@ const App = () => {
         setError(null);
         try {
             const submissionData = {
+                action: 'enrollStudent', // Action for the backend router
                 timestamp: new Date().toISOString(),
                 fullName: formData.fullName,
                 curp: formData.curp,
@@ -138,7 +145,20 @@ const App = () => {
             };
 
             const result = await submitRegistration(submissionData);
-            setRegistrationResult(result);
+            
+            // The backend returns an object with a 'results' property which is an array.
+            const registrationResultsArray = result.results || [];
+
+            // Augment the result with course dates for display on the success screen
+            const augmentedResult = registrationResultsArray.map((reg: any) => {
+                const courseDetails = selectedCourses.find(c => c.id === reg.registrationId);
+                return {
+                    ...reg,
+                    dates: courseDetails ? courseDetails.dates : 'Fechas no disponibles'
+                };
+            });
+            setRegistrationResult(augmentedResult);
+
             handleNext();
 
         } catch (err) {
@@ -181,7 +201,8 @@ const App = () => {
                             allCourses={allCourses}
                             setSelectedCourses={setSelectedCourses}
                             setOriginalSelectedCourses={setOriginalSelectedCourses}
-                            onNext={handleNext} />;
+                            onNext={handleNext}
+                            onGoToStep={goToStep} />;
             case 2:
                 return <Step2CourseSelection 
                             courses={allCourses} 
@@ -192,11 +213,16 @@ const App = () => {
             case 3:
                 return <Step3Confirmation 
                             formData={formData} 
-                            courses={selectedCourses} 
+                            courses={selectedCourses}
+                            originalCourses={originalSelectedCourses} 
                             onBack={handleBack} 
                             onSubmit={handleSubmit} />;
             case 4:
-                return <Step4Success registrationResult={registrationResult} applicantName={formData.fullName} />;
+                return <Step4Success 
+                            registrationResult={registrationResult} 
+                            applicantName={formData.fullName} 
+                            selectedCourses={selectedCourses} 
+                        />;
             default:
                 return <div>Paso desconocido</div>;
         }
@@ -355,7 +381,7 @@ const getRegistrationByCurp = async (curp: string): Promise<string[]> => {
         
         const result = await response.json();
 
-        if (result && result.status === 'success' && result.data.registeredCourses) {
+        if (result && result.success && result.data.registeredCourses) {
             return result.data.registeredCourses;
         } else {
             // No registration found or an error occurred on backend, return empty array.
@@ -368,7 +394,7 @@ const getRegistrationByCurp = async (curp: string): Promise<string[]> => {
 };
 
 
-const submitRegistration = async (submission: any): Promise<any[]> => {
+const submitRegistration = async (submission: any): Promise<any> => {
     console.log("Submitting registration to backend:", submission);
     
     const APPS_SCRIPT_URL = window.CONFIG?.APPS_SCRIPT_URL;
@@ -390,7 +416,7 @@ const submitRegistration = async (submission: any): Promise<any[]> => {
 
         const result = await response.json();
 
-        if (result && result.status === 'success') {
+        if (result && result.success) {
             console.log("Submission successful, received results:", result.data);
             return result.data;
         } else {
@@ -429,7 +455,7 @@ const cancelSingleCourse = async (payload: any) => {
         });
 
         const result = await response.json();
-        if (!result || result.status !== 'success') {
+        if (!result || !result.success) {
             throw new Error(result.message || 'Ocurrió un error en el servidor al cancelar el curso.');
         }
     } catch (error) {
@@ -479,7 +505,7 @@ const submitInstructorProposal = async (data: any) => {
         });
 
         const result = await response.json();
-        if (result && result.status === 'success') {
+        if (result && result.success) {
             return result;
         } else {
             throw new Error(result.message || 'Ocurrió un error en el servidor al enviar la propuesta.');
@@ -516,8 +542,8 @@ const Header = () => {
 const Footer = () => {
     return (
         <footer className="bg-blue-800 text-white text-center p-4 mt-auto">
-            <p className="font-semibold">COORDINACIÓN DE ACTUALIZACIÓN DOCENTE - Desarrollo Académico</p>
-            <p className="text-sm">Todos los derechos reservados {new Date().getFullYear()}.</p>
+            <p className="font-semibold">&copy; Coordinación de actualización docente - M.C. Alejandro Calderón Rentería.</p>
+            <p className="text-sm">Todos los derechos reservados 2026.</p>
         </footer>
     );
 };
@@ -577,17 +603,18 @@ interface ExistingRegistrationModalProps {
     onClose: () => void;
     onDeleteCourse: (courseId: string) => void;
     deletingCourseId: string | null;
+    onCancelAll: () => void;
 }
 
-const ExistingRegistrationModal = ({ isOpen, courses, onModify, onClose, onDeleteCourse, deletingCourseId }: ExistingRegistrationModalProps) => {
+const ExistingRegistrationModal = ({ isOpen, courses, onModify, onClose, onDeleteCourse, deletingCourseId, onCancelAll }: ExistingRegistrationModalProps) => {
     if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
             <div className="relative mx-auto p-8 border w-full max-w-lg shadow-lg rounded-md bg-white">
-                <h3 className="text-2xl font-bold text-gray-800">Registro Encontrado</h3>
+                <h3 className="text-2xl font-bold text-gray-800">Ya Tienes un Registro Activo</h3>
                 <div className="mt-4">
-                    <p className="text-gray-600">Hemos detectado que ya tiene cursos registrados con este CURP. Puede eliminar cursos individualmente o modificar su selección completa.</p>
+                    <p className="text-gray-600">Hemos detectado que ya estás inscrito en los siguientes cursos. ¿Qué te gustaría hacer?</p>
                     <div className="mt-4 space-y-2 bg-gray-50 p-4 rounded-md border">
                         {courses.length > 0 ? (
                             courses.map(course => (
@@ -616,7 +643,7 @@ const ExistingRegistrationModal = ({ isOpen, courses, onModify, onClose, onDelet
                              <p className="text-gray-500 italic">No tiene cursos registrados actualmente.</p>
                         )}
                     </div>
-                    <p className="text-gray-600 mt-6">¿Qué desea hacer?</p>
+                    <p className="text-gray-600 mt-6">Puede modificar su selección actual, o cancelar toda su inscripción para empezar de nuevo.</p>
                 </div>
                 <div className="mt-8 flex flex-col sm:flex-row-reverse gap-3">
                     <button
@@ -624,6 +651,12 @@ const ExistingRegistrationModal = ({ isOpen, courses, onModify, onClose, onDelet
                         className="w-full sm:w-auto bg-rose-800 text-white font-bold py-2 px-6 rounded-lg hover:bg-rose-900"
                     >
                         Modificar Selección
+                    </button>
+                     <button
+                        onClick={onCancelAll}
+                        className="w-full sm:w-auto bg-red-700 text-white font-bold py-2 px-6 rounded-lg hover:bg-red-800"
+                    >
+                        Cancelar Inscripción
                     </button>
                     <button
                         onClick={onClose}
@@ -738,9 +771,10 @@ interface Step1PersonalInfoProps {
     setSelectedCourses: React.Dispatch<React.SetStateAction<Course[]>>;
     setOriginalSelectedCourses: React.Dispatch<React.SetStateAction<Course[]>>;
     onNext: () => void;
+    onGoToStep: (step: number) => void;
 }
 
-const Step1PersonalInfo = ({ formData, setFormData, departments, teachers, allCourses, setSelectedCourses, setOriginalSelectedCourses, onNext }: Step1PersonalInfoProps) => {
+const Step1PersonalInfo = ({ formData, setFormData, departments, teachers, allCourses, setSelectedCourses, setOriginalSelectedCourses, onNext, onGoToStep }: Step1PersonalInfoProps) => {
     // FIX: Add explicit type for the errors state object.
     const [errors, setErrors] = React.useState<{ [key: string]: string }>({});
     const [isCheckingCurp, setIsCheckingCurp] = React.useState(false);
@@ -781,6 +815,13 @@ const Step1PersonalInfo = ({ formData, setFormData, departments, teachers, allCo
         setOriginalSelectedCourses(existingCourses);
         setIsModalOpen(false);
         onNext();
+    };
+
+    const handleCancelAllRegistration = () => {
+        setSelectedCourses([]); // Clear current selection
+        setOriginalSelectedCourses(existingCourses); // Preserve original list for cancellation logic in Step 3
+        setIsModalOpen(false);
+        onGoToStep(3); // Go directly to confirmation step
     };
     
     const handleDeleteCourse = async (courseIdToDelete: string) => {
@@ -896,6 +937,7 @@ const Step1PersonalInfo = ({ formData, setFormData, departments, teachers, allCo
                 onClose={handleCloseModal}
                 onDeleteCourse={handleDeleteCourse}
                 deletingCourseId={deletingCourseId}
+                onCancelAll={handleCancelAllRegistration}
             />
             <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto">
                 <h2 className="text-2xl font-bold mb-6 text-gray-800">Información Personal</h2>
@@ -1118,12 +1160,15 @@ const Step2CourseSelection = ({ courses, selectedCourses, setSelectedCourses, on
 interface Step3ConfirmationProps {
     formData: IFormData;
     courses: Course[];
+    originalCourses: Course[];
     onBack: () => void;
     onSubmit: () => Promise<void>;
 }
 
-const Step3Confirmation = ({ formData, courses, onBack, onSubmit }: Step3ConfirmationProps) => {
+const Step3Confirmation = ({ formData, courses, originalCourses, onBack, onSubmit }: Step3ConfirmationProps) => {
     const [isSubmitting, setIsSubmitting] = React.useState(false);
+    const isCancellation = courses.length === 0 && originalCourses.length > 0;
+
 
     const handleSubmit = async () => {
         setIsSubmitting(true);
@@ -1139,7 +1184,7 @@ const Step3Confirmation = ({ formData, courses, onBack, onSubmit }: Step3Confirm
 
     return (
         <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold mb-6 text-gray-800">Confirmación de Registro</h2>
+            <h2 className="text-2xl font-bold mb-6 text-gray-800">{isCancellation ? 'Confirmar Cancelación' : 'Confirmación de Registro'}</h2>
 
             <div className="border border-gray-200 rounded-lg p-6 mb-6">
                 <h3 className="text-lg font-semibold text-gray-700 mb-4">Resumen de su Registro</h3>
@@ -1157,22 +1202,37 @@ const Step3Confirmation = ({ formData, courses, onBack, onSubmit }: Step3Confirm
             </div>
 
             <div className="mt-6">
-                <h3 className="text-lg font-semibold text-gray-700 mb-4">Cursos Seleccionados</h3>
-                <div className="space-y-4">
-                    {courses.map(course => {
-                        return (
-                            <div key={course.id} className="border border-gray-200 rounded-lg p-4">
-                                <h4 className="font-bold text-gray-800">{course.name}</h4>
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2 mt-2 text-sm text-gray-600">
-                                    <div><strong>Horario: </strong>{course.schedule || 'N/A'}</div>
-                                    <div><strong>Lugar: </strong>{course.location || 'N/A'}</div>
-                                    <div><strong>Fechas: </strong>{course.dates}</div>
-                                    <div><strong>Horas: </strong>{course.hours || 30}</div>
+                <h3 className="text-lg font-semibold text-gray-700 mb-4">{isCancellation ? "Cursos a Cancelar" : "Cursos Seleccionados"}</h3>
+                 {isCancellation ? (
+                    <div className="border border-yellow-400 bg-yellow-50 text-yellow-800 rounded-lg p-4">
+                        <p className="font-bold">Atención: Está a punto de cancelar su inscripción.</p>
+                        <p className="mt-2">Al confirmar, se eliminará su registro de los siguientes {originalCourses.length} cursos:</p>
+                        <ul className="list-disc list-inside mt-2 space-y-1">
+                            {originalCourses.map(course => <li key={course.id}>{course.name}</li>)}
+                        </ul>
+                        <p className="mt-2">¿Desea continuar?</p>
+                    </div>
+                ) : courses.length > 0 ? (
+                    <div className="space-y-4">
+                        {courses.map(course => {
+                            return (
+                                <div key={course.id} className="border border-gray-200 rounded-lg p-4">
+                                    <h4 className="font-bold text-gray-800">{course.name}</h4>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2 mt-2 text-sm text-gray-600">
+                                        <div><strong>Horario: </strong>{course.schedule || 'N/A'}</div>
+                                        <div><strong>Lugar: </strong>{course.location || 'N/A'}</div>
+                                        <div><strong>Fechas: </strong>{course.dates}</div>
+                                        <div><strong>Horas: </strong>{course.hours || 30}</div>
+                                    </div>
                                 </div>
-                            </div>
-                        )
-                    })}
-                </div>
+                            )
+                        })}
+                    </div>
+                 ) : (
+                    <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                        <p className="text-gray-600">No ha seleccionado ningún curso para inscribir.</p>
+                    </div>
+                )}
             </div>
 
             <div className="mt-8 flex justify-between">
@@ -1196,9 +1256,15 @@ const Step3Confirmation = ({ formData, courses, onBack, onSubmit }: Step3Confirm
 interface Step4SuccessProps {
     registrationResult: any[];
     applicantName: string;
+    selectedCourses: Course[];
 }
 
-const Step4Success = ({ registrationResult, applicantName }: Step4SuccessProps) => {
+const Step4Success = ({ registrationResult, applicantName, selectedCourses }: Step4SuccessProps) => {
+    const hasRegistrationResult = registrationResult && Array.isArray(registrationResult) && registrationResult.length > 0;
+    
+    // Use registrationResult if it has data, otherwise fallback to selectedCourses from the previous step.
+    const coursesToDisplay = hasRegistrationResult ? registrationResult : selectedCourses;
+
     return (
         <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto text-center">
             <svg className="mx-auto h-16 w-16 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -1210,14 +1276,24 @@ const Step4Success = ({ registrationResult, applicantName }: Step4SuccessProps) 
                 Se ha enviado un correo electrónico de confirmación con los detalles.
             </p>
             
-            {/* FIX: Add defensive check to prevent crash if registrationResult is not a valid array */}
-            {registrationResult && Array.isArray(registrationResult) && registrationResult.length > 0 ? (
+            {coursesToDisplay && coursesToDisplay.length > 0 ? (
                 <div className="mt-6 text-left border border-gray-200 rounded-lg p-6">
                     <h3 className="text-lg font-semibold text-gray-700 mb-4">Detalles de la Inscripción:</h3>
                     <ul className="space-y-3">
-                        {registrationResult.map((result) => (
-                            <li key={result.registrationId} className="p-3 bg-gray-50 rounded-md border border-gray-100">
-                                <p className="font-semibold text-gray-800">{result.courseName}</p>
+                        {coursesToDisplay.map((result) => (
+                            <li key={result.registrationId || result.id} className="p-3 bg-gray-50 rounded-md border border-gray-100">
+                                <div className="flex justify-between items-center flex-wrap gap-2">
+                                    <span className="font-semibold text-gray-800">
+                                        {/* Data can come from registrationResult (courseName) or selectedCourses (name) */}
+                                        {(result.courseName || result.name)}
+                                        {result.dates && ` (${result.dates})`}
+                                    </span>
+                                    {result.folio && (
+                                        <span className="text-sm">
+                                            Folio temporal: <strong className="font-mono bg-gray-200 text-gray-800 py-1 px-2 rounded">{result.folio}</strong>
+                                        </span>
+                                    )}
+                                </div>
                             </li>
                         ))}
                     </ul>
@@ -1225,7 +1301,7 @@ const Step4Success = ({ registrationResult, applicantName }: Step4SuccessProps) 
             ) : (
                 <div className="mt-6 text-left border border-gray-200 rounded-lg p-6 bg-gray-50">
                      <p className="text-sm text-gray-600">
-                        Los detalles específicos y folios de tu inscripción se encuentran en el correo electrónico que te hemos enviado.
+                        Los detalles específicos y folios temporales de tu inscripción se encuentran en el correo electrónico que te hemos enviado.
                     </p>
                 </div>
             )}
@@ -1303,7 +1379,7 @@ const FileInput = ({ id, label, onFileSelect, onError, acceptedFile }: FileInput
         <div>
             <label 
                 htmlFor={id} 
-                className={`relative block w-full border-2 border-dashed rounded-lg p-6 text-center cursor-pointer
+                className={`relative block w-full border-2 border-dashed rounded-lg p-4 text-center cursor-pointer
                 transition-colors duration-200 ease-in-out
                 ${isDragging ? 'border-indigo-500 bg-indigo-50' : 'border-gray-300 hover:border-gray-400'}
                 ${acceptedFile ? 'border-green-500 bg-green-50' : ''}`}
@@ -1321,7 +1397,7 @@ const FileInput = ({ id, label, onFileSelect, onError, acceptedFile }: FileInput
                     onChange={handleChange}
                 />
                  <div className="flex flex-col items-center justify-center space-y-2">
-                     <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M12 15l-3-3m0 0l3-3m-3 3h12"></path></svg>
+                     <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M12 15l-3-3m0 0l3-3m-3 3h12"></path></svg>
                     {acceptedFile ? (
                         <div className="text-sm font-semibold text-green-800">
                            <p>Archivo cargado:</p>
@@ -1381,7 +1457,6 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
         e.preventDefault();
         setError(null);
         
-        // Don't submit if there are specific file validation errors from the FileInput component
         if (cvuError || fichaError) {
             return;
         }
@@ -1407,13 +1482,6 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
             });
 
             setSuccess('¡Propuesta enviada con éxito! Gracias por tu contribución.');
-            setInstructorName('');
-            setInstructorEmail('');
-            setCourseName('');
-            setCvuFile(null);
-            setFichaFile(null);
-            setCvuError(null);
-            setFichaError(null);
 
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : "Hubo un error al enviar la propuesta.";
@@ -1426,138 +1494,201 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
     const groupedCourses = courses.reduce((acc, course) => {
         const period = course.period || 'Sin Periodo';
         if (!acc[period]) {
-            acc[period] = [];
+            acc[period] = { courses: [], dates: '' };
         }
-        acc[period].push(course);
+        acc[period].courses.push(course);
+        if (!acc[period].dates && course.dates) {
+            acc[period].dates = formatCourseDates(course.dates);
+        }
         return acc;
-    }, {} as { [key: string]: Course[] });
+    }, {} as { [key: string]: { courses: Course[], dates: string } });
 
     return (
         <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto">
-            <button onClick={onBack} className="text-sm text-blue-600 hover:underline mb-4">&larr; Volver a Inscripción de Cursos</button>
-            <h2 className="text-2xl font-bold mb-2 text-gray-800">Instructores</h2>
-            <p className="text-sm text-gray-600 mb-6">
-                Es necesario que envíes el CVU y la ficha técnica en los formatos adecuados. Puedes descargar las plantillas aquí: {' '}
-                <a 
-                    href="https://raw.githubusercontent.com/DA-itd/DA-itd-web/main/TecNM-AC-PO-005-11%20CVU%20curriculum%20del%20instructor%20(1).doc" 
-                    className="font-semibold text-indigo-600 hover:text-indigo-800 hover:underline"
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    download
-                >
-                    CVU (TecNM-AC-PO-005-11)
-                </a> 
-                {' y '}
-                <a 
-                    href="https://raw.githubusercontent.com/DA-itd/DA-itd-web/main/TecNM-AC-PO-005-12%20FICHA%20TECNICA%20(1).doc" 
-                    className="font-semibold text-indigo-600 hover:text-indigo-800 hover:underline"
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    download
-                >
-                    Ficha Técnica (TecNM-AC-PO-005-12)
-                </a>.
-            </p>
-
-            {success && (
-                <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-md" role="alert">
-                    <p>{success}</p>
-                </div>
-            )}
-            {error && (
-                 <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md" role="alert">
-                    <p>{error}</p>
-                </div>
-            )}
-            
-            <form onSubmit={handleSubmit} noValidate>
-                <div className="space-y-6">
-                    <div>
-                        <label htmlFor="instructorName" className="block text-sm font-medium text-gray-700">Nombre Completo del Instructor *</label>
-                        <AutocompleteInput
-                            teachers={teachers}
-                            onSelect={handleTeacherSelect}
-                            value={instructorName}
-                            onChange={(e) => setInstructorName(e.target.value.toUpperCase())}
-                            name="instructorName"
-                            placeholder="Escriba un nombre para buscar"
-                            required
-                        />
+            {success ? (
+                <div className="text-center py-8">
+                    <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-8 rounded-md" role="alert">
+                        <p>{success}</p>
                     </div>
-                    <div>
-                        <label htmlFor="instructorEmail" className="block text-sm font-medium text-gray-700">Email del Instructor *</label>
-                        <input
-                            type="email"
-                            id="instructorEmail"
-                            name="instructorEmail"
-                            value={instructorEmail}
-                            onChange={(e) => setInstructorEmail(e.target.value.toLowerCase())}
-                            className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                            placeholder="email@itdurango.edu.mx"
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="courseName" className="block text-sm font-medium text-gray-700">Nombre del Curso a Ofrecer *</label>
-                        <select
-                            name="courseName"
-                            id="courseName"
-                            value={courseName}
-                            onChange={(e) => setCourseName(e.target.value)}
-                            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                            required
-                        >
-                            <option value="">Seleccione un curso de la lista</option>
-                            {Object.entries(groupedCourses).map(([period, coursesInGroup]) => (
-                                <optgroup label={period.replace(/_/g, ' ')} key={period}>
-                                    {coursesInGroup.map(course => {
-                                        const formattedDates = formatCourseDates(course.dates);
-                                        const displayText = formattedDates 
-                                            ? `${course.name} (${formattedDates})` 
-                                            : course.name;
-                                        return (
-                                            <option key={course.id} value={course.name}>
-                                                {displayText}
-                                            </option>
-                                        );
-                                    })}
-                                </optgroup>
-                            ))}
-                        </select>
-                    </div>
-                    <div>
-                         <FileInput
-                            id="cvuFile"
-                            label="Haz clic para subir tu CVU"
-                            onFileSelect={setCvuFile}
-                            onError={setCvuError}
-                            acceptedFile={cvuFile}
-                        />
-                        {cvuError && <p className="text-red-500 text-xs mt-1">{cvuError}</p>}
-                    </div>
-                     <div>
-                        <FileInput
-                            id="fichaFile"
-                            label="Haz clic para subir la Ficha Técnica"
-                            onFileSelect={setFichaFile}
-                            onError={setFichaError}
-                            acceptedFile={fichaFile}
-                        />
-                        {fichaError && <p className="text-red-500 text-xs mt-1">{fichaError}</p>}
-                    </div>
-                </div>
-                 <div className="mt-8 flex justify-end">
-                    <button type="submit" className="bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 flex items-center justify-center disabled:opacity-50" disabled={isSubmitting}>
-                         {isSubmitting && (
-                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                        )}
-                        {isSubmitting ? 'Enviando...' : 'Enviar'}
+                    <button 
+                        onClick={onBack} 
+                        className="bg-indigo-600 text-white font-bold py-2 px-8 rounded-lg hover:bg-indigo-700 transition-colors"
+                    >
+                        Salir
                     </button>
                 </div>
-            </form>
+            ) : (
+                <React.Fragment>
+                    <button onClick={onBack} className="text-sm text-blue-600 hover:underline mb-4">&larr; Volver a Inscripción de Cursos</button>
+                    <h2 className="text-2xl font-bold mb-2 text-gray-800">Instructores</h2>
+                    <div className="bg-blue-700 text-white p-4 rounded-lg mb-6 text-sm text-center">
+                        <p>Es necesario que envíes el CVU y la ficha técnica en <strong>PDF genuinos, No Fotos.</strong> Puedes descargar las plantillas aquí.</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <a 
+                            href="https://raw.githubusercontent.com/DA-itd/DA-itd-web/main/TecNM-AC-PO-005-11%20CVU%20curriculum%20del%20instructor%20(1).doc" 
+                            className="flex items-center p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-colors"
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            download
+                        >
+                            <svg className="h-8 w-8 mr-4 flex-shrink-0 text-blue-600" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                <path d="M6 2C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2H6Z" fill="#2962FF" />
+                                <path d="M14 2V8H20L14 2Z" fill="#E3F2FD" fillOpacity="0.7" />
+                                <path d="M8.5 16.5L10.5 12L12 16.5L13.5 12L15.5 16.5H14L13 14L12 16.5L11 14L10 16.5H8.5Z" fill="#FFFFFF" />
+                            </svg>
+                            <div>
+                                <span className="font-semibold text-indigo-700">CVU (TecNM-AC-PO-005-11)</span>
+                                <span className="block text-xs text-gray-500">Descargar plantilla .doc</span>
+                            </div>
+                        </a> 
+                        <a 
+                            href="https://raw.githubusercontent.com/DA-itd/DA-itd-web/main/TecNM-AC-PO-005-12%20FICHA%20TECNICA%20(1).doc" 
+                            className="flex items-center p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-colors"
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            download
+                        >
+                            <svg className="h-8 w-8 mr-4 flex-shrink-0 text-blue-600" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                <path d="M6 2C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2H6Z" fill="#2962FF" />
+                                <path d="M14 2V8H20L14 2Z" fill="#E3F2FD" fillOpacity="0.7" />
+                                <path d="M8.5 16.5L10.5 12L12 16.5L13.5 12L15.5 16.5H14L13 14L12 16.5L11 14L10 16.5H8.5Z" fill="#FFFFFF" />
+                            </svg>
+                            <div>
+                                <span className="font-semibold text-indigo-700">Ficha Técnica (TecNM-AC-PO-005-12)</span>
+                                <span className="block text-xs text-gray-500">Descargar plantilla .doc</span>
+                            </div>
+                        </a>
+                    </div>
+
+                    {error && (
+                         <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md" role="alert">
+                            <p>{error}</p>
+                        </div>
+                    )}
+                    
+                    <form onSubmit={handleSubmit} noValidate>
+                        <div className="space-y-6">
+                            <div>
+                                <label htmlFor="instructorName" className="block text-sm font-medium text-gray-700">Nombre Completo del Instructor *</label>
+                                <AutocompleteInput
+                                    teachers={teachers}
+                                    onSelect={handleTeacherSelect}
+                                    value={instructorName}
+                                    onChange={(e) => setInstructorName(e.target.value.toUpperCase())}
+                                    name="instructorName"
+                                    placeholder="Escriba un nombre para buscar"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="instructorEmail" className="block text-sm font-medium text-gray-700">Email del Instructor *</label>
+                                <input
+                                    type="email"
+                                    id="instructorEmail"
+                                    name="instructorEmail"
+                                    value={instructorEmail}
+                                    onChange={(e) => setInstructorEmail(e.target.value.toLowerCase())}
+                                    className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                    placeholder="email@itdurango.edu.mx"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label id="course-selection-label" className="block text-sm font-medium text-gray-700 mb-4">
+                                    Nombre del Curso a Ofrecer *
+                                </label>
+                                <div role="radiogroup" aria-labelledby="course-selection-label">
+                                    {Object.entries(groupedCourses).map(([period, data]) => {
+                                        const periodName = period.replace(/_/g, ' ');
+                                        const label = data.dates ? `${periodName} | ${data.dates}` : periodName;
+                                        return (
+                                            <div key={period} className="mb-8">
+                                                <h4 className="text-md font-semibold text-gray-600 border-b pb-2 mb-4">{label}</h4>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                    {data.courses.map(course => {
+                                                        const isSelected = courseName === course.name;
+                                                        const period1Styles = "border-t-4 border-teal-400 bg-teal-50 hover:shadow-md";
+                                                        const period2Styles = "border-t-4 border-indigo-400 bg-indigo-50 hover:shadow-md";
+                                                        let classNames = course.period === 'PERIODO_1' ? period1Styles : period2Styles;
+
+                                                        if (isSelected) {
+                                                            const selectedRing = course.period === 'PERIODO_1' ? 'ring-teal-500' : 'ring-indigo-500';
+                                                            classNames += ` ring-2 ring-offset-2 ${selectedRing}`;
+                                                        }
+                                                        const textColor = course.period === 'PERIODO_1' ? 'text-teal-800' : 'text-indigo-800';
+                                                        
+                                                        return (
+                                                            <div
+                                                                key={course.id}
+                                                                role="radio"
+                                                                aria-checked={isSelected}
+                                                                tabIndex={0}
+                                                                onClick={() => setCourseName(course.name)}
+                                                                onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') setCourseName(course.name) }}
+                                                                className={`p-4 rounded-lg border border-gray-200 transition-all duration-200 flex flex-col justify-between h-full ${classNames} cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
+                                                            >
+                                                                <div>
+                                                                    <h3 className={`font-bold text-sm mb-2 ${textColor}`}>{course.name}</h3>
+                                                                    <div className="text-xs text-gray-600 space-y-1">
+                                                                        <p><strong>Fechas:</strong> {course.dates}</p>
+                                                                        <p><strong>Horario:</strong> {course.schedule}</p>
+                                                                        <p><strong>Lugar:</strong> {course.location}</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex justify-end mt-3">
+                                                                    <input
+                                                                        type="radio"
+                                                                        name="course-selection"
+                                                                        checked={isSelected}
+                                                                        readOnly
+                                                                        className="form-radio h-5 w-5 text-indigo-600 pointer-events-none"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                            <div>
+                                 <FileInput
+                                    id="cvuFile"
+                                    label="Haz clic para subir tu CVU"
+                                    onFileSelect={setCvuFile}
+                                    onError={setCvuError}
+                                    acceptedFile={cvuFile}
+                                />
+                                {cvuError && <p className="text-red-500 text-xs mt-1">{cvuError}</p>}
+                            </div>
+                             <div>
+                                <FileInput
+                                    id="fichaFile"
+                                    label="Haz clic para subir la Ficha Técnica"
+                                    onFileSelect={setFichaFile}
+                                    onError={setFichaError}
+                                    acceptedFile={fichaFile}
+                                />
+                                {fichaError && <p className="text-red-500 text-xs mt-1">{fichaError}</p>}
+                            </div>
+                        </div>
+                         <div className="mt-8 flex justify-end">
+                            <button type="submit" className="bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 flex items-center justify-center disabled:opacity-50" disabled={isSubmitting}>
+                                 {isSubmitting && (
+                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                )}
+                                {isSubmitting ? 'Enviando...' : 'Enviar'}
+                            </button>
+                        </div>
+                    </form>
+                </React.Fragment>
+            )}
         </div>
     );
 };
@@ -1567,7 +1698,8 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
 // =============================================================================
 const rootElement = document.getElementById('root');
 if (rootElement) {
-    const root = window.ReactDOM.createRoot(rootElement);
+    // FIX: Use imported ReactDOM instead of window global.
+    const root = ReactDOM.createRoot(rootElement);
     root.render(
         <React.StrictMode>
             <App />
