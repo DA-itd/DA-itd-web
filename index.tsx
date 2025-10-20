@@ -1481,7 +1481,7 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
                 fichaFile: fichaFileBase64
             });
 
-            setSuccess('¡Propuesta enviada con éxito! Gracias por tu contribución.');
+            setSuccess('¡Archivos enviados con éxito! Gracias por tu contribución.');
 
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : "Hubo un error al enviar la propuesta.";
