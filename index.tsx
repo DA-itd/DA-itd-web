@@ -516,6 +516,40 @@ const submitInstructorProposal = async (data: any) => {
     }
 };
 
+// START: Evidence Upload Feature - New API function for submitting evidence
+const submitEvidence = async (data: any) => {
+    const APPS_SCRIPT_URL = window.CONFIG?.APPS_SCRIPT_URL;
+    if (!APPS_SCRIPT_URL) {
+        throw new Error("La URL de configuración no está disponible. Revise el archivo index.html.");
+    }
+    
+    const payload = {
+        action: 'submitEvidence', // New action for the backend router
+        ...data
+    };
+
+    try {
+        const response = await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'cors',
+            redirect: 'follow',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        if (result && result.success) {
+            return result;
+        } else {
+            throw new Error(result.message || 'Ocurrió un error en el servidor al enviar la evidencia.');
+        }
+    } catch (error) {
+        console.error("Error submitting evidence:", error);
+        throw new Error("La comunicación con el servidor falló. Verifique la URL de configuración, los permisos del script y la lógica del backend.");
+    }
+};
+// END: Evidence Upload Feature
+
 
 // =============================================================================
 // == COMPONENTS
@@ -1315,27 +1349,37 @@ const Step4Success = ({ registrationResult, applicantName, selectedCourses }: St
     );
 };
 
+// START: Evidence Upload Feature - Upgraded FileInput component
 interface FileInputProps {
     id: string;
     label: string;
     onFileSelect: (file: File | null) => void;
     onError: (error: string | null) => void;
     acceptedFile: File | null;
+    acceptedTypes: string[];
+    maxSizeMB: number;
 }
 
-const FileInput = ({ id, label, onFileSelect, onError, acceptedFile }: FileInputProps) => {
+const FileInput = ({ id, label, onFileSelect, onError, acceptedFile, acceptedTypes, maxSizeMB }: FileInputProps) => {
     const [isDragging, setIsDragging] = React.useState(false);
     const inputRef = React.useRef<HTMLInputElement>(null);
 
     const handleFileValidation = (file: File) => {
-        if (file.type !== 'application/pdf') {
-            onError('El archivo debe ser de tipo PDF.');
+        const fileTypeMajor = file.type.split('/')[0];
+        const isValidType = acceptedTypes.some(type => 
+            type.endsWith('/*') ? type.startsWith(fileTypeMajor) : type === file.type
+        );
+
+        if (!isValidType) {
+            onError(`El archivo debe ser de tipo: ${acceptedTypes.join(', ').replace(/\/\*/g, '')}.`);
             return false;
         }
-        if (file.size > 1 * 1024 * 1024) { // 1 MB limit
-            onError('El archivo no debe exceder 1 MB.');
+
+        if (file.size > maxSizeMB * 1024 * 1024) {
+            onError(`El archivo no debe exceder ${maxSizeMB} MB.`);
             return false;
         }
+
         onError(null);
         onFileSelect(file);
         return true;
@@ -1393,7 +1437,7 @@ const FileInput = ({ id, label, onFileSelect, onError, acceptedFile }: FileInput
                     id={id}
                     ref={inputRef}
                     className="sr-only"
-                    accept=".pdf"
+                    accept={acceptedTypes.join(',')}
                     onChange={handleChange}
                 />
                  <div className="flex flex-col items-center justify-center space-y-2">
@@ -1416,12 +1460,11 @@ const FileInput = ({ id, label, onFileSelect, onError, acceptedFile }: FileInput
                     Quitar archivo
                 </button>
             )}
-             <p className="text-xs text-gray-500 mt-1">PDF, Máx 1MB. Se recomienda un PDF genuino (basado en texto), no escaneado.</p>
+             <p className="text-xs text-gray-500 mt-1">{acceptedTypes.join(', ').replace(/\/\*/g, '')}. Máx {maxSizeMB}MB.</p>
         </div>
     );
 };
-
-
+// END: Evidence Upload Feature
 
 const formatCourseDates = (dates: string) => {
     if (!dates) return '';
@@ -1436,58 +1479,108 @@ interface InstructorFormProps {
     courses: Course[];
 }
 
+// START: Evidence Upload Feature - Revamped InstructorForm with TABS
 const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
-    const [instructorName, setInstructorName] = React.useState('');
-    const [instructorEmail, setInstructorEmail] = React.useState('');
-    const [courseName, setCourseName] = React.useState('');
+    const [activeTab, setActiveTab] = React.useState<'proposal' | 'evidence'>('proposal');
+
+    // State for Proposal Form
+    const [proposalInstructorName, setProposalInstructorName] = React.useState('');
+    const [proposalInstructorEmail, setProposalInstructorEmail] = React.useState('');
+    const [proposalCourseName, setProposalCourseName] = React.useState('');
     const [cvuFile, setCvuFile] = React.useState<File | null>(null);
     const [fichaFile, setFichaFile] = React.useState<File | null>(null);
-    const [isSubmitting, setIsSubmitting] = React.useState(false);
-    const [error, setError] = React.useState<string | null>(null);
+    const [proposalStatus, setProposalStatus] = React.useState({ isSubmitting: false, error: null, success: null });
     const [cvuError, setCvuError] = React.useState<string | null>(null);
     const [fichaError, setFichaError] = React.useState<string | null>(null);
-    const [success, setSuccess] = React.useState<string | null>(null);
     
-    const handleTeacherSelect = (teacher: Teacher) => {
-        setInstructorName(teacher.nombreCompleto.toUpperCase());
-        setInstructorEmail((teacher.email || '').toLowerCase());
+    // State for Evidence Form
+    const [evidenceInstructorName, setEvidenceInstructorName] = React.useState('');
+    const [evidenceInstructorEmail, setEvidenceInstructorEmail] = React.useState('');
+    const [evidenceCourseName, setEvidenceCourseName] = React.useState('');
+    const [evidenceFile, setEvidenceFile] = React.useState<File | null>(null);
+    const [evidenceFileError, setEvidenceFileError] = React.useState<string | null>(null);
+    const [evidenceStatus, setEvidenceStatus] = React.useState({ isSubmitting: false, error: null, success: null });
+
+
+    const handleProposalTeacherSelect = (teacher: Teacher) => {
+        setProposalInstructorName(teacher.nombreCompleto.toUpperCase());
+        setProposalInstructorEmail((teacher.email || '').toLowerCase());
+    };
+    
+    const handleEvidenceTeacherSelect = (teacher: Teacher) => {
+        setEvidenceInstructorName(teacher.nombreCompleto.toUpperCase());
+        setEvidenceInstructorEmail((teacher.email || '').toLowerCase());
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleProposalSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError(null);
+        setProposalStatus({ isSubmitting: true, error: null, success: null });
         
         if (cvuError || fichaError) {
+            setProposalStatus({ isSubmitting: false, error: 'Por favor, corrija los errores en los archivos.', success: null });
             return;
         }
 
-        if (!instructorName || !instructorEmail || !courseName || !cvuFile || !fichaFile) {
-            setError('Todos los campos y archivos son obligatorios.');
+        if (!proposalInstructorName || !proposalInstructorEmail || !proposalCourseName || !cvuFile || !fichaFile) {
+            setProposalStatus({ isSubmitting: false, error: 'Todos los campos y archivos son obligatorios.', success: null });
             return;
         }
-
-        setIsSubmitting(true);
-        setSuccess(null);
 
         try {
             const cvuFileBase64 = await fileToBase64(cvuFile);
             const fichaFileBase64 = await fileToBase64(fichaFile);
 
             await submitInstructorProposal({
-                instructorName,
-                instructorEmail,
-                courseName,
+                instructorName: proposalInstructorName,
+                instructorEmail: proposalInstructorEmail,
+                courseName: proposalCourseName,
                 cvuFile: cvuFileBase64,
                 fichaFile: fichaFileBase64
             });
 
-            setSuccess('¡Archivos enviados con éxito! Gracias por tu contribución.');
-
+            setProposalStatus({ isSubmitting: false, error: null, success: '¡Propuesta enviada con éxito! Gracias por tu contribución.' });
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : "Hubo un error al enviar la propuesta.";
-            setError(errorMessage);
-        } finally {
-            setIsSubmitting(false);
+            setProposalStatus({ isSubmitting: false, error: errorMessage, success: null });
+        }
+    };
+
+    const handleEvidenceSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setEvidenceStatus({ isSubmitting: true, error: null, success: null });
+
+        if (evidenceFileError) {
+            setEvidenceStatus({ isSubmitting: false, error: 'Por favor, corrija los errores en el archivo.', success: null });
+            return;
+        }
+
+        if (!evidenceInstructorName || !evidenceInstructorEmail || !evidenceCourseName || !evidenceFile) {
+            setEvidenceStatus({ isSubmitting: false, error: 'Todos los campos y el archivo de evidencia son obligatorios.', success: null });
+            return;
+        }
+
+        try {
+            const evidenceFileBase64 = await fileToBase64(evidenceFile);
+            
+            await submitEvidence({
+                instructorName: evidenceInstructorName,
+                instructorEmail: evidenceInstructorEmail,
+                courseName: evidenceCourseName,
+                evidenceFile: evidenceFileBase64,
+                fileName: evidenceFile.name,
+                fileType: evidenceFile.type
+            });
+
+            setEvidenceStatus({ isSubmitting: false, error: null, success: '¡Evidencia enviada con éxito!' });
+            // Clear form on success
+            setEvidenceInstructorName('');
+            setEvidenceInstructorEmail('');
+            setEvidenceCourseName('');
+            setEvidenceFile(null);
+
+        } catch (err) {
+             const errorMessage = err instanceof Error ? err.message : "Hubo un error al enviar la evidencia.";
+            setEvidenceStatus({ isSubmitting: false, error: errorMessage, success: null });
         }
     };
 
@@ -1502,196 +1595,158 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
         }
         return acc;
     }, {} as { [key: string]: { courses: Course[], dates: string } });
+    
+    const TabButton = ({ label, tabName, activeTab, setActiveTab }) => (
+        <button
+            onClick={() => setActiveTab(tabName)}
+            className={`px-6 py-3 font-semibold text-sm rounded-t-lg focus:outline-none transition-colors duration-200 ${
+                activeTab === tabName
+                    ? 'bg-white text-indigo-700 border-b-2 border-indigo-500'
+                    : 'bg-gray-50 text-gray-500 hover:bg-gray-200'
+            }`}
+        >
+            {label}
+        </button>
+    );
 
-    return (
-        <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto">
-            {success ? (
+    const renderProposalForm = () => (
+         <React.Fragment>
+            {proposalStatus.success ? (
                 <div className="text-center py-8">
-                    <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-8 rounded-md" role="alert">
-                        <p>{success}</p>
-                    </div>
-                    <button 
-                        onClick={onBack} 
-                        className="bg-indigo-600 text-white font-bold py-2 px-8 rounded-lg hover:bg-indigo-700 transition-colors"
-                    >
-                        Salir
-                    </button>
+                     <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-8 rounded-md" role="alert">
+                         <p>{proposalStatus.success}</p>
+                     </div>
+                     <button onClick={onBack} className="bg-indigo-600 text-white font-bold py-2 px-8 rounded-lg hover:bg-indigo-700 transition-colors">Salir</button>
                 </div>
             ) : (
-                <React.Fragment>
-                    <button onClick={onBack} className="text-sm text-blue-600 hover:underline mb-4">&larr; Volver a Inscripción de Cursos</button>
-                    <h2 className="text-2xl font-bold mb-2 text-gray-800">Instructores</h2>
+                 <form onSubmit={handleProposalSubmit} noValidate>
                     <div className="bg-blue-700 text-white p-4 rounded-lg mb-6 text-sm text-center">
                         <p>Es necesario que envíes el CVU y la ficha técnica en <strong>PDF genuinos, No Fotos.</strong> Puedes descargar las plantillas aquí.</p>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        <a 
-                            href="https://raw.githubusercontent.com/DA-itd/DA-itd-web/main/TecNM-AC-PO-005-11%20CVU%20curriculum%20del%20instructor%20(1).doc" 
-                            className="flex items-center p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-colors"
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            download
-                        >
-                            <svg className="h-8 w-8 mr-4 flex-shrink-0 text-blue-600" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                <path d="M6 2C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2H6Z" fill="#2962FF" />
-                                <path d="M14 2V8H20L14 2Z" fill="#E3F2FD" fillOpacity="0.7" />
-                                <path d="M8.5 16.5L10.5 12L12 16.5L13.5 12L15.5 16.5H14L13 14L12 16.5L11 14L10 16.5H8.5Z" fill="#FFFFFF" />
-                            </svg>
-                            <div>
-                                <span className="font-semibold text-indigo-700">CVU (TecNM-AC-PO-005-11)</span>
-                                <span className="block text-xs text-gray-500">Descargar plantilla .doc</span>
-                            </div>
+                        <a href="https://raw.githubusercontent.com/DA-itd/DA-itd-web/main/TecNM-AC-PO-005-11%20CVU%20curriculum%20del%20instructor%20(1).doc" className="flex items-center p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-colors" target="_blank" rel="noopener noreferrer" download>
+                            <svg className="h-8 w-8 mr-4 flex-shrink-0 text-blue-600" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 2C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2H6Z" fill="#2962FF" /><path d="M14 2V8H20L14 2Z" fill="#E3F2FD" fillOpacity="0.7" /><path d="M8.5 16.5L10.5 12L12 16.5L13.5 12L15.5 16.5H14L13 14L12 16.5L11 14L10 16.5H8.5Z" fill="#FFFFFF" /></svg>
+                            <div><span className="font-semibold text-indigo-700">CVU (TecNM-AC-PO-005-11)</span><span className="block text-xs text-gray-500">Descargar plantilla .doc</span></div>
                         </a> 
-                        <a 
-                            href="https://raw.githubusercontent.com/DA-itd/DA-itd-web/main/TecNM-AC-PO-005-12%20FICHA%20TECNICA%20(1).doc" 
-                            className="flex items-center p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-colors"
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            download
-                        >
-                            <svg className="h-8 w-8 mr-4 flex-shrink-0 text-blue-600" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                <path d="M6 2C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2H6Z" fill="#2962FF" />
-                                <path d="M14 2V8H20L14 2Z" fill="#E3F2FD" fillOpacity="0.7" />
-                                <path d="M8.5 16.5L10.5 12L12 16.5L13.5 12L15.5 16.5H14L13 14L12 16.5L11 14L10 16.5H8.5Z" fill="#FFFFFF" />
-                            </svg>
-                            <div>
-                                <span className="font-semibold text-indigo-700">Ficha Técnica (TecNM-AC-PO-005-12)</span>
-                                <span className="block text-xs text-gray-500">Descargar plantilla .doc</span>
-                            </div>
+                        <a href="https://raw.githubusercontent.com/DA-itd/DA-itd-web/main/TecNM-AC-PO-005-12%20FICHA%20TECNICA%20(1).doc" className="flex items-center p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-colors" target="_blank" rel="noopener noreferrer" download>
+                             <svg className="h-8 w-8 mr-4 flex-shrink-0 text-blue-600" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 2C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2H6Z" fill="#2962FF" /><path d="M14 2V8H20L14 2Z" fill="#E3F2FD" fillOpacity="0.7" /><path d="M8.5 16.5L10.5 12L12 16.5L13.5 12L15.5 16.5H14L13 14L12 16.5L11 14L10 16.5H8.5Z" fill="#FFFFFF" /></svg>
+                            <div><span className="font-semibold text-indigo-700">Ficha Técnica (TecNM-AC-PO-005-12)</span><span className="block text-xs text-gray-500">Descargar plantilla .doc</span></div>
                         </a>
                     </div>
-
-                    {error && (
-                         <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md" role="alert">
-                            <p>{error}</p>
+                    {proposalStatus.error && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md" role="alert"><p>{proposalStatus.error}</p></div>}
+                    <div className="space-y-6">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Nombre Completo del Instructor *</label>
+                            <AutocompleteInput teachers={teachers} onSelect={handleProposalTeacherSelect} value={proposalInstructorName} onChange={(e) => setProposalInstructorName(e.target.value.toUpperCase())} name="proposalInstructorName" placeholder="Escriba un nombre para buscar" required />
                         </div>
-                    )}
-                    
-                    <form onSubmit={handleSubmit} noValidate>
-                        <div className="space-y-6">
-                            <div>
-                                <label htmlFor="instructorName" className="block text-sm font-medium text-gray-700">Nombre Completo del Instructor *</label>
-                                <AutocompleteInput
-                                    teachers={teachers}
-                                    onSelect={handleTeacherSelect}
-                                    value={instructorName}
-                                    onChange={(e) => setInstructorName(e.target.value.toUpperCase())}
-                                    name="instructorName"
-                                    placeholder="Escriba un nombre para buscar"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="instructorEmail" className="block text-sm font-medium text-gray-700">Email del Instructor *</label>
-                                <input
-                                    type="email"
-                                    id="instructorEmail"
-                                    name="instructorEmail"
-                                    value={instructorEmail}
-                                    onChange={(e) => setInstructorEmail(e.target.value.toLowerCase())}
-                                    className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                    placeholder="email@itdurango.edu.mx"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label id="course-selection-label" className="block text-sm font-medium text-gray-700 mb-4">
-                                    Nombre del Curso a Ofrecer *
-                                </label>
-                                <div role="radiogroup" aria-labelledby="course-selection-label">
-                                    {Object.entries(groupedCourses).map(([period, data]) => {
-                                        const periodName = period.replace(/_/g, ' ');
-                                        const label = data.dates ? `${periodName} | ${data.dates}` : periodName;
-                                        return (
-                                            <div key={period} className="mb-8">
-                                                <h4 className="text-md font-semibold text-gray-600 border-b pb-2 mb-4">{label}</h4>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                    {data.courses.map(course => {
-                                                        const isSelected = courseName === course.name;
-                                                        const period1Styles = "border-t-4 border-teal-400 bg-teal-50 hover:shadow-md";
-                                                        const period2Styles = "border-t-4 border-indigo-400 bg-indigo-50 hover:shadow-md";
-                                                        let classNames = course.period === 'PERIODO_1' ? period1Styles : period2Styles;
-
-                                                        if (isSelected) {
-                                                            const selectedRing = course.period === 'PERIODO_1' ? 'ring-teal-500' : 'ring-indigo-500';
-                                                            classNames += ` ring-2 ring-offset-2 ${selectedRing}`;
-                                                        }
-                                                        const textColor = course.period === 'PERIODO_1' ? 'text-teal-800' : 'text-indigo-800';
-                                                        
-                                                        return (
-                                                            <div
-                                                                key={course.id}
-                                                                role="radio"
-                                                                aria-checked={isSelected}
-                                                                tabIndex={0}
-                                                                onClick={() => setCourseName(course.name)}
-                                                                onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') setCourseName(course.name) }}
-                                                                className={`p-4 rounded-lg border border-gray-200 transition-all duration-200 flex flex-col justify-between h-full ${classNames} cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
-                                                            >
-                                                                <div>
-                                                                    <h3 className={`font-bold text-sm mb-2 ${textColor}`}>{course.name}</h3>
-                                                                    <div className="text-xs text-gray-600 space-y-1">
-                                                                        <p><strong>Fechas:</strong> {course.dates}</p>
-                                                                        <p><strong>Horario:</strong> {course.schedule}</p>
-                                                                        <p><strong>Lugar:</strong> {course.location}</p>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="flex justify-end mt-3">
-                                                                    <input
-                                                                        type="radio"
-                                                                        name="course-selection"
-                                                                        checked={isSelected}
-                                                                        readOnly
-                                                                        className="form-radio h-5 w-5 text-indigo-600 pointer-events-none"
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                            <div>
-                                 <FileInput
-                                    id="cvuFile"
-                                    label="Haz clic para subir tu CVU"
-                                    onFileSelect={setCvuFile}
-                                    onError={setCvuError}
-                                    acceptedFile={cvuFile}
-                                />
-                                {cvuError && <p className="text-red-500 text-xs mt-1">{cvuError}</p>}
-                            </div>
-                             <div>
-                                <FileInput
-                                    id="fichaFile"
-                                    label="Haz clic para subir la Ficha Técnica"
-                                    onFileSelect={setFichaFile}
-                                    onError={setFichaError}
-                                    acceptedFile={fichaFile}
-                                />
-                                {fichaError && <p className="text-red-500 text-xs mt-1">{fichaError}</p>}
+                        <div>
+                             <label className="block text-sm font-medium text-gray-700">Email del Instructor *</label>
+                            <input type="email" value={proposalInstructorEmail} onChange={(e) => setProposalInstructorEmail(e.target.value.toLowerCase())} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="email@itdurango.edu.mx" required />
+                        </div>
+                        <div>
+                             <label id="course-selection-label" className="block text-sm font-medium text-gray-700 mb-4">Nombre del Curso a Ofrecer *</label>
+                             <div role="radiogroup" aria-labelledby="course-selection-label">
+                                {Object.entries(groupedCourses).map(([period, data]) => (
+                                    <div key={period} className="mb-8">
+                                        <h4 className="text-md font-semibold text-gray-600 border-b pb-2 mb-4">{data.dates ? `${period.replace(/_/g, ' ')} | ${data.dates}` : period.replace(/_/g, ' ')}</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {data.courses.map(course => {
+                                                const isSelected = proposalCourseName === course.name;
+                                                const baseStyles = course.period === 'PERIODO_1' ? "border-t-4 border-teal-400 bg-teal-50" : "border-t-4 border-indigo-400 bg-indigo-50";
+                                                const ringStyle = course.period === 'PERIODO_1' ? 'ring-teal-500' : 'ring-indigo-500';
+                                                const textStyle = course.period === 'PERIODO_1' ? 'text-teal-800' : 'text-indigo-800';
+                                                return (
+                                                    <div key={course.id} role="radio" aria-checked={isSelected} tabIndex={0} onClick={() => setProposalCourseName(course.name)} onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') setProposalCourseName(course.name) }} className={`p-4 rounded-lg border border-gray-200 transition-all duration-200 flex flex-col justify-between h-full hover:shadow-md cursor-pointer ${baseStyles} ${isSelected ? `ring-2 ring-offset-2 ${ringStyle}` : ''}`}>
+                                                        <h3 className={`font-bold text-sm mb-2 ${textStyle}`}>{course.name}</h3>
+                                                        <div className="flex justify-end mt-3"><input type="radio" name="course-selection" checked={isSelected} readOnly className="form-radio h-5 w-5 text-indigo-600 pointer-events-none" /></div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
-                         <div className="mt-8 flex justify-end">
-                            <button type="submit" className="bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 flex items-center justify-center disabled:opacity-50" disabled={isSubmitting}>
-                                 {isSubmitting && (
-                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                )}
-                                {isSubmitting ? 'Enviando...' : 'Enviar'}
-                            </button>
+                        <div>
+                            <FileInput id="cvuFile" label="Haz clic para subir tu CVU" onFileSelect={setCvuFile} onError={setCvuError} acceptedFile={cvuFile} acceptedTypes={['application/pdf']} maxSizeMB={1} />
+                            {cvuError && <p className="text-red-500 text-xs mt-1">{cvuError}</p>}
                         </div>
-                    </form>
-                </React.Fragment>
+                        <div>
+                            <FileInput id="fichaFile" label="Haz clic para subir la Ficha Técnica" onFileSelect={setFichaFile} onError={setFichaError} acceptedFile={fichaFile} acceptedTypes={['application/pdf']} maxSizeMB={1} />
+                            {fichaError && <p className="text-red-500 text-xs mt-1">{fichaError}</p>}
+                        </div>
+                    </div>
+                    <div className="mt-8 flex justify-end">
+                        <button type="submit" className="bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 flex items-center justify-center disabled:opacity-50" disabled={proposalStatus.isSubmitting}>
+                            {proposalStatus.isSubmitting && <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>}
+                            {proposalStatus.isSubmitting ? 'Enviando...' : 'Enviar Propuesta'}
+                        </button>
+                    </div>
+                 </form>
             )}
+         </React.Fragment>
+    );
+
+    const renderEvidenceForm = () => (
+        <React.Fragment>
+             {evidenceStatus.success && <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-md" role="alert"><p>{evidenceStatus.success}</p></div>}
+             <form onSubmit={handleEvidenceSubmit} noValidate>
+                 <div className="bg-gray-50 border-l-4 border-gray-400 text-gray-800 p-4 rounded-lg mb-6 text-sm">
+                    <p>En esta sección puede subir las evidencias (PDFs o fotografías) del curso que impartió.</p>
+                </div>
+
+                {evidenceStatus.error && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md" role="alert"><p>{evidenceStatus.error}</p></div>}
+                
+                <div className="space-y-6">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Su Nombre Completo *</label>
+                        <AutocompleteInput teachers={teachers} onSelect={handleEvidenceTeacherSelect} value={evidenceInstructorName} onChange={(e) => setEvidenceInstructorName(e.target.value.toUpperCase())} name="evidenceInstructorName" placeholder="Escriba su nombre para buscar" required />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Su Email *</label>
+                        <input type="email" value={evidenceInstructorEmail} onChange={(e) => setEvidenceInstructorEmail(e.target.value.toLowerCase())} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="email@itdurango.edu.mx" required />
+                    </div>
+                     <div>
+                        <label htmlFor="evidenceCourse" className="block text-sm font-medium text-gray-700">Curso que Impartió *</label>
+                        <select name="evidenceCourse" id="evidenceCourse" value={evidenceCourseName} onChange={(e) => setEvidenceCourseName(e.target.value)} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" required>
+                            <option value="">Seleccione un curso</option>
+                            {courses.map(course => <option key={course.id} value={course.name}>{course.name}</option>)}
+                        </select>
+                    </div>
+                     <div>
+                        <FileInput id="evidenceFile" label="Haga clic para subir su evidencia" onFileSelect={setEvidenceFile} onError={setEvidenceFileError} acceptedFile={evidenceFile} acceptedTypes={['application/pdf', 'image/jpeg', 'image/png']} maxSizeMB={10} />
+                        {evidenceFileError && <p className="text-red-500 text-xs mt-1">{evidenceFileError}</p>}
+                    </div>
+                </div>
+                 <div className="mt-8 flex justify-end">
+                    <button type="submit" className="bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 flex items-center justify-center disabled:opacity-50" disabled={evidenceStatus.isSubmitting}>
+                        {evidenceStatus.isSubmitting && <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>}
+                        {evidenceStatus.isSubmitting ? 'Enviando...' : 'Enviar Evidencia'}
+                    </button>
+                </div>
+            </form>
+        </React.Fragment>
+    );
+
+    return (
+        <div className="bg-white p-4 sm:p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto">
+             <button onClick={onBack} className="text-sm text-blue-600 hover:underline mb-4">&larr; Volver a Inscripción de Cursos</button>
+             <h2 className="text-2xl font-bold mb-4 text-gray-800">Portal de Instructores</h2>
+            
+             <div className="border-b border-gray-200">
+                <nav className="-mb-px flex space-x-4" aria-label="Tabs">
+                    <TabButton label="Proponer Curso" tabName="proposal" activeTab={activeTab} setActiveTab={setActiveTab} />
+                    <TabButton label="Subir Evidencias" tabName="evidence" activeTab={activeTab} setActiveTab={setActiveTab} />
+                </nav>
+            </div>
+
+            <div className="pt-6">
+                {activeTab === 'proposal' ? renderProposalForm() : renderEvidenceForm()}
+            </div>
         </div>
     );
 };
+// END: Evidence Upload Feature
 
 // =============================================================================
 // == RENDER APPLICATION
