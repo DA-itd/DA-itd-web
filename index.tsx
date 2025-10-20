@@ -10,8 +10,8 @@ declare global {
 }
 
 // FIX: Add React and ReactDOM imports to fix module errors.
-import React from 'react';
-import ReactDOM from 'react-dom/client';
+const React = window.React;
+const ReactDOM = window.ReactDOM;
 
 
 // =============================================================================
