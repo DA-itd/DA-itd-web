@@ -5,8 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Inscripción a Cursos</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!--
+    =============================================================================
+    == MÉTODO DE CARGA DE REACT SIMPLIFICADO Y ROBUSTO
+    =============================================================================
+    == Cargamos las librerías directamente. Esto crea las variables globales
+    == `React` y `ReactDOM`, que es el método más fiable para un entorno
+    == sin un proceso de "build" como este.
+    =============================================================================
+    -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel sigue siendo necesario para traducir nuestro código JSX y TypeScript -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -16,44 +27,27 @@
 <body class="bg-gray-100">
     <div id="root"></div>
 
+    <!-- 
+    =============================================================================
+    == CONFIGURACIÓN OBLIGATORIA
+    =============================================================================
+    == Reemplaza la siguiente URL de ejemplo con la URL de tu Google Apps Script.
+    =============================================================================
+    -->
     <script>
       window.CONFIG = {
         APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycby_ESgq4InYsgJMqbsJz_je6M62PQ8uFFwiNwrHUuPt-131BxiiesiXf4wuEORrr7Cd4A/exec'
       };
     </script>
     
-    <script type="text/babel">
-        const React = window.React;
-        const ReactDOM = window.ReactDOM;
-
-        // Simple test component to verify it works
-        const App = () => {
-            const [message, setMessage] = React.useState('¡Sistema Cargando!');
-            
-            React.useEffect(() => {
-                setTimeout(() => setMessage('✅ Sistema Funcionando Correctamente'), 1000);
-            }, []);
-            
-            return (
-                <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-                    <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md text-center">
-                        <h1 className="text-3xl font-bold text-gray-800 mb-4">{message}</h1>
-                        <p className="text-gray-600">Sistema de Inscripción ITD</p>
-                        <div className="mt-6 p-4 bg-green-50 rounded-lg">
-                            <p className="text-sm text-green-800">
-                                Si ves este mensaje, React está funcionando correctamente.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const rootElement = document.getElementById('root');
-        if (rootElement) {
-            const root = ReactDOM.createRoot(rootElement);
-            root.render(<React.StrictMode><App /></React.StrictMode>);
-        }
-    </script>
+    <!--
+    =============================================================================
+    == SCRIPT DE LA APLICACIÓN
+    =============================================================================
+    == Usamos `text/babel` y le indicamos que use los presets de TypeScript y React
+    == para la transpilación en el navegador.
+    =============================================================================
+    -->
+    <script type="text/babel" data-presets="typescript,react" src="index.tsx"></script>
 </body>
 </html>
