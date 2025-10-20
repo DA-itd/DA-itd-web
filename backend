@@ -1,0 +1,495 @@
+// ============================================
+// CONFIGURACIÓN - Reemplaza con tus IDs reales
+// ============================================
+
+const CONFIG = {
+  SPREADSHEET_ID: '1KLPdMw1AzDdNSqYRRUZnvkyHLQnL2TWQ0Sk0282CN-A',
+  DRIVE_FOLDER_ID: '1nwzLS81ct3ZoimPqJsikznQxhzg3_86T', // Carpeta donde se guardarán los PDFs
+  
+  // Nombres de las hojas
+  SHEETS: {
+    CURSOS: 'Cursos',
+    DOCENTES: 'Docentes',
+    INSCRIPCIONES: 'Inscripciones', // Nombre corregido a mayúscula inicial
+    INSTRUCTORES: 'Instructores'
+  }
+};
+
+// ============================================
+// FUNCIONES DE UTILIDAD PARA HOJAS
+// ============================================
+
+/**
+ * Obtiene una hoja de cálculo por su nombre y verifica su existencia.
+ * Lanza un error si la hoja no se encuentra.
+ */
+function getSheet(spreadsheet, sheetName) {
+  const sheet = spreadsheet.getSheetByName(sheetName);
+  if (!sheet) {
+    throw new Error(`La hoja de cálculo con el nombre "${sheetName}" no fue encontrada. Por favor, verifique el nombre de la pestaña en su Google Sheet.`);
+  }
+  return sheet;
+}
+
+// ============================================
+// FUNCIONES PRINCIPALES
+// ============================================
+
+/**
+ * Maneja las peticiones POST del frontend
+ */
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+    
+    switch(data.action) {
+      case 'enrollStudent':
+        return enrollStudent(data);
+      
+      case 'submitInstructorProposal':
+         return submitInstructorProposal(data);
+
+      case 'cancelSingle':
+        return cancelSingleCourse(data);
+
+      default:
+        return createResponse(false, 'Acción no válida');
+    }
+  } catch (error) {
+    Logger.log('Error en doPost: ' + error.toString() + "\nStack: " + error.stack);
+    return createResponse(false, 'Error en el servidor: ' + error.toString());
+  }
+}
+
+/**
+ * Maneja las peticiones GET del frontend
+ */
+function doGet(e) {
+  try {
+    const action = e.parameter.action;
+    
+    switch(action) {
+      case 'lookupByCurp':
+        return lookupByCurp(e.parameter.curp);
+        
+      default:
+        return createResponse(false, 'Acción no válida');
+    }
+  } catch (error) {
+     Logger.log('Error en doGet: ' + error.toString() + "\nStack: " + error.stack);
+    return createResponse(false, 'Error en el servidor: ' + error.toString());
+  }
+}
+
+// ============================================
+// FUNCIONES DE INSCRIPCIÓN DE ESTUDIANTES
+// ============================================
+
+/**
+ * Inscribe a un estudiante en múltiples cursos
+ */
+function enrollStudent(data) {
+  const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+  
+  // Verificación de existencia de hojas
+  const cursosSheet = getSheet(ss, CONFIG.SHEETS.CURSOS);
+  const inscripcionesSheet = getSheet(ss, CONFIG.SHEETS.INSCRIPCIONES);
+
+  const allCoursesData = cursosSheet.getDataRange().getValues();
+  let allInscripcionesData = inscripcionesSheet.getDataRange().getValues(); // Usar let para poder actualizarlo
+
+  const results = [];
+  const successfulEnrollments = [];
+  
+  const coursesToEnroll = data.selectedCourses || [];
+  const previousIds = data.previousRegistrationIds || [];
+
+  // 1. Cancelar cursos deseleccionados
+  const coursesToCancelIds = previousIds.filter(id => !coursesToEnroll.some(c => c.id === id));
+  if (coursesToCancelIds.length > 0) {
+      cancelCoursesByCurpAndId(inscripcionesSheet, allInscripcionesData, data.curp, coursesToCancelIds);
+      // Actualizar los datos de inscripciones después de cancelar para reflejar los cambios
+      allInscripcionesData = inscripcionesSheet.getDataRange().getValues();
+  }
+
+  // 2. Inscribir en nuevos cursos
+  for (const course of coursesToEnroll) {
+    if (previousIds.includes(course.id)) {
+        const existingFolio = findFolio(allInscripcionesData, data.curp, course.id);
+        results.push({ 
+          success: true, 
+          message: 'Ya estabas inscrito en este curso.', 
+          courseName: course.name, 
+          registrationId: course.id, 
+          folio: existingFolio || "N/A"
+        });
+        const courseDetails = findCourseById(allCoursesData, course.id);
+        if (courseDetails) {
+            successfulEnrollments.push({ ...courseDetails, folio: existingFolio || "N/A" });
+        }
+        continue;
+    }
+
+    const validation = validateEnrollment(allCoursesData, allInscripcionesData, course.id, data.email);
+    if (!validation.isValid) {
+      results.push({ success: false, message: validation.message, courseName: course.name, registrationId: course.id });
+      continue;
+    }
+    
+    // Generar el nuevo folio
+    const folio = generateFolio(allInscripcionesData, course.id);
+    const timestamp = new Date();
+    
+    const rowData = [
+      timestamp, course.id, data.fullName, data.curp, data.email,
+      data.gender || '', course.name, data.DepartamentoSeleccionado,
+      course.dates, course.location, course.schedule, folio, 'Activo'
+    ];
+    
+    inscripcionesSheet.appendRow(rowData);
+    // IMPORTANTE: Añadir la nueva fila a nuestra copia en memoria de los datos para que el siguiente folio se genere correctamente.
+    allInscripcionesData.push(rowData);
+    
+    results.push({ success: true, message: 'Inscripción exitosa', courseName: course.name, registrationId: course.id, folio: folio });
+    
+    const courseDetails = findCourseById(allCoursesData, course.id);
+    if(courseDetails) {
+       successfulEnrollments.push({ ...courseDetails, folio: folio });
+    }
+  }
+
+  if (successfulEnrollments.length > 0) {
+    sendMultiCourseConfirmation(data, successfulEnrollments);
+  }
+
+  return createResponse(true, 'Proceso completado.', { results: results, successfulEnrollments: successfulEnrollments });
+}
+
+
+/**
+ * Valida si un estudiante puede inscribirse en un curso.
+ */
+function validateEnrollment(coursesData, inscripcionesData, courseId, email) {
+  const curso = findCourseById(coursesData, courseId);
+  if (!curso) {
+    return { isValid: false, message: 'El curso no existe' };
+  }
+
+  const inscritos = countEnrollments(inscripcionesData, courseId);
+  if (inscritos >= 30) { // Límite estricto de 30
+    return { isValid: false, message: 'El curso no tiene cupo disponible' };
+  }
+
+  if (isAlreadyEnrolled(inscripcionesData, email, courseId)) {
+    return { isValid: false, message: 'Ya estás inscrito en este curso' };
+  }
+  
+  return { isValid: true };
+}
+
+
+function cancelCoursesByCurpAndId(sheet, allInscripcionesData, curp, courseIdsToCancel) {
+    for (let i = allInscripcionesData.length - 1; i >= 1; i--) {
+        const row = allInscripcionesData[i];
+        const rowCurp = row[3];
+        const rowCourseId = row[1];
+        const rowStatus = row[12];
+        
+        if (rowCurp === curp && courseIdsToCancel.includes(rowCourseId) && rowStatus === 'Activo') {
+            sheet.getRange(i + 1, 13).setValue('Cancelado por Modificación');
+        }
+    }
+}
+
+
+/**
+ * Cancela una inscripción individualmente.
+ */
+function cancelSingleCourse(data) {
+  try {
+    const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    const inscripcionesSheet = getSheet(ss, CONFIG.SHEETS.INSCRIPCIONES);
+    const allData = inscripcionesSheet.getDataRange().getValues();
+
+    let found = false;
+    for (let i = allData.length - 1; i >= 1; i--) {
+      const row = allData[i];
+      if (row[3] === data.curp && row[1] === data.courseToCancel.id && row[12] === 'Activo') {
+        inscripcionesSheet.getRange(i + 1, 13).setValue('Cancelado');
+        found = true;
+      }
+    }
+
+    if (found) {
+      sendCancellationEmail(data.email, data.courseToCancel.name);
+      return createResponse(true, 'Curso cancelado exitosamente.');
+    } else {
+      return createResponse(false, 'No se encontró una inscripción activa para este curso.');
+    }
+  } catch (error) {
+    Logger.log('Error en cancelSingleCourse: ' + error.toString());
+    return createResponse(false, 'Error al cancelar: ' + error.toString());
+  }
+}
+
+
+// ============================================
+// FUNCIONES DE REGISTRO DE INSTRUCTORES
+// ============================================
+
+/**
+ * Registra una nueva propuesta de curso de un instructor.
+ */
+function submitInstructorProposal(data) {
+  try {
+    const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    const instructoresSheet = getSheet(ss, CONFIG.SHEETS.INSTRUCTORES);
+    
+    const cvuUrl = savePDFToDrive(data.cvuFile, `CVU_${data.instructorName}.pdf`);
+    const fichaUrl = savePDFToDrive(data.fichaFile, `Ficha_${data.courseName}.pdf`);
+    
+    const rowData = [
+      '', 
+      data.instructorName,
+      data.courseName,
+      new Date(),
+      cvuUrl,
+      fichaUrl,
+      data.instructorEmail
+    ];
+    
+    instructoresSheet.appendRow(rowData);
+    
+    sendInstructorConfirmation(data.instructorEmail, data.courseName, data.instructorName);
+    
+    return createResponse(true, 'Propuesta enviada exitosamente');
+    
+  } catch (error) {
+    Logger.log('Error en submitInstructorProposal: ' + error.toString());
+    return createResponse(false, 'Error al registrar propuesta: ' + error.toString());
+  }
+}
+
+/**
+ * Guarda un PDF en Google Drive.
+ */
+function savePDFToDrive(base64Data, fileName) {
+  try {
+    const folder = DriveApp.getFolderById(CONFIG.DRIVE_FOLDER_ID);
+    const decoded = Utilities.base64Decode(base64Data.split(',')[1]);
+    const blob = Utilities.newBlob(decoded, 'application/pdf', fileName);
+    
+    const file = folder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    
+    return file.getUrl();
+    
+  } catch (error) {
+    Logger.log('Error en savePDFToDrive: ' + error.toString());
+    throw new Error('Error al guardar PDF: ' + error.toString());
+  }
+}
+
+// ============================================
+// FUNCIONES DE CONSULTA
+// ============================================
+
+/**
+ * Obtiene las inscripciones de un usuario por su CURP.
+ */
+function lookupByCurp(curp) {
+    try {
+        const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+        const sheet = getSheet(ss, CONFIG.SHEETS.INSCRIPCIONES);
+        const data = sheet.getDataRange().getValues();
+        const registeredCourses = [];
+
+        for (let i = 1; i < data.length; i++) {
+            if (data[i][3] === curp && data[i][12] === 'Activo') {
+                registeredCourses.push(data[i][1]); 
+            }
+        }
+        
+        return createResponse(true, 'Consulta exitosa', { registeredCourses: registeredCourses });
+
+    } catch (e) {
+        Logger.log('Error en lookupByCurp: ' + e.toString());
+        return createResponse(false, 'Error al buscar CURP: ' + e.toString());
+    }
+}
+
+// ============================================
+// FUNCIONES AUXILIARES
+// ============================================
+
+/**
+ * Genera un folio único con el formato TNM-054-XX-YYYY-WW
+ * donde XX es el número de curso, YYYY es el año y WW es el consecutivo.
+ */
+function generateFolio(inscripcionesData, courseId) {
+  // 1. Extraer partes del ID del curso. Ej: "TNM-054-25-2026-01"
+  const parts = courseId.split('-');
+  if (parts.length < 4) {
+    // Fallback por si el ID no tiene el formato esperado
+    const timestamp = new Date().getTime();
+    const random = Math.floor(Math.random() * 1000);
+    return `ITD-${timestamp}-${random}`;
+  }
+  
+  const courseNumber = parts[2]; // XX
+  const year = parts[3];         // YYYY
+
+  // 2. Contar inscripciones activas para ESTE curso para obtener el consecutivo.
+  let consecutive = 1;
+  for (let i = 1; i < inscripcionesData.length; i++) {
+    const row = inscripcionesData[i];
+    // Columnas: Id_Curso (1), Status (12)
+    if (row[1] === courseId && row[12] === 'Activo') {
+      consecutive++;
+    }
+  }
+
+  // 3. Formatear el consecutivo a dos dígitos (ej: 1 -> "01", 10 -> "10")
+  const ww = String(consecutive).padStart(2, '0');
+
+  // 4. Construir el folio final
+  return `TNM-054-${courseNumber}-${year}-${ww}`;
+}
+
+
+function findFolio(inscripcionesData, curp, courseId) {
+    for (let i = 1; i < inscripcionesData.length; i++) {
+        const row = inscripcionesData[i];
+        if (row[3] === curp && row[1] == courseId && row[12] === 'Activo') {
+            return row[11];
+        }
+    }
+    return null;
+}
+
+function findCourseById(coursesData, courseId) {
+  for (let i = 1; i < coursesData.length; i++) {
+    if (coursesData[i][0] == courseId) { 
+      return {
+        id: coursesData[i][0],
+        name: coursesData[i][1],
+        dates: coursesData[i][2],
+        cupo: 30,
+        location: coursesData[i][5],
+        schedule: coursesData[i][6]
+      };
+    }
+  }
+  return null;
+}
+
+function countEnrollments(inscripcionesData, courseId) {
+  let count = 0;
+  for (let i = 1; i < inscripcionesData.length; i++) {
+    if (inscripcionesData[i][1] == courseId && inscripcionesData[i][12] === 'Activo') {
+      count++;
+    }
+  }
+  return count;
+}
+
+function isAlreadyEnrolled(inscripcionesData, email, courseId) {
+  for (let i = 1; i < inscripcionesData.length; i++) {
+    if (inscripcionesData[i][4] === email && inscripcionesData[i][1] == courseId && inscripcionesData[i][12] === 'Activo') {
+      return true;
+    }
+  }
+  return false;
+}
+
+function createResponse(success, message, data = null) {
+  const response = { success: success, message: message };
+  if (data !== null) {
+    response.data = data;
+  }
+  return ContentService.createTextOutput(JSON.stringify(response))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+
+// ============================================
+// FUNCIONES DE EMAIL
+// ============================================
+
+/**
+ * Envía un único email de confirmación para múltiples cursos.
+ */
+function sendMultiCourseConfirmation(data, successfulEnrollments) {
+  const subject = 'Confirmación de Inscripción a Cursos de Actualización Docente';
+  
+  let courseDetailsHtml = successfulEnrollments.map(course => {
+    return `
+      <div style="border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background-color: #f9f9f9;">
+        <h3 style="margin-top: 0; color: #333;">Curso: ${course.name}</h3>
+        <p><strong>Fechas:</strong> ${course.dates}</p>
+        <p><strong>Horario:</strong> ${course.schedule}</p>
+        <p><strong>Lugar:</strong> ${course.location}</p>
+        <p><strong>Folio temporal:</strong> ${course.folio}</p>
+      </div>
+    `;
+  }).join('');
+
+  const body = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+      <h2>Hola ${data.fullName},</h2>
+      <p>Tu inscripción a los siguientes cursos ha sido procesada exitosamente:</p>
+      <p><strong>Departamento:</strong> ${data.DepartamentoSeleccionado}</p>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+      ${courseDetailsHtml}
+      <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+      <p>Gracias por tu participación.</p>
+      <p>
+        <strong>Coordinación de Actualización Docente - Desarrollo Académico</strong><br>
+        Instituto Tecnológico de Durango
+      </p>
+    </div>
+  `;
+
+  MailApp.sendEmail({
+    to: data.email,
+    subject: subject,
+    htmlBody: body
+  });
+}
+
+/**
+ * Envía email de confirmación a instructor
+ */
+function sendInstructorConfirmation(email, courseName, instructorName) {
+  const subject = `Propuesta de Curso Recibida - ${courseName}`;
+  const body = `
+    Estimado/a ${instructorName},
+
+    Hemos recibido tu propuesta para impartir el curso: "${courseName}".
+    
+    Tu solicitud será revisada por la coordinación y nos pondremos en contacto contigo.
+    
+    Gracias por tu interés en la actualización docente.
+    
+    Atentamente,
+    Coordinación de Actualización Docente
+    Instituto Tecnológico de Durango
+  `;
+  
+  MailApp.sendEmail(email, subject, body);
+}
+
+
+/**
+ * Envía email de cancelación
+ */
+function sendCancellationEmail(email, courseName) {
+  const subject = `Inscripción Cancelada - ${courseName}`;
+  const body = `
+    Tu inscripción al curso "${courseName}" ha sido cancelada exitosamente.
+    
+    Instituto Tecnológico de Durango
+  `;
+  
+  MailApp.sendEmail(email, subject, body);
+}
