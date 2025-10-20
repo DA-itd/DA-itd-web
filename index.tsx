@@ -1,815 +1,4 @@
-{coursesToDisplay && coursesToDisplay.length > 0 ? (
-                <div className="mt-6 text-left border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-700 mb-4">Detalles de la Inscripción:</h3>
-                    <ul className="space-y-3">
-                        {coursesToDisplay.map((result) => (
-                            <li key={result.registrationId || result.id} className="p-3 bg-gray-50 rounded-md border border-gray-100">
-                                <div className="flex justify-between items-center flex-wrap gap-2">
-                                    <span className="font-semibold text-gray-800">
-                                        {(result.courseName || result.name)}
-                                        {result.dates && ` (${result.dates})`}
-                                    </span>
-                                    {result.folio && (
-                                        <span className="text-sm">
-                                            Folio temporal: <strong className="font-mono bg-gray-200 text-gray-800 py-1 px-2 rounded">{result.folio}</strong>
-                                        </span>
-                                    )}
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            ) : (
-                <div className="mt-6 text-left border border-gray-200 rounded-lg p-6 bg-gray-50">
-                     <p className="text-sm text-gray-600">
-                        Los detalles específicos y folios temporales de tu inscripción se encuentran en el correo electrónico que te hemos enviado.
-                    </p>
-                </div>
-            )}
-
-            <div className="mt-8 border-t pt-6">
-                <p className="text-sm text-gray-500">
-                    El proceso ha finalizado. Puede cerrar esta ventana de forma segura.
-                </p>
-            </div>
-        </div>
-    );
-};
-
-interface FileInputProps {
-    id: string;
-    label: string;
-    onFileSelect: (file: File | null) => void;
-    onError: (error: string | null) => void;
-    acceptedFile: File | null;
-    accept?: string;
-}
-
-const FileInput = ({ id, label, onFileSelect, onError, acceptedFile, accept = '.pdf' }: FileInputProps) => {
-    const [isDragging, setIsDragging] = React.useState(false);
-    const inputRef = React.useRef<HTMLInputElement>(null);
-
-    const handleFileValidation = (file: File) => {
-        const isPDF = file.type === 'application/pdf';
-        const isImage = file.type.startsWith('image/');
-        
-        if (accept === '.pdf' && !isPDF) {
-            onError('El archivo debe ser de tipo PDF.');
-            return false;
-        }
-        
-        if (accept === 'image/*,.pdf' && !isPDF && !isImage) {
-            onError('El archivo debe ser una imagen o PDF.');
-            return false;
-        }
-        
-        if (file.size > 5 * 1024 * 1024) {
-            onError('El archivo no debe exceder 5 MB.');
-            return false;
-        }
-        onError(null);
-        onFileSelect(file);
-        return true;
-    };
-
-    const handleDragEnter = (e: React.DragEvent<HTMLLabelElement>) => {
-        e.preventDefault();
-        setIsDragging(true);
-    };
-    const handleDragLeave = (e: React.DragEvent<HTMLLabelElement>) => {
-        e.preventDefault();
-        setIsDragging(false);
-    };
-    const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
-        e.preventDefault();
-    };
-    const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
-        e.preventDefault();
-        setIsDragging(false);
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            handleFileValidation(e.dataTransfer.files[0]);
-        }
-    };
-    
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            handleFileValidation(e.target.files[0]);
-        } else {
-             onFileSelect(null);
-        }
-    };
-
-    const handleRemoveFile = () => {
-        onFileSelect(null);
-        if (inputRef.current) {
-            inputRef.current.value = "";
-        }
-    };
-
-    return (
-        <div>
-            <label 
-                htmlFor={id} 
-                className={`relative block w-full border-2 border-dashed rounded-lg p-4 text-center cursor-pointer
-                transition-colors duration-200 ease-in-out
-                ${isDragging ? 'border-indigo-500 bg-indigo-50' : 'border-gray-300 hover:border-gray-400'}
-                ${acceptedFile ? 'border-green-500 bg-green-50' : ''}`}
-                onDragEnter={handleDragEnter}
-                onDragLeave={handleDragLeave}
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
-            >
-                <input
-                    type="file"
-                    id={id}
-                    ref={inputRef}
-                    className="sr-only"
-                    accept={accept}
-                    onChange={handleChange}
-                />
-                 <div className="flex flex-col items-center justify-center space-y-2">
-                     <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M12 15l-3-3m0 0l3-3m-3 3h12"></path></svg>
-                    {acceptedFile ? (
-                        <div className="text-sm font-semibold text-green-800">
-                           <p>Archivo cargado:</p>
-                           <p className="font-normal">{acceptedFile.name}</p>
-                        </div>
-                    ) : (
-                         <span className="text-sm font-medium text-gray-600">
-                            {label}
-                            <span className="text-indigo-600"> o arrastra y suelta</span>
-                         </span>
-                    )}
-                 </div>
-            </label>
-             {acceptedFile && (
-                <button type="button" onClick={handleRemoveFile} className="mt-2 text-xs text-red-600 hover:underline">
-                    Quitar archivo
-                </button>
-            )}
-             <p className="text-xs text-gray-500 mt-1">
-                 {accept === '.pdf' ? 'PDF, Máx 5MB. Se recomienda un PDF genuino (basado en texto), no escaneado.' : 'PDF o Imágenes, Máx 5MB por archivo.'}
-             </p>
-        </div>
-    );
-};
-
-interface MultiFileInputProps {
-    onFilesSelect: (files: File[]) => void;
-    maxFiles?: number;
-}
-
-const MultiFileInput = ({ onFilesSelect, maxFiles = 6 }: MultiFileInputProps) => {
-    const [selectedFiles, setSelectedFiles] = React.useState<File[]>([]);
-    const [isDragging, setIsDragging] = React.useState(false);
-    const [error, setError] = React.useState<string | null>(null);
-    const inputRef = React.useRef<HTMLInputElement>(null);
-
-    const validateAndAddFiles = (newFiles: FileList | File[]) => {
-        const filesArray = Array.from(newFiles);
-        const currentCount = selectedFiles.length;
-        
-        if (currentCount + filesArray.length > maxFiles) {
-            setError(`Solo puedes subir hasta ${maxFiles} archivos en total.`);
-            return;
-        }
-
-        const validFiles: File[] = [];
-        for (const file of filesArray) {
-            const isPDF = file.type === 'application/pdf';
-            const isImage = file.type.startsWith('image/');
-            
-            if (!isPDF && !isImage) {
-                setError('Solo se permiten archivos PDF o imágenes.');
-                continue;
-            }
-            
-            if (file.size > 5 * 1024 * 1024) {
-                setError(`El archivo ${file.name} excede el límite de 5 MB.`);
-                continue;
-            }
-            
-            validFiles.push(file);
-        }
-
-        if (validFiles.length > 0) {
-            const updatedFiles = [...selectedFiles, ...validFiles];
-            setSelectedFiles(updatedFiles);
-            onFilesSelect(updatedFiles);
-            setError(null);
-        }
-    };
-
-    const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        setIsDragging(true);
-    };
-    
-    const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        setIsDragging(false);
-    };
-    
-    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-    };
-    
-    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        setIsDragging(false);
-        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-            validateAndAddFiles(e.dataTransfer.files);
-        }
-    };
-
-    const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            validateAndAddFiles(e.target.files);
-            if (inputRef.current) {
-                inputRef.current.value = "";
-            }
-        }
-    };
-
-    const removeFile = (index: number) => {
-        const updatedFiles = selectedFiles.filter((_, i) => i !== index);
-        setSelectedFiles(updatedFiles);
-        onFilesSelect(updatedFiles);
-        setError(null);
-    };
-
-    return (
-        <div>
-            <div
-                className={`relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors duration-200 ease-in-out
-                ${isDragging ? 'border-indigo-500 bg-indigo-50' : 'border-gray-300 hover:border-gray-400'}
-                ${selectedFiles.length > 0 ? 'border-green-500 bg-green-50' : ''}`}
-                onDragEnter={handleDragEnter}
-                onDragLeave={handleDragLeave}
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
-                onClick={() => inputRef.current?.click()}
-            >
-                <input
-                    type="file"
-                    ref={inputRef}
-                    className="sr-only"
-                    accept=".pdf,image/*"
-                    multiple
-                    onChange={handleFileInputChange}
-                />
-                <div className="flex flex-col items-center justify-center space-y-2">
-                    <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                    </svg>
-                    <span className="text-base font-medium text-gray-600">
-                        Haz clic para seleccionar archivos
-                        <span className="text-indigo-600"> o arrastra y suelta aquí</span>
-                    </span>
-                    <p className="text-xs text-gray-500">
-                        PDF o Imágenes, hasta {maxFiles} archivos, máx 5MB cada uno
-                    </p>
-                </div>
-            </div>
-
-            {error && (
-                <p className="text-red-500 text-sm mt-2">{error}</p>
-            )}
-
-            {selectedFiles.length > 0 && (
-                <div className="mt-4">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-2">
-                        Archivos seleccionados ({selectedFiles.length}/{maxFiles}):
-                    </h4>
-                    <ul className="space-y-2">
-                        {selectedFiles.map((file, index) => (
-                            <li key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-md border border-gray-200">
-                                <div className="flex items-center space-x-3 flex-1 min-w-0">
-                                    <svg className="w-5 h-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-gray-800 truncate">{file.name}</p>
-                                        <p className="text-xs text-gray-500">{(file.size / 1024).toFixed(2)} KB</p>
-                                    </div>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        removeFile(index);
-                                    }}
-                                    className="ml-4 p-1 rounded-full text-red-500 hover:bg-red-100 transition-colors flex-shrink-0"
-                                >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
-        </div>
-    );
-};
-
-const formatCourseDates = (dates: string) => {
-    if (!dates) return '';
-    return dates.split(',')
-                .map(date => date.trim())
-                .join(' | ');
-};
-
-interface InstructorFormProps {
-    onBack: () => void;
-    teachers: Teacher[];
-    courses: Course[];
-    activeTab: 'documentation' | 'evidence';
-    setActiveTab: (tab: 'documentation' | 'evidence') => void;
-}
-
-const InstructorForm = ({ onBack, teachers, courses, activeTab, setActiveTab }: InstructorFormProps) => {
-    const [instructorName, setInstructorName] = React.useState('');
-    const [instructorEmail, setInstructorEmail] = React.useState('');
-    const [courseName, setCourseName] = React.useState('');
-    const [cvuFile, setCvuFile] = React.useState<File | null>(null);
-    const [fichaFile, setFichaFile] = React.useState<File | null>(null);
-    const [evidenceFiles, setEvidenceFiles] = React.useState<File[]>([]);
-    const [isSubmitting, setIsSubmitting] = React.useState(false);
-    const [error, setError] = React.useState<string | null>(null);
-    const [cvuError, setCvuError] = React.useState<string | null>(null);
-    const [fichaError, setFichaError] = React.useState<string | null>(null);
-    const [success, setSuccess] = React.useState<string | null>(null);
-    
-    const handleTeacherSelect = (teacher: Teacher) => {
-        setInstructorName(teacher.nombreCompleto.toUpperCase());
-        setInstructorEmail((teacher.email || '').toLowerCase());
-    };
-
-    const handleDocumentationSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError(null);
-        
-        if (cvuError || fichaError) {
-            return;
-        }
-
-        if (!instructorName || !instructorEmail || !courseName || !cvuFile || !fichaFile) {
-            setError('Todos los campos y archivos son obligatorios.');
-            return;
-        }
-
-        setIsSubmitting(true);
-        setSuccess(null);
-
-        try {
-            const cvuFileBase64 = await fileToBase64(cvuFile);
-            const fichaFileBase64 = await fileToBase64(fichaFile);
-
-            await submitInstructorProposal({
-                instructorName,
-                instructorEmail,
-                courseName,
-                cvuFile: cvuFileBase64,
-                fichaFile: fichaFileBase64
-            });
-
-            setSuccess('¡Documentación enviada con éxito! Gracias por tu contribución.');
-
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : "Hubo un error al enviar la documentación.";
-            setError(errorMessage);
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const handleEvidenceSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError(null);
-
-        if (!instructorName || !instructorEmail || !courseName) {
-            setError('Debes completar el nombre, email y seleccionar un curso.');
-            return;
-        }
-
-        if (evidenceFiles.length === 0) {
-            setError('Debes subir al menos un archivo de evidencia.');
-            return;
-        }
-
-        setIsSubmitting(true);
-        setSuccess(null);
-
-        try {
-            const evidenceFilesBase64 = await Promise.all(
-                evidenceFiles.map(file => fileToBase64(file))
-            );
-
-            await submitInstructorEvidence({
-                instructorName,
-                instructorEmail,
-                courseName,
-                evidenceFiles: evidenceFilesBase64
-            });
-
-            setSuccess(`¡${evidenceFiles.length} archivo(s) de evidencia enviado(s) con éxito!`);
-            setEvidenceFiles([]);
-
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : "Hubo un error al enviar las evidencias.";
-            setError(errorMessage);
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const groupedCourses = courses.reduce((acc, course) => {
-        const period = course.period || 'Sin Periodo';
-        if (!acc[period]) {
-            acc[period] = { courses: [], dates: '' };
-        }
-        acc[period].courses.push(course);
-        if (!acc[period].dates && course.dates) {
-            acc[period].dates = formatCourseDates(course.dates);
-        }
-        return acc;
-    }, {} as { [key: string]: { courses: Course[], dates: string } });
-
-    return (
-        <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto">
-            {success ? (
-                <div className="text-center py-8">
-                    <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-8 rounded-md" role="alert">
-                        <p>{success}</p>
-                    </div>
-                    <button 
-                        onClick={() => {
-                            setSuccess(null);
-                            setInstructorName('');
-                            setInstructorEmail('');
-                            setCourseName('');
-                            setCvuFile(null);
-                            setFichaFile(null);
-                            setEvidenceFiles([]);
-                        }} 
-                        className="bg-indigo-600 text-white font-bold py-2 px-8 rounded-lg hover:bg-indigo-700 transition-colors mr-4"
-                    >
-                        Enviar Más
-                    </button>
-                    <button 
-                        onClick={onBack} 
-                        className="bg-gray-600 text-white font-bold py-2 px-8 rounded-lg hover:bg-gray-700 transition-colors"
-                    >
-                        Salir
-                    </button>
-                </div>
-            ) : (
-                <React.Fragment>
-                    <button onClick={onBack} className="text-sm text-blue-600 hover:underline mb-4">&larr; Volver a Inscripción de Cursos</button>
-                    <h2 className="text-2xl font-bold mb-2 text-gray-800">Portal de Instructores</h2>
-                    
-                    {/* Tabs */}
-                    <div className="flex border-b border-gray-200 mb-6">
-                        <button
-                            onClick={() => setActiveTab('documentation')}
-                            className={`py-2 px-6 font-medium text-sm border-b-2 transition-colors ${
-                                activeTab === 'documentation'
-                                    ? 'border-indigo-600 text-indigo-600'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                            }`}
-                        >
-                            Subir Documentación
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('evidence')}
-                            className={`py-2 px-6 font-medium text-sm border-b-2 transition-colors ${
-                                activeTab === 'evidence'
-                                    ? 'border-indigo-600 text-indigo-600'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                            }`}
-                        >
-                            Subir Evidencias
-                        </button>
-                    </div>
-
-                    {error && (
-                         <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md" role="alert">
-                            <p>{error}</p>
-                        </div>
-                    )}
-
-                    {/* Content based on active tab */}
-                    {activeTab === 'documentation' ? (
-                        <React.Fragment>
-                            <div className="bg-blue-700 text-white p-4 rounded-lg mb-6">
-                                <p className="text-sm leading-relaxed">
-                                    <strong>Para dar seguimiento puntual al SGI</strong> es necesario que envíes el <strong>CVU</strong> y la <strong>Ficha Técnica</strong> en los formatos adecuados. Se anexan los formatos.
-                                </p>
-                                <p className="text-sm mt-2">
-                                    <strong>Nota:</strong> Estos archivos guárdalos como <strong>PDF</strong> y cárgalos en el recuadro. <strong>NO IMÁGENES, SOLO PDF genuinos.</strong>
-                                </p>
-                            </div>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                                <a 
-                                    href="https://raw.githubusercontent.com/DA-itd/DA-itd-web/main/TecNM-AC-PO-005-11%20CVU%20curriculum%20del%20instructor%20(1).doc" 
-                                    className="flex items-center p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-colors"
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    download
-                                >
-                                    <svg className="h-8 w-8 mr-4 flex-shrink-0 text-blue-600" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                        <path d="M6 2C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2H6Z" fill="#2962FF" />
-                                        <path d="M14 2V8H20L14 2Z" fill="#E3F2FD" fillOpacity="0.7" />
-                                        <path d="M8.5 16.5L10.5 12L12 16.5L13.5 12L15.5 16.5H14L13 14L12 16.5L11 14L10 16.5H8.5Z" fill="#FFFFFF" />
-                                    </svg>
-                                    <div>
-                                        <span className="font-semibold text-indigo-700">CVU (TecNM-AC-PO-005-11)</span>
-                                        <span className="block text-xs text-gray-500">Descargar plantilla .doc</span>
-                                    </div>
-                                </a> 
-                                <a 
-                                    href="https://raw.githubusercontent.com/DA-itd/DA-itd-web/main/TecNM-AC-PO-005-12%20FICHA%20TECNICA%20(1).doc" 
-                                    className="flex items-center p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-colors"
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    download
-                                >
-                                    <svg className="h-8 w-8 mr-4 flex-shrink-0 text-blue-600" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                        <path d="M6 2C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2H6Z" fill="#2962FF" />
-                                        <path d="M14 2V8H20L14 2Z" fill="#E3F2FD" fillOpacity="0.7" />
-                                        <path d="M8.5 16.5L10.5 12L12 16.5L13.5 12L15.5 16.5H14L13 14L12 16.5L11 14L10 16.5H8.5Z" fill="#FFFFFF" />
-                                    </svg>
-                                    <div>
-                                        <span className="font-semibold text-indigo-700">Ficha Técnica (TecNM-AC-PO-005-12)</span>
-                                        <span className="block text-xs text-gray-500">Descargar plantilla .doc</span>
-                                    </div>
-                                </a>
-                            </div>
-
-                            <form onSubmit={handleDocumentationSubmit} noValidate>
-                                <div className="space-y-6">
-                                    <div>
-                                        <label htmlFor="instructorName" className="block text-sm font-medium text-gray-700">Nombre Completo del Instructor *</label>
-                                        <AutocompleteInput
-                                            teachers={teachers}
-                                            onSelect={handleTeacherSelect}
-                                            value={instructorName}
-                                            onChange={(e) => setInstructorName(e.target.value.toUpperCase())}
-                                            name="instructorName"
-                                            placeholder="Escriba un nombre para buscar"
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <label htmlFor="instructorEmail" className="block text-sm font-medium text-gray-700">Email del Instructor *</label>
-                                        <input
-                                            type="email"
-                                            id="instructorEmail"
-                                            name="instructorEmail"
-                                            value={instructorEmail}
-                                            onChange={(e) => setInstructorEmail(e.target.value.toLowerCase())}
-                                            className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                            placeholder="email@itdurango.edu.mx"
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <label id="course-selection-label" className="block text-sm font-medium text-gray-700 mb-4">
-                                            Nombre del Curso *
-                                        </label>
-                                        <div role="radiogroup" aria-labelledby="course-selection-label">
-                                            {Object.entries(groupedCourses).map(([period, data]) => {
-                                                const periodName = period.replace(/_/g, ' ');
-                                                const label = data.dates ? `${periodName} | ${data.dates}` : periodName;
-                                                return (
-                                                    <div key={period} className="mb-8">
-                                                        <h4 className="text-md font-semibold text-gray-600 border-b pb-2 mb-4">{label}</h4>
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                            {data.courses.map(course => {
-                                                                const isSelected = courseName === course.name;
-                                                                const period1Styles = "border-t-4 border-teal-400 bg-teal-50 hover:shadow-md";
-                                                                const period2Styles = "border-t-4 border-indigo-400 bg-indigo-50 hover:shadow-md";
-                                                                let classNames = course.period === 'PERIODO_1' ? period1Styles : period2Styles;
-
-                                                                if (isSelected) {
-                                                                    const selectedRing = course.period === 'PERIODO_1' ? 'ring-teal-500' : 'ring-indigo-500';
-                                                                    classNames += ` ring-2 ring-offset-2 ${selectedRing}`;
-                                                                }
-                                                                const textColor = course.period === 'PERIODO_1' ? 'text-teal-800' : 'text-indigo-800';
-                                                                
-                                                                return (
-                                                                    <div
-                                                                        key={course.id}
-                                                                        role="radio"
-                                                                        aria-checked={isSelected}
-                                                                        tabIndex={0}
-                                                                        onClick={() => setCourseName(course.name)}
-                                                                        onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') setCourseName(course.name) }}
-                                                                        className={`p-4 rounded-lg border border-gray-200 transition-all duration-200 flex flex-col justify-between h-full ${classNames} cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
-                                                                    >
-                                                                        <div>
-                                                                            <h3 className={`font-bold text-sm mb-2 ${textColor}`}>{course.name}</h3>
-                                                                            <div className="text-xs text-gray-600 space-y-1">
-                                                                                <p><strong>Fechas:</strong> {course.dates}</p>
-                                                                                <p><strong>Horario:</strong> {course.schedule}</p>
-                                                                                <p><strong>Lugar:</strong> {course.location}</p>
-                                                                            </div>
-                                                                        </div>
-                                                                        <div className="flex justify-end mt-3">
-                                                                            <input
-                                                                                type="radio"
-                                                                                name="course-selection"
-                                                                                checked={isSelected}
-                                                                                readOnly
-                                                                                className="form-radio h-5 w-5 text-indigo-600 pointer-events-none"
-                                                                            />
-                                                                        </div>
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                    <div>
-                                         <FileInput
-                                            id="cvuFile"
-                                            label="Haz clic para subir tu CVU"
-                                            onFileSelect={setCvuFile}
-                                            onError={setCvuError}
-                                            acceptedFile={cvuFile}
-                                        />
-                                        {cvuError && <p className="text-red-500 text-xs mt-1">{cvuError}</p>}
-                                    </div>
-                                     <div>
-                                        <FileInput
-                                            id="fichaFile"
-                                            label="Haz clic para subir la Ficha Técnica"
-                                            onFileSelect={setFichaFile}
-                                            onError={setFichaError}
-                                            acceptedFile={fichaFile}
-                                        />
-                                        {fichaError && <p className="text-red-500 text-xs mt-1">{fichaError}</p>}
-                                    </div>
-                                </div>
-                                 <div className="mt-8 flex justify-end">
-                                    <button type="submit" className="bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 flex items-center justify-center disabled:opacity-50" disabled={isSubmitting}>
-                                         {isSubmitting && (
-                                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                        )}
-                                        {isSubmitting ? 'Enviando...' : 'Enviar Documentación'}
-                                    </button>
-                                </div>
-                            </form>
-                        </React.Fragment>
-                    ) : (
-                        <React.Fragment>
-                            <div className="bg-green-100 border-l-4 border-green-500 text-green-800 p-4 rounded-lg mb-6">
-                                <p className="font-bold text-base mb-2">En esta sección puedes subir las evidencias del curso impartido</p>
-                                <p className="text-sm">
-                                    (PDF's o Fotografías). Puedes subir hasta 6 archivos por envío.
-                                </p>
-                            </div>
-
-                            <form onSubmit={handleEvidenceSubmit} noValidate>
-                                <div className="space-y-6">
-                                    <div>
-                                        <label htmlFor="instructorNameEvidence" className="block text-sm font-medium text-gray-700">Nombre Completo del Instructor *</label>
-                                        <AutocompleteInput
-                                            teachers={teachers}
-                                            onSelect={handleTeacherSelect}
-                                            value={instructorName}
-                                            onChange={(e) => setInstructorName(e.target.value.toUpperCase())}
-                                            name="instructorNameEvidence"
-                                            placeholder="Escriba un nombre para buscar"
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <label htmlFor="instructorEmailEvidence" className="block text-sm font-medium text-gray-700">Email del Instructor *</label>
-                                        <input
-                                            type="email"
-                                            id="instructorEmailEvidence"
-                                            name="instructorEmailEvidence"
-                                            value={instructorEmail}
-                                            onChange={(e) => setInstructorEmail(e.target.value.toLowerCase())}
-                                            className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                            placeholder="email@itdurango.edu.mx"
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <label id="course-selection-evidence-label" className="block text-sm font-medium text-gray-700 mb-4">
-                                            Curso Impartido *
-                                        </label>
-                                        <div role="radiogroup" aria-labelledby="course-selection-evidence-label">
-                                            {Object.entries(groupedCourses).map(([period, data]) => {
-                                                const periodName = period.replace(/_/g, ' ');
-                                                const label = data.dates ? `${periodName} | ${data.dates}` : periodName;
-                                                return (
-                                                    <div key={period} className="mb-8">
-                                                        <h4 className="text-md font-semibold text-gray-600 border-b pb-2 mb-4">{label}</h4>
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                            {data.courses.map(course => {
-                                                                const isSelected = courseName === course.name;
-                                                                const period1Styles = "border-t-4 border-teal-400 bg-teal-50 hover:shadow-md";
-                                                                const period2Styles = "border-t-4 border-indigo-400 bg-indigo-50 hover:shadow-md";
-                                                                let classNames = course.period === 'PERIODO_1' ? period1Styles : period2Styles;
-
-                                                                if (isSelected) {
-                                                                    const selectedRing = course.period === 'PERIODO_1' ? 'ring-teal-500' : 'ring-indigo-500';
-                                                                    classNames += ` ring-2 ring-offset-2 ${selectedRing}`;
-                                                                }
-                                                                const textColor = course.period === 'PERIODO_1' ? 'text-teal-800' : 'text-indigo-800';
-                                                                
-                                                                return (
-                                                                    <div
-                                                                        key={course.id}
-                                                                        role="radio"
-                                                                        aria-checked={isSelected}
-                                                                        tabIndex={0}
-                                                                        onClick={() => setCourseName(course.name)}
-                                                                        onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') setCourseName(course.name) }}
-                                                                        className={`p-4 rounded-lg border border-gray-200 transition-all duration-200 flex flex-col justify-between h-full ${classNames} cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
-                                                                    >
-                                                                        <div>
-                                                                            <h3 className={`font-bold text-sm mb-2 ${textColor}`}>{course.name}</h3>
-                                                                            <div className="text-xs text-gray-600 space-y-1">
-                                                                                <p><strong>Fechas:</strong> {course.dates}</p>
-                                                                                <p><strong>Horario:</strong> {course.schedule}</p>
-                                                                                <p><strong>Lugar:</strong> {course.location}</p>
-                                                                            </div>
-                                                                        </div>
-                                                                        <div className="flex justify-end mt-3">
-                                                                            <input
-                                                                                type="radio"
-                                                                                name="course-selection-evidence"
-                                                                                checked={isSelected}
-                                                                                readOnly
-                                                                                className="form-radio h-5 w-5 text-indigo-600 pointer-events-none"
-                                                                            />
-                                                                        </div>
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Archivos de Evidencia * (Hasta 6 archivos)
-                                        </label>
-                                        <MultiFileInput 
-                                            onFilesSelect={setEvidenceFiles}
-                                            maxFiles={6}
-                                        />
-                                    </div>
-                                </div>
-                                 <div className="mt-8 flex justify-end">
-                                    <button type="submit" className="bg-green-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-700 flex items-center justify-center disabled:opacity-50" disabled={isSubmitting}>
-                                         {isSubmitting && (
-                                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                        )}
-                                        {isSubmitting ? 'Enviando...' : 'Enviar Evidencias'}
-                                    </button>
-                                </div>
-                            </form>
-                        </React.Fragment>
-                    )}
-                </React.Fragment>
-            )}
-        </div>
-    );
-};
-
-// =============================================================================
-// == RENDER APPLICATION
-// =============================================================================
-const rootElement = document.getElementById('root');
-if (rootElement) {
-    const root = ReactDOM.createRoot(rootElement);
-    root.render(
-        <React.StrictMode>
-            <App />
-        </React.StrictMode>
-    );
-} else {
-    console.error('Failed to find the root element. The application cannot be mounted.');
-}// FIX: Add type definition for configuration injected from index.html
+// FIX: Add type definition for configuration injected from index.html
 declare global {
     interface Window {
         CONFIG?: {
@@ -862,8 +51,7 @@ interface Teacher {
 const App = () => {
     const [currentStep, setCurrentStep] = React.useState(1);
     const [mode, setMode] = React.useState('student');
-    const [instructorTab, setInstructorTab] = React.useState<'documentation' | 'evidence'>('documentation');
-    
+    // FIX: Use IFormData interface for strong typing.
     const [formData, setFormData] = React.useState<IFormData>({
         fullName: '',
         curp: '',
@@ -872,7 +60,7 @@ const App = () => {
         department: '',
         selectedCourses: [],
     });
-    
+    // FIX: Add explicit types for all state variables.
     const [allCourses, setAllCourses] = React.useState<Course[]>([]);
     const [teachers, setTeachers] = React.useState<Teacher[]>([]);
     const [departments, setDepartments] = React.useState<string[]>([]);
@@ -917,11 +105,12 @@ const App = () => {
 
 
     const handleStepClick = (stepIndex: number) => {
-        const instructorStepIndex = studentSteps.length;
+        const instructorStepIndex = studentSteps.length; // 4
         if (stepIndex === instructorStepIndex) {
             setMode('instructor');
-            setCurrentStep(5);
+            setCurrentStep(5); // Go to instructor step
         } else {
+            // Allow navigation back to previous steps in student mode
             if (stepIndex < currentStep) {
                 setMode('student');
                 setCurrentStep(stepIndex + 1);
@@ -931,14 +120,14 @@ const App = () => {
     
     const handleBackToStudentForm = () => {
         setMode('student');
-        setCurrentStep(1);
+        setCurrentStep(1); // Reset to the first step of the student form
     };
 
     const handleSubmit = async () => {
         setError(null);
         try {
             const submissionData = {
-                action: 'enrollStudent',
+                action: 'enrollStudent', // Action for the backend router
                 timestamp: new Date().toISOString(),
                 fullName: formData.fullName,
                 curp: formData.curp,
@@ -957,8 +146,10 @@ const App = () => {
 
             const result = await submitRegistration(submissionData);
             
+            // The backend returns an object with a 'results' property which is an array.
             const registrationResultsArray = result.results || [];
 
+            // Augment the result with course dates for display on the success screen
             const augmentedResult = registrationResultsArray.map((reg: any) => {
                 const courseDetails = selectedCourses.find(c => c.id === reg.registrationId);
                 return {
@@ -973,6 +164,7 @@ const App = () => {
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : "Ocurrió un error desconocido durante el envío.";
             setError(errorMessage);
+            // Optionally, stay on the confirmation step to show the error
             setCurrentStep(3);
         }
     };
@@ -996,13 +188,7 @@ const App = () => {
         }
         
         if (mode === 'instructor') {
-             return <InstructorForm 
-                        onBack={handleBackToStudentForm} 
-                        teachers={teachers} 
-                        courses={allCourses}
-                        activeTab={instructorTab}
-                        setActiveTab={setInstructorTab}
-                    />;
+             return <InstructorForm onBack={handleBackToStudentForm} teachers={teachers} courses={allCourses} />;
         }
 
         switch (currentStep) {
@@ -1063,20 +249,23 @@ const App = () => {
 };
 
 // =============================================================================
-// == API SERVICE
+// == API SERVICE (from services/api.ts)
 // =============================================================================
 
+// URLs for fetching data from Google Sheets
 const COURSES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSAe4dmVN4CArjEy_lvI5qrXf16naxZLO1lAxGm2Pj4TrdnoebBg03Vv4-DCXciAkHJFiZaBMKletUs/pub?gid=0&single=true&output=csv';
 const TEACHERS_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSAe4dmVN4CArjEy_lvI5qrXf16naxZLO1lAxGm2Pj4TrdnoebBg03Vv4-DCXciAkHJFiZaBMKletUs/pub?gid=987931491&single=true&output=csv';
 
 
 const getTeachers = async (): Promise<Teacher[]> => {
     try {
+        // Add cache-busting query parameter to ensure fresh data
         const response = await fetch(`${TEACHERS_CSV_URL}&_=${new Date().getTime()}`);
         if (!response.ok) {
             throw new Error('Network response was not ok for teachers.');
         }
         const csvText = await response.text();
+        // **FIX**: Use a robust, index-based parser instead of a generic one.
         const lines = csvText.trim().replace(/\r\n?|\r/g, '\n').split('\n');
         
         const cleanValue = (val: string | undefined) => {
@@ -1087,11 +276,12 @@ const getTeachers = async (): Promise<Teacher[]> => {
             return v;
         };
 
-        return lines.slice(1)
+        return lines.slice(1) // Skip header
             .map(line => {
                 if (!line.trim()) return null;
+                // Regex handles commas within quoted fields
                 const values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                if (values.length < 3) return null;
+                if (values.length < 3) return null; // Needs at least 3 columns
                 return {
                     nombreCompleto: cleanValue(values[0]),
                     curp: cleanValue(values[1]),
@@ -1102,17 +292,19 @@ const getTeachers = async (): Promise<Teacher[]> => {
 
     } catch (error) {
         console.error("Error fetching or parsing teachers CSV:", error);
-        return [];
+        return []; // Return empty array on failure to prevent app crash
     }
 };
 
 const getCourses = async (): Promise<Course[]> => {
     try {
+        // Add cache-busting query parameter to ensure fresh data
         const response = await fetch(`${COURSES_CSV_URL}&_=${new Date().getTime()}`);
         if (!response.ok) {
             throw new Error('Network response was not ok for courses.');
         }
         const csvText = await response.text();
+        // **FIX**: Use a robust, index-based parser instead of a generic one.
         const lines = csvText.trim().replace(/\r\n?|\r/g, '\n').split('\n');
 
         const cleanValue = (val: string | undefined) => {
@@ -1123,14 +315,16 @@ const getCourses = async (): Promise<Course[]> => {
             return v;
         };
 
-        return lines.slice(1)
+        return lines.slice(1) // Skip header
             .map(line => {
                 if (!line.trim()) return null;
+                // Regex handles commas within quoted fields
                 const values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                if (values.length < 8) return null;
+                if (values.length < 8) return null; // Needs at least 8 columns
 
                 const parsedHours = parseInt(cleanValue(values[4]), 10);
 
+                // Direct mapping based on column index
                 return {
                     id: cleanValue(values[0]),
                     name: cleanValue(values[1]),
@@ -1146,14 +340,14 @@ const getCourses = async (): Promise<Course[]> => {
             
     } catch (error) {
         console.error("Error fetching or parsing courses CSV:", error);
-        return [];
+        return []; // Return empty array on failure
     }
 };
 
 const mockDepartments = [
     "DEPARTAMENTO DE SISTEMAS Y COMPUTACION",
     "DEPARTAMENTO DE INGENIERÍA ELÉCTRICA Y ELECTRÓNICA",
-    "DEPARTAMENTO DE CIENCIAS ECONOMICO-ADMINISTRATIVAS",
+    "DEPARTamento DE CIENCIAS ECONOMICO-ADMINISTRATIVAS",
     "DEPARTAMENTO DE INGENIERÍA QUÍMICA-BIOQUÍMICA",
     "DEPARTAMENTO DE CIENCIAS DE LA TIERRA",
     "DEPARTAMENTO DE CIENCIAS BASICAS",
@@ -1178,7 +372,7 @@ const getRegistrationByCurp = async (curp: string): Promise<string[]> => {
         const url = new URL(APPS_SCRIPT_URL);
         url.searchParams.append('action', 'lookupByCurp');
         url.searchParams.append('curp', curp);
-        url.searchParams.append('_', new Date().getTime().toString());
+        url.searchParams.append('_', new Date().getTime().toString()); // Cache-busting parameter
         
         const response = await fetch(url.toString(), {
             method: 'GET',
@@ -1190,6 +384,7 @@ const getRegistrationByCurp = async (curp: string): Promise<string[]> => {
         if (result && result.success && result.data.registeredCourses) {
             return result.data.registeredCourses;
         } else {
+            // No registration found or an error occurred on backend, return empty array.
             return [];
         }
     } catch (error) {
@@ -1230,9 +425,10 @@ const submitRegistration = async (submission: any): Promise<any> => {
 
     } catch (error) {
         console.error("Error submitting registration to Google Apps Script:", error);
+        // This catch block handles fetch failures (network, CORS) or JSON parsing errors.
         throw new Error(
             "La comunicación con el servidor falló. Esto puede ocurrir por varias razones:\n\n" +
-            "1. **URL del Script Incorrecta:** La URL en `index.html` puede ser errónea o estar desactualizada.\n\n" +
+            "1. **URL del Script Incorrecta:** La URL en `index.html` puede ser errónea o estar desactualizada. Si actualizó el script, debe crear una 'Nueva implementación' y usar la nueva URL generada.\n\n" +
             "2. **Permisos del Script:** El script debe estar implementado con acceso para 'Cualquier persona'.\n\n" +
             "3. **Conexión a Internet:** Verifique su conexión.\n\n" +
             "Por favor, revise estos puntos o contacte al administrador del sistema."
@@ -1246,6 +442,7 @@ const cancelSingleCourse = async (payload: any) => {
         throw new Error("La URL de configuración de Google Apps Script no está disponible.");
     }
 
+    // Add an 'action' property to the payload so the backend knows how to handle this request
     const body = { ...payload, action: 'cancelSingle' };
 
     try {
@@ -1263,17 +460,25 @@ const cancelSingleCourse = async (payload: any) => {
         }
     } catch (error) {
         console.error("Error cancelling single course via Google Apps Script:", error);
-        throw new Error("La comunicación con el servidor falló al intentar cancelar el curso.");
+        throw new Error(
+            "La comunicación con el servidor falló al intentar cancelar el curso. Esto puede ocurrir por varias razones:\n\n" +
+            "1. **URL del Script Incorrecta:** La URL en `index.html` puede ser errónea o estar desactualizada. Si actualizó el script, debe crear una 'Nueva implementación' y usar la nueva URL generada.\n\n" +
+            "2. **Permisos del Script:** El script debe estar implementado con acceso para 'Cualquier persona'.\n\n" +
+            "3. **Conexión a Internet:** Verifique su conexión.\n\n" +
+            "Por favor, revise estos puntos o contacte al administrador del sistema."
+        );
     }
 };
 
+// Helper to convert a file to a Base64 string
 const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = () => {
             const result = reader.result as string;
-            resolve(result);
+            // Remove the data URL prefix (e.g., "data:application/pdf;base64,")
+            resolve(result); // Keep the prefix for backend decoding
         };
         reader.onerror = error => reject(error);
     });
@@ -1303,7 +508,7 @@ const submitInstructorProposal = async (data: any) => {
         if (result && result.success) {
             return result;
         } else {
-            throw new Error(result.message || 'Ocurrió un error en el servidor al enviar la documentación.');
+            throw new Error(result.message || 'Ocurrió un error en el servidor al enviar la propuesta.');
         }
     } catch (error) {
         console.error("Error submitting instructor proposal:", error);
@@ -1311,14 +516,15 @@ const submitInstructorProposal = async (data: any) => {
     }
 };
 
-const submitInstructorEvidence = async (data: any) => {
+// START: Evidence Upload Feature - New API function for submitting evidence
+const submitEvidence = async (data: any) => {
     const APPS_SCRIPT_URL = window.CONFIG?.APPS_SCRIPT_URL;
     if (!APPS_SCRIPT_URL) {
         throw new Error("La URL de configuración no está disponible. Revise el archivo index.html.");
     }
     
     const payload = {
-        action: 'submitInstructorEvidence',
+        action: 'submitEvidence', // New action for the backend router
         ...data
     };
 
@@ -1335,13 +541,14 @@ const submitInstructorEvidence = async (data: any) => {
         if (result && result.success) {
             return result;
         } else {
-            throw new Error(result.message || 'Ocurrió un error en el servidor al enviar las evidencias.');
+            throw new Error(result.message || 'Ocurrió un error en el servidor al enviar la evidencia.');
         }
     } catch (error) {
-        console.error("Error submitting instructor evidence:", error);
-        throw new Error("La comunicación con el servidor falló. Verifique la URL de configuración y los permisos del script.");
+        console.error("Error submitting evidence:", error);
+        throw new Error("La comunicación con el servidor falló. Verifique la URL de configuración, los permisos del script y la lógica del backend.");
     }
 };
+// END: Evidence Upload Feature
 
 
 // =============================================================================
@@ -1526,7 +733,7 @@ const AutocompleteInput = ({ teachers, onSelect, value, onChange, name, placehol
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const currentValue = e.target.value;
-        onChange(e);
+        onChange(e); // Propagate change to parent immediately
 
         if (currentValue && currentValue.length > 0) {
             const filtered = teachers.filter(teacher =>
@@ -1575,7 +782,7 @@ const AutocompleteInput = ({ teachers, onSelect, value, onChange, name, placehol
                         <li
                             key={teacher.curp || teacher.nombreCompleto}
                             onMouseDown={(e) => {
-                                e.preventDefault();
+                                e.preventDefault(); // Prevent input from losing focus
                                 handleSelect(teacher);
                             }}
                             className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
@@ -1602,6 +809,7 @@ interface Step1PersonalInfoProps {
 }
 
 const Step1PersonalInfo = ({ formData, setFormData, departments, teachers, allCourses, setSelectedCourses, setOriginalSelectedCourses, onNext, onGoToStep }: Step1PersonalInfoProps) => {
+    // FIX: Add explicit type for the errors state object.
     const [errors, setErrors] = React.useState<{ [key: string]: string }>({});
     const [isCheckingCurp, setIsCheckingCurp] = React.useState(false);
     const [isModalOpen, setIsModalOpen] = React.useState(false);
@@ -1637,16 +845,17 @@ const Step1PersonalInfo = ({ formData, setFormData, departments, teachers, allCo
 
     const handleModifyRegistration = () => {
         setSelectedCourses(existingCourses);
+        // Ensure original courses are set for comparison on submission
         setOriginalSelectedCourses(existingCourses);
         setIsModalOpen(false);
         onNext();
     };
 
     const handleCancelAllRegistration = () => {
-        setSelectedCourses([]);
-        setOriginalSelectedCourses(existingCourses);
+        setSelectedCourses([]); // Clear current selection
+        setOriginalSelectedCourses(existingCourses); // Preserve original list for cancellation logic in Step 3
         setIsModalOpen(false);
-        onGoToStep(3);
+        onGoToStep(3); // Go directly to confirmation step
     };
     
     const handleDeleteCourse = async (courseIdToDelete: string) => {
@@ -1683,6 +892,7 @@ const Step1PersonalInfo = ({ formData, setFormData, departments, teachers, allCo
     };
     
     const validate = () => {
+        // FIX: Add explicit type for newErrors to prevent "property does not exist on type '{}'" errors.
         const newErrors: { [key: string]: string } = {};
         if (!formData.fullName) newErrors.fullName = "Este campo es obligatorio.";
         if (!formData.curp) newErrors.curp = "Este campo es obligatorio.";
@@ -1731,7 +941,7 @@ const Step1PersonalInfo = ({ formData, setFormData, departments, teachers, allCo
         const { nombreCompleto, curp, email } = teacher;
         const upperCurp = (curp || '').toUpperCase();
         
-        let inferredGender = 'Mujer';
+        let inferredGender = 'Mujer'; // Start with default
         if (upperCurp.length >= 11) {
             const genderChar = upperCurp.charAt(10).toUpperCase();
             if (genderChar === 'H') {
@@ -1830,10 +1040,13 @@ interface Step2CourseSelectionProps {
 const Step2CourseSelection = ({ courses, selectedCourses, setSelectedCourses, onNext, onBack }: Step2CourseSelectionProps) => {
     const [error, setError] = React.useState<string | null>(null);
 
+    // **FIX**: Fail-safe helper function to check for schedule conflicts.
     const schedulesOverlap = (course1: Course, course2: Course) => {
+        // If dates are missing, different, or invalid, assume no conflict to prevent false positives.
         if (!course1.dates || !course2.dates || course1.dates !== course2.dates) {
             return false;
         }
+        // If schedules are missing, assume no conflict.
         if (!course1.schedule || !course2.schedule) {
             return false;
         }
@@ -1849,11 +1062,12 @@ const Step2CourseSelection = ({ courses, selectedCourses, setSelectedCourses, on
         const time1 = parseTime(course1.schedule);
         const time2 = parseTime(course2.schedule);
 
-        if (!time1 || !time2) return false;
+        if (!time1 || !time2) return false; // Cannot determine overlap
 
         const [start1, end1] = time1;
         const [start2, end2] = time2;
 
+        // Overlap exists if one starts before the other ends, and vice-versa
         return start1 < end2 && start2 < end1;
     };
 
@@ -1883,6 +1097,7 @@ const Step2CourseSelection = ({ courses, selectedCourses, setSelectedCourses, on
     const getCourseCardStatus = (course: Course) => {
         const isSelected = selectedCourses.some(c => c.id === course.id);
 
+        // Define base styles for periods for stronger visual differentiation
         const period1Styles = "border-t-4 border-teal-400 bg-teal-50 hover:shadow-md";
         const period2Styles = "border-t-4 border-indigo-400 bg-indigo-50 hover:shadow-md";
         let basePeriodStyles = course.period === 'PERIODO_1' ? period1Styles : period2Styles;
@@ -1995,6 +1210,7 @@ const Step3Confirmation = ({ formData, courses, originalCourses, onBack, onSubmi
             await onSubmit();
         } catch (error) {
             console.error("Submission error:", error);
+            // Error is now handled and displayed by the main App component
         } finally {
             setIsSubmitting(false);
         }
@@ -2080,6 +1296,7 @@ interface Step4SuccessProps {
 const Step4Success = ({ registrationResult, applicantName, selectedCourses }: Step4SuccessProps) => {
     const hasRegistrationResult = registrationResult && Array.isArray(registrationResult) && registrationResult.length > 0;
     
+    // Use registrationResult if it has data, otherwise fallback to selectedCourses from the previous step.
     const coursesToDisplay = hasRegistrationResult ? registrationResult : selectedCourses;
 
     return (
@@ -2095,4 +1312,454 @@ const Step4Success = ({ registrationResult, applicantName, selectedCourses }: St
             
             {coursesToDisplay && coursesToDisplay.length > 0 ? (
                 <div className="mt-6 text-left border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text
+                    <h3 className="text-lg font-semibold text-gray-700 mb-4">Detalles de la Inscripción:</h3>
+                    <ul className="space-y-3">
+                        {coursesToDisplay.map((result) => (
+                            <li key={result.registrationId || result.id} className="p-3 bg-gray-50 rounded-md border border-gray-100">
+                                <div className="flex justify-between items-center flex-wrap gap-2">
+                                    <span className="font-semibold text-gray-800">
+                                        {/* Data can come from registrationResult (courseName) or selectedCourses (name) */}
+                                        {(result.courseName || result.name)}
+                                        {result.dates && ` (${result.dates})`}
+                                    </span>
+                                    {result.folio && (
+                                        <span className="text-sm">
+                                            Folio temporal: <strong className="font-mono bg-gray-200 text-gray-800 py-1 px-2 rounded">{result.folio}</strong>
+                                        </span>
+                                    )}
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            ) : (
+                <div className="mt-6 text-left border border-gray-200 rounded-lg p-6 bg-gray-50">
+                     <p className="text-sm text-gray-600">
+                        Los detalles específicos y folios temporales de tu inscripción se encuentran en el correo electrónico que te hemos enviado.
+                    </p>
+                </div>
+            )}
+
+            <div className="mt-8 border-t pt-6">
+                <p className="text-sm text-gray-500">
+                    El proceso ha finalizado. Puede cerrar esta ventana de forma segura.
+                </p>
+            </div>
+        </div>
+    );
+};
+
+// START: Evidence Upload Feature - Upgraded FileInput component
+interface FileInputProps {
+    id: string;
+    label: string;
+    onFileSelect: (file: File | null) => void;
+    onError: (error: string | null) => void;
+    acceptedFile: File | null;
+    acceptedTypes: string[];
+    maxSizeMB: number;
+}
+
+const FileInput = ({ id, label, onFileSelect, onError, acceptedFile, acceptedTypes, maxSizeMB }: FileInputProps) => {
+    const [isDragging, setIsDragging] = React.useState(false);
+    const inputRef = React.useRef<HTMLInputElement>(null);
+
+    const handleFileValidation = (file: File) => {
+        const fileTypeMajor = file.type.split('/')[0];
+        const isValidType = acceptedTypes.some(type => 
+            type.endsWith('/*') ? type.startsWith(fileTypeMajor) : type === file.type
+        );
+
+        if (!isValidType) {
+            onError(`El archivo debe ser de tipo: ${acceptedTypes.join(', ').replace(/\/\*/g, '')}.`);
+            return false;
+        }
+
+        if (file.size > maxSizeMB * 1024 * 1024) {
+            onError(`El archivo no debe exceder ${maxSizeMB} MB.`);
+            return false;
+        }
+
+        onError(null);
+        onFileSelect(file);
+        return true;
+    };
+
+    const handleDragEnter = (e: React.DragEvent<HTMLLabelElement>) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+    const handleDragLeave = (e: React.DragEvent<HTMLLabelElement>) => {
+        e.preventDefault();
+        setIsDragging(false);
+    };
+    const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
+        e.preventDefault(); // Necessary to allow dropping
+    };
+    const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+        e.preventDefault();
+        setIsDragging(false);
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            handleFileValidation(e.dataTransfer.files[0]);
+        }
+    };
+    
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            handleFileValidation(e.target.files[0]);
+        } else {
+             onFileSelect(null);
+        }
+    };
+
+    const handleRemoveFile = () => {
+        onFileSelect(null);
+        if (inputRef.current) {
+            inputRef.current.value = "";
+        }
+    };
+
+    return (
+        <div>
+            <label 
+                htmlFor={id} 
+                className={`relative block w-full border-2 border-dashed rounded-lg p-4 text-center cursor-pointer
+                transition-colors duration-200 ease-in-out
+                ${isDragging ? 'border-indigo-500 bg-indigo-50' : 'border-gray-300 hover:border-gray-400'}
+                ${acceptedFile ? 'border-green-500 bg-green-50' : ''}`}
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+            >
+                <input
+                    type="file"
+                    id={id}
+                    ref={inputRef}
+                    className="sr-only"
+                    accept={acceptedTypes.join(',')}
+                    onChange={handleChange}
+                />
+                 <div className="flex flex-col items-center justify-center space-y-2">
+                     <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M12 15l-3-3m0 0l3-3m-3 3h12"></path></svg>
+                    {acceptedFile ? (
+                        <div className="text-sm font-semibold text-green-800">
+                           <p>Archivo cargado:</p>
+                           <p className="font-normal">{acceptedFile.name}</p>
+                        </div>
+                    ) : (
+                         <span className="text-sm font-medium text-gray-600">
+                            {label}
+                            <span className="text-indigo-600"> o arrastra y suelta</span>
+                         </span>
+                    )}
+                 </div>
+            </label>
+             {acceptedFile && (
+                <button type="button" onClick={handleRemoveFile} className="mt-2 text-xs text-red-600 hover:underline">
+                    Quitar archivo
+                </button>
+            )}
+             <p className="text-xs text-gray-500 mt-1">{acceptedTypes.join(', ').replace(/\/\*/g, '')}. Máx {maxSizeMB}MB.</p>
+        </div>
+    );
+};
+// END: Evidence Upload Feature
+
+const formatCourseDates = (dates: string) => {
+    if (!dates) return '';
+    return dates.split(',')
+                .map(date => date.trim())
+                .join(' | ');
+};
+
+interface InstructorFormProps {
+    onBack: () => void;
+    teachers: Teacher[];
+    courses: Course[];
+}
+
+// START: Evidence Upload Feature - Revamped InstructorForm with TABS
+const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
+    const [activeTab, setActiveTab] = React.useState<'proposal' | 'evidence'>('proposal');
+
+    // State for Proposal Form
+    const [proposalInstructorName, setProposalInstructorName] = React.useState('');
+    const [proposalInstructorEmail, setProposalInstructorEmail] = React.useState('');
+    const [proposalCourseName, setProposalCourseName] = React.useState('');
+    const [cvuFile, setCvuFile] = React.useState<File | null>(null);
+    const [fichaFile, setFichaFile] = React.useState<File | null>(null);
+    const [proposalStatus, setProposalStatus] = React.useState({ isSubmitting: false, error: null, success: null });
+    const [cvuError, setCvuError] = React.useState<string | null>(null);
+    const [fichaError, setFichaError] = React.useState<string | null>(null);
+    
+    // State for Evidence Form
+    const [evidenceInstructorName, setEvidenceInstructorName] = React.useState('');
+    const [evidenceInstructorEmail, setEvidenceInstructorEmail] = React.useState('');
+    const [evidenceCourseName, setEvidenceCourseName] = React.useState('');
+    const [evidenceFile, setEvidenceFile] = React.useState<File | null>(null);
+    const [evidenceFileError, setEvidenceFileError] = React.useState<string | null>(null);
+    const [evidenceStatus, setEvidenceStatus] = React.useState({ isSubmitting: false, error: null, success: null });
+
+
+    const handleProposalTeacherSelect = (teacher: Teacher) => {
+        setProposalInstructorName(teacher.nombreCompleto.toUpperCase());
+        setProposalInstructorEmail((teacher.email || '').toLowerCase());
+    };
+    
+    const handleEvidenceTeacherSelect = (teacher: Teacher) => {
+        setEvidenceInstructorName(teacher.nombreCompleto.toUpperCase());
+        setEvidenceInstructorEmail((teacher.email || '').toLowerCase());
+    };
+
+    const handleProposalSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setProposalStatus({ isSubmitting: true, error: null, success: null });
+        
+        if (cvuError || fichaError) {
+            setProposalStatus({ isSubmitting: false, error: 'Por favor, corrija los errores en los archivos.', success: null });
+            return;
+        }
+
+        if (!proposalInstructorName || !proposalInstructorEmail || !proposalCourseName || !cvuFile || !fichaFile) {
+            setProposalStatus({ isSubmitting: false, error: 'Todos los campos y archivos son obligatorios.', success: null });
+            return;
+        }
+
+        try {
+            const cvuFileBase64 = await fileToBase64(cvuFile);
+            const fichaFileBase64 = await fileToBase64(fichaFile);
+
+            await submitInstructorProposal({
+                instructorName: proposalInstructorName,
+                instructorEmail: proposalInstructorEmail,
+                courseName: proposalCourseName,
+                cvuFile: cvuFileBase64,
+                fichaFile: fichaFileBase64
+            });
+
+            setProposalStatus({ isSubmitting: false, error: null, success: '¡Propuesta enviada con éxito! Gracias por tu contribución.' });
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : "Hubo un error al enviar la propuesta.";
+            setProposalStatus({ isSubmitting: false, error: errorMessage, success: null });
+        }
+    };
+
+    const handleEvidenceSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setEvidenceStatus({ isSubmitting: true, error: null, success: null });
+
+        if (evidenceFileError) {
+            setEvidenceStatus({ isSubmitting: false, error: 'Por favor, corrija los errores en el archivo.', success: null });
+            return;
+        }
+
+        if (!evidenceInstructorName || !evidenceInstructorEmail || !evidenceCourseName || !evidenceFile) {
+            setEvidenceStatus({ isSubmitting: false, error: 'Todos los campos y el archivo de evidencia son obligatorios.', success: null });
+            return;
+        }
+
+        try {
+            const evidenceFileBase64 = await fileToBase64(evidenceFile);
+            
+            await submitEvidence({
+                instructorName: evidenceInstructorName,
+                instructorEmail: evidenceInstructorEmail,
+                courseName: evidenceCourseName,
+                evidenceFile: evidenceFileBase64,
+                fileName: evidenceFile.name,
+                fileType: evidenceFile.type
+            });
+
+            setEvidenceStatus({ isSubmitting: false, error: null, success: '¡Evidencia enviada con éxito!' });
+            // Clear form on success
+            setEvidenceInstructorName('');
+            setEvidenceInstructorEmail('');
+            setEvidenceCourseName('');
+            setEvidenceFile(null);
+
+        } catch (err) {
+             const errorMessage = err instanceof Error ? err.message : "Hubo un error al enviar la evidencia.";
+            setEvidenceStatus({ isSubmitting: false, error: errorMessage, success: null });
+        }
+    };
+
+    const groupedCourses = courses.reduce((acc, course) => {
+        const period = course.period || 'Sin Periodo';
+        if (!acc[period]) {
+            acc[period] = { courses: [], dates: '' };
+        }
+        acc[period].courses.push(course);
+        if (!acc[period].dates && course.dates) {
+            acc[period].dates = formatCourseDates(course.dates);
+        }
+        return acc;
+    }, {} as { [key: string]: { courses: Course[], dates: string } });
+    
+    const TabButton = ({ label, tabName, activeTab, setActiveTab }) => (
+        <button
+            onClick={() => setActiveTab(tabName)}
+            className={`px-6 py-3 font-semibold text-sm rounded-t-lg focus:outline-none transition-colors duration-200 ${
+                activeTab === tabName
+                    ? 'bg-white text-indigo-700 border-b-2 border-indigo-500'
+                    : 'bg-gray-50 text-gray-500 hover:bg-gray-200'
+            }`}
+        >
+            {label}
+        </button>
+    );
+
+    const renderProposalForm = () => (
+         <React.Fragment>
+            {proposalStatus.success ? (
+                <div className="text-center py-8">
+                     <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-8 rounded-md" role="alert">
+                         <p>{proposalStatus.success}</p>
+                     </div>
+                     <button onClick={onBack} className="bg-indigo-600 text-white font-bold py-2 px-8 rounded-lg hover:bg-indigo-700 transition-colors">Salir</button>
+                </div>
+            ) : (
+                 <form onSubmit={handleProposalSubmit} noValidate>
+                    <div className="bg-blue-700 text-white p-4 rounded-lg mb-6 text-sm text-center">
+                        <p>Es necesario que envíes el CVU y la ficha técnica en <strong>PDF genuinos, No Fotos.</strong> Puedes descargar las plantillas aquí.</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <a href="https://raw.githubusercontent.com/DA-itd/DA-itd-web/main/TecNM-AC-PO-005-11%20CVU%20curriculum%20del%20instructor%20(1).doc" className="flex items-center p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-colors" target="_blank" rel="noopener noreferrer" download>
+                            <svg className="h-8 w-8 mr-4 flex-shrink-0 text-blue-600" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 2C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2H6Z" fill="#2962FF" /><path d="M14 2V8H20L14 2Z" fill="#E3F2FD" fillOpacity="0.7" /><path d="M8.5 16.5L10.5 12L12 16.5L13.5 12L15.5 16.5H14L13 14L12 16.5L11 14L10 16.5H8.5Z" fill="#FFFFFF" /></svg>
+                            <div><span className="font-semibold text-indigo-700">CVU (TecNM-AC-PO-005-11)</span><span className="block text-xs text-gray-500">Descargar plantilla .doc</span></div>
+                        </a> 
+                        <a href="https://raw.githubusercontent.com/DA-itd/DA-itd-web/main/TecNM-AC-PO-005-12%20FICHA%20TECNICA%20(1).doc" className="flex items-center p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-colors" target="_blank" rel="noopener noreferrer" download>
+                             <svg className="h-8 w-8 mr-4 flex-shrink-0 text-blue-600" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 2C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2H6Z" fill="#2962FF" /><path d="M14 2V8H20L14 2Z" fill="#E3F2FD" fillOpacity="0.7" /><path d="M8.5 16.5L10.5 12L12 16.5L13.5 12L15.5 16.5H14L13 14L12 16.5L11 14L10 16.5H8.5Z" fill="#FFFFFF" /></svg>
+                            <div><span className="font-semibold text-indigo-700">Ficha Técnica (TecNM-AC-PO-005-12)</span><span className="block text-xs text-gray-500">Descargar plantilla .doc</span></div>
+                        </a>
+                    </div>
+                    {proposalStatus.error && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md" role="alert"><p>{proposalStatus.error}</p></div>}
+                    <div className="space-y-6">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Nombre Completo del Instructor *</label>
+                            <AutocompleteInput teachers={teachers} onSelect={handleProposalTeacherSelect} value={proposalInstructorName} onChange={(e) => setProposalInstructorName(e.target.value.toUpperCase())} name="proposalInstructorName" placeholder="Escriba un nombre para buscar" required />
+                        </div>
+                        <div>
+                             <label className="block text-sm font-medium text-gray-700">Email del Instructor *</label>
+                            <input type="email" value={proposalInstructorEmail} onChange={(e) => setProposalInstructorEmail(e.target.value.toLowerCase())} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="email@itdurango.edu.mx" required />
+                        </div>
+                        <div>
+                             <label id="course-selection-label" className="block text-sm font-medium text-gray-700 mb-4">Nombre del Curso a Ofrecer *</label>
+                             <div role="radiogroup" aria-labelledby="course-selection-label">
+                                {Object.entries(groupedCourses).map(([period, data]) => (
+                                    <div key={period} className="mb-8">
+                                        <h4 className="text-md font-semibold text-gray-600 border-b pb-2 mb-4">{data.dates ? `${period.replace(/_/g, ' ')} | ${data.dates}` : period.replace(/_/g, ' ')}</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {data.courses.map(course => {
+                                                const isSelected = proposalCourseName === course.name;
+                                                const baseStyles = course.period === 'PERIODO_1' ? "border-t-4 border-teal-400 bg-teal-50" : "border-t-4 border-indigo-400 bg-indigo-50";
+                                                const ringStyle = course.period === 'PERIODO_1' ? 'ring-teal-500' : 'ring-indigo-500';
+                                                const textStyle = course.period === 'PERIODO_1' ? 'text-teal-800' : 'text-indigo-800';
+                                                return (
+                                                    <div key={course.id} role="radio" aria-checked={isSelected} tabIndex={0} onClick={() => setProposalCourseName(course.name)} onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') setProposalCourseName(course.name) }} className={`p-4 rounded-lg border border-gray-200 transition-all duration-200 flex flex-col justify-between h-full hover:shadow-md cursor-pointer ${baseStyles} ${isSelected ? `ring-2 ring-offset-2 ${ringStyle}` : ''}`}>
+                                                        <h3 className={`font-bold text-sm mb-2 ${textStyle}`}>{course.name}</h3>
+                                                        <div className="flex justify-end mt-3"><input type="radio" name="course-selection" checked={isSelected} readOnly className="form-radio h-5 w-5 text-indigo-600 pointer-events-none" /></div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <div>
+                            <FileInput id="cvuFile" label="Haz clic para subir tu CVU" onFileSelect={setCvuFile} onError={setCvuError} acceptedFile={cvuFile} acceptedTypes={['application/pdf']} maxSizeMB={1} />
+                            {cvuError && <p className="text-red-500 text-xs mt-1">{cvuError}</p>}
+                        </div>
+                        <div>
+                            <FileInput id="fichaFile" label="Haz clic para subir la Ficha Técnica" onFileSelect={setFichaFile} onError={setFichaError} acceptedFile={fichaFile} acceptedTypes={['application/pdf']} maxSizeMB={1} />
+                            {fichaError && <p className="text-red-500 text-xs mt-1">{fichaError}</p>}
+                        </div>
+                    </div>
+                    <div className="mt-8 flex justify-end">
+                        <button type="submit" className="bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 flex items-center justify-center disabled:opacity-50" disabled={proposalStatus.isSubmitting}>
+                            {proposalStatus.isSubmitting && <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>}
+                            {proposalStatus.isSubmitting ? 'Enviando...' : 'Enviar Propuesta'}
+                        </button>
+                    </div>
+                 </form>
+            )}
+         </React.Fragment>
+    );
+
+    const renderEvidenceForm = () => (
+        <React.Fragment>
+             {evidenceStatus.success && <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-md" role="alert"><p>{evidenceStatus.success}</p></div>}
+             <form onSubmit={handleEvidenceSubmit} noValidate>
+                 <div className="bg-gray-50 border-l-4 border-gray-400 text-gray-800 p-4 rounded-lg mb-6 text-sm">
+                    <p>En esta sección puede subir las evidencias (PDFs o fotografías) del curso que impartió.</p>
+                </div>
+
+                {evidenceStatus.error && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md" role="alert"><p>{evidenceStatus.error}</p></div>}
+                
+                <div className="space-y-6">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Su Nombre Completo *</label>
+                        <AutocompleteInput teachers={teachers} onSelect={handleEvidenceTeacherSelect} value={evidenceInstructorName} onChange={(e) => setEvidenceInstructorName(e.target.value.toUpperCase())} name="evidenceInstructorName" placeholder="Escriba su nombre para buscar" required />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Su Email *</label>
+                        <input type="email" value={evidenceInstructorEmail} onChange={(e) => setEvidenceInstructorEmail(e.target.value.toLowerCase())} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="email@itdurango.edu.mx" required />
+                    </div>
+                     <div>
+                        <label htmlFor="evidenceCourse" className="block text-sm font-medium text-gray-700">Curso que Impartió *</label>
+                        <select name="evidenceCourse" id="evidenceCourse" value={evidenceCourseName} onChange={(e) => setEvidenceCourseName(e.target.value)} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" required>
+                            <option value="">Seleccione un curso</option>
+                            {courses.map(course => <option key={course.id} value={course.name}>{course.name}</option>)}
+                        </select>
+                    </div>
+                     <div>
+                        <FileInput id="evidenceFile" label="Haga clic para subir su evidencia" onFileSelect={setEvidenceFile} onError={setEvidenceFileError} acceptedFile={evidenceFile} acceptedTypes={['application/pdf', 'image/jpeg', 'image/png']} maxSizeMB={10} />
+                        {evidenceFileError && <p className="text-red-500 text-xs mt-1">{evidenceFileError}</p>}
+                    </div>
+                </div>
+                 <div className="mt-8 flex justify-end">
+                    <button type="submit" className="bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 flex items-center justify-center disabled:opacity-50" disabled={evidenceStatus.isSubmitting}>
+                        {evidenceStatus.isSubmitting && <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>}
+                        {evidenceStatus.isSubmitting ? 'Enviando...' : 'Enviar Evidencia'}
+                    </button>
+                </div>
+            </form>
+        </React.Fragment>
+    );
+
+    return (
+        <div className="bg-white p-4 sm:p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto">
+             <button onClick={onBack} className="text-sm text-blue-600 hover:underline mb-4">&larr; Volver a Inscripción de Cursos</button>
+             <h2 className="text-2xl font-bold mb-4 text-gray-800">Portal de Instructores</h2>
+            
+             <div className="border-b border-gray-200">
+                <nav className="-mb-px flex space-x-4" aria-label="Tabs">
+                    <TabButton label="Proponer Curso" tabName="proposal" activeTab={activeTab} setActiveTab={setActiveTab} />
+                    <TabButton label="Subir Evidencias" tabName="evidence" activeTab={activeTab} setActiveTab={setActiveTab} />
+                </nav>
+            </div>
+
+            <div className="pt-6">
+                {activeTab === 'proposal' ? renderProposalForm() : renderEvidenceForm()}
+            </div>
+        </div>
+    );
+};
+// END: Evidence Upload Feature
+
+// =============================================================================
+// == RENDER APPLICATION
+// =============================================================================
+const rootElement = document.getElementById('root');
+if (rootElement) {
+    // FIX: Use imported ReactDOM instead of window global.
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(
+        <React.StrictMode>
+            <App />
+        </React.StrictMode>
+    );
+} else {
+    console.error('Failed to find the root element. The application cannot be mounted.');
+}
