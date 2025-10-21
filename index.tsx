@@ -1,17 +1,15 @@
+// FIX: Import React and ReactDOM to provide proper typings and fix module errors.
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+
 // FIX: Add type definition for configuration injected from index.html
 declare global {
     interface Window {
         CONFIG?: {
             APPS_SCRIPT_URL?: string;
         };
-        React: any;
-        ReactDOM: any;
     }
 }
-
-// FIX: Add React and ReactDOM imports to fix module errors.
-const React = window.React;
-const ReactDOM = window.ReactDOM;
 
 
 // =============================================================================
@@ -111,7 +109,7 @@ const App = () => {
             setCurrentStep(5); // Go to instructor step
         } else {
             // Allow navigation back to previous steps in student mode
-            if (stepIndex < currentStep) {
+            if (stepIndex < currentStep - 1) {
                 setMode('student');
                 setCurrentStep(stepIndex + 1);
             }
@@ -477,8 +475,8 @@ const fileToBase64 = (file: File): Promise<string> => {
         reader.readAsDataURL(file);
         reader.onload = () => {
             const result = reader.result as string;
-            // Remove the data URL prefix (e.g., "data:application/pdf;base64,")
-            resolve(result); // Keep the prefix for backend decoding
+            // The backend's Utilities.base64Decode expects the data URL prefix.
+            resolve(result);
         };
         reader.onerror = error => reject(error);
     });
@@ -516,7 +514,7 @@ const submitInstructorProposal = async (data: any) => {
     }
 };
 
-// START: Evidence Upload Feature - New API function for submitting evidence
+
 const submitEvidence = async (data: any) => {
     const APPS_SCRIPT_URL = window.CONFIG?.APPS_SCRIPT_URL;
     if (!APPS_SCRIPT_URL) {
@@ -524,7 +522,7 @@ const submitEvidence = async (data: any) => {
     }
     
     const payload = {
-        action: 'submitEvidence', // New action for the backend router
+        action: 'submitInstructorEvidence',
         ...data
     };
 
@@ -548,7 +546,6 @@ const submitEvidence = async (data: any) => {
         throw new Error("La comunicación con el servidor falló. Verifique la URL de configuración, los permisos del script y la lógica del backend.");
     }
 };
-// END: Evidence Upload Feature
 
 
 // =============================================================================
@@ -599,29 +596,45 @@ const Stepper = ({ currentStep, steps, mode, onStepClick }: StepperProps) => {
                     const isStudentStep = index < instructorStepIndex;
                     const isInstructorStep = index === instructorStepIndex;
                     
-                    const isCompleted = isStudentStep && index < currentStep -1;
+                    const isCompleted = isStudentStep && mode === 'student' && index < currentStep - 1;
                     const isActive = (isStudentStep && mode === 'student' && index === currentStep - 1) || (isInstructorStep && mode === 'instructor');
+                    
+                    // A student step can be clicked if it's already completed. The instructor step is always clickable.
+                    const isClickable = (isStudentStep && isCompleted) || isInstructorStep;
 
                     return (
                         <React.Fragment key={index}>
-                             <div className={`flex flex-col items-center ${isInstructorStep ? 'w-1/5' : 'w-1/4'}`} onClick={() => onStepClick(index)} style={{ cursor: 'pointer' }}>
+                             <button
+                                type="button"
+                                onClick={() => onStepClick(index)}
+                                disabled={!isClickable && !isActive}
+                                aria-current={isActive ? 'step' : undefined}
+                                className={`flex flex-col items-center text-center group disabled:cursor-not-allowed ${isInstructorStep ? 'w-1/5' : 'w-1/4'}`}
+                             >
                                 <div className="relative flex items-center justify-center">
                                     <div className={`w-10 h-10 flex items-center justify-center z-10 rounded-full font-semibold text-white transition-colors duration-300
-                                        ${isInstructorStep ? (isActive ? 'bg-indigo-600 ring-4 ring-indigo-300' : 'bg-gray-400 hover:bg-gray-500') : (isCompleted ? 'bg-rose-800' : (isActive ? 'bg-rose-800' : 'bg-gray-300'))}
-                                        ${isActive && !isStudentStep && 'ring-4 ring-rose-300'}`}
+                                        ${isInstructorStep 
+                                            ? (isActive ? 'bg-indigo-600 ring-4 ring-indigo-300' : 'bg-gray-400 group-hover:bg-gray-500') 
+                                            : (isCompleted ? 'bg-rose-800 group-hover:bg-rose-900' : (isActive ? 'bg-rose-800' : 'bg-gray-300'))}
+                                        group-disabled:bg-gray-300 group-disabled:group-hover:bg-gray-300`}
                                     >
                                         {index + 1}
                                     </div>
                                     {index < steps.length - 1 && (
-                                        <div className={`absolute w-full top-1/2 -translate-y-1/2 left-1/2 h-1 ${index < currentStep -1 && isStudentStep && mode === 'student' ? 'bg-rose-800' : 'bg-gray-300'}`} />
+                                        <div className={`absolute w-full top-1/2 -translate-y-1/2 left-1/2 h-1 ${isCompleted ? 'bg-rose-800' : 'bg-gray-300'}`} />
                                     )}
                                 </div>
-                                <div className="mt-2 text-center">
-                                    <p className={`text-sm font-medium ${isInstructorStep ? (isActive ? 'text-indigo-700' : 'text-gray-600') : (isCompleted || isActive ? 'text-rose-800' : 'text-gray-500')}`}>
+                                <div className="mt-2">
+                                    <p className={`text-sm font-medium transition-colors duration-300
+                                      ${isInstructorStep 
+                                        ? (isActive ? 'text-indigo-700' : 'text-gray-600 group-hover:text-gray-800') 
+                                        : (isCompleted || isActive ? 'text-rose-800' : 'text-gray-500')}
+                                      group-disabled:text-gray-500 group-disabled:group-hover:text-gray-500`}
+                                    >
                                         {step}
                                     </p>
                                 </div>
-                            </div>
+                            </button>
                         </React.Fragment>
                     );
                 })}
@@ -641,12 +654,31 @@ interface ExistingRegistrationModalProps {
 }
 
 const ExistingRegistrationModal = ({ isOpen, courses, onModify, onClose, onDeleteCourse, deletingCourseId, onCancelAll }: ExistingRegistrationModalProps) => {
+    React.useEffect(() => {
+        const handleEsc = (event: KeyboardEvent) => {
+           if (event.key === 'Escape') {
+              onClose();
+           }
+        };
+        if (isOpen) {
+            window.addEventListener('keydown', handleEsc);
+        }
+        return () => {
+            window.removeEventListener('keydown', handleEsc);
+        };
+    }, [isOpen, onClose]);
+
     if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-            <div className="relative mx-auto p-8 border w-full max-w-lg shadow-lg rounded-md bg-white">
-                <h3 className="text-2xl font-bold text-gray-800">Ya Tienes un Registro Activo</h3>
+            <div 
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="modal-title"
+                className="relative mx-auto p-8 border w-full max-w-lg shadow-lg rounded-md bg-white"
+            >
+                <h3 id="modal-title" className="text-2xl font-bold text-gray-800">Ya Tienes un Registro Activo</h3>
                 <div className="mt-4">
                     <p className="text-gray-600">Hemos detectado que ya estás inscrito en los siguientes cursos. ¿Qué te gustaría hacer?</p>
                     <div className="mt-4 space-y-2 bg-gray-50 p-4 rounded-md border">
@@ -658,7 +690,7 @@ const ExistingRegistrationModal = ({ isOpen, courses, onModify, onClose, onDelet
                                         onClick={() => onDeleteCourse(course.id)}
                                         disabled={!!deletingCourseId}
                                         className="p-2 rounded-full text-gray-500 hover:bg-red-100 hover:text-red-700 transition-colors disabled:opacity-50 disabled:cursor-wait flex items-center justify-center"
-                                        aria-label="Eliminar curso"
+                                        aria-label={`Eliminar curso ${course.name}`}
                                     >
                                         {deletingCourseId === course.id ? (
                                             <svg className="animate-spin h-5 w-5 text-red-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -775,12 +807,16 @@ const AutocompleteInput = ({ teachers, onSelect, value, onChange, name, placehol
                 className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 required={required}
                 autoComplete="off"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-expanded={showSuggestions}
             />
             {showSuggestions && suggestions.length > 0 && (
-                <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg mt-1 max-h-60 overflow-auto">
+                <ul role="listbox" className="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg mt-1 max-h-60 overflow-auto">
                     {suggestions.map((teacher) => (
                         <li
                             key={teacher.curp || teacher.nombreCompleto}
+                            role="option"
                             onMouseDown={(e) => {
                                 e.preventDefault(); // Prevent input from losing focus
                                 handleSelect(teacher);
@@ -1040,16 +1076,9 @@ interface Step2CourseSelectionProps {
 const Step2CourseSelection = ({ courses, selectedCourses, setSelectedCourses, onNext, onBack }: Step2CourseSelectionProps) => {
     const [error, setError] = React.useState<string | null>(null);
 
-    // **FIX**: Fail-safe helper function to check for schedule conflicts.
     const schedulesOverlap = (course1: Course, course2: Course) => {
-        // If dates are missing, different, or invalid, assume no conflict to prevent false positives.
-        if (!course1.dates || !course2.dates || course1.dates !== course2.dates) {
-            return false;
-        }
-        // If schedules are missing, assume no conflict.
-        if (!course1.schedule || !course2.schedule) {
-            return false;
-        }
+        if (!course1.dates || !course2.dates || course1.dates !== course2.dates) return false;
+        if (!course1.schedule || !course2.schedule) return false;
 
         const parseTime = (schedule: string) => {
             const matches = schedule.match(/(\d{1,2}:\d{2})/g);
@@ -1062,12 +1091,11 @@ const Step2CourseSelection = ({ courses, selectedCourses, setSelectedCourses, on
         const time1 = parseTime(course1.schedule);
         const time2 = parseTime(course2.schedule);
 
-        if (!time1 || !time2) return false; // Cannot determine overlap
+        if (!time1 || !time2) return false;
 
         const [start1, end1] = time1;
         const [start2, end2] = time2;
 
-        // Overlap exists if one starts before the other ends, and vice-versa
         return start1 < end2 && start2 < end1;
     };
 
@@ -1093,33 +1121,6 @@ const Step2CourseSelection = ({ courses, selectedCourses, setSelectedCourses, on
         
         setSelectedCourses(newSelection);
     };
-    
-    const getCourseCardStatus = (course: Course) => {
-        const isSelected = selectedCourses.some(c => c.id === course.id);
-
-        // Define base styles for periods for stronger visual differentiation
-        const period1Styles = "border-t-4 border-teal-400 bg-teal-50 hover:shadow-md";
-        const period2Styles = "border-t-4 border-indigo-400 bg-indigo-50 hover:shadow-md";
-        let basePeriodStyles = course.period === 'PERIODO_1' ? period1Styles : period2Styles;
-
-        if (isSelected) {
-            const selectedRing = course.period === 'PERIODO_1' ? 'ring-teal-500' : 'ring-indigo-500';
-            basePeriodStyles += ` ring-2 ring-offset-2 ${selectedRing}`;
-            return { isDisabled: false, classNames: basePeriodStyles };
-        }
-
-        const hasReachedMax = selectedCourses.length >= 3;
-        const hasConflict = selectedCourses.some(selected => schedulesOverlap(selected, course));
-
-        if (hasReachedMax || hasConflict) {
-            return {
-                isDisabled: true,
-                classNames: "border-t-4 border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed"
-            };
-        }
-
-        return { isDisabled: false, classNames: basePeriodStyles };
-    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -1135,7 +1136,7 @@ const Step2CourseSelection = ({ courses, selectedCourses, setSelectedCourses, on
             <h2 className="text-2xl font-bold mb-2 text-gray-800">Selección de Cursos</h2>
             <p className="text-gray-600 mb-6">Seleccione hasta 3 cursos. No puede seleccionar cursos con horarios que se solapen.</p>
             
-            <div className="bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 mb-6 rounded-md" role="alert">
+            <div className="bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 mb-6 rounded-md" role="status">
                 <p className="font-bold">Cursos seleccionados: {selectedCourses.length} / 3</p>
             </div>
             
@@ -1147,35 +1148,50 @@ const Step2CourseSelection = ({ courses, selectedCourses, setSelectedCourses, on
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {courses.map(course => {
-                    const { isDisabled, classNames } = getCourseCardStatus(course);
+                    const isSelected = selectedCourses.some(c => c.id === course.id);
+                    const hasConflict = !isSelected && selectedCourses.some(selected => schedulesOverlap(selected, course));
+                    const hasReachedMax = !isSelected && selectedCourses.length >= 3;
+                    const isDisabled = hasConflict || hasReachedMax;
+
+                    const period1Styles = "border-t-4 border-teal-400 bg-teal-50 hover:shadow-md";
+                    const period2Styles = "border-t-4 border-indigo-400 bg-indigo-50 hover:shadow-md";
+                    const basePeriodStyles = course.period === 'PERIODO_1' ? period1Styles : period2Styles;
+                    const selectedRing = course.period === 'PERIODO_1' ? 'peer-checked:ring-teal-500' : 'peer-checked:ring-indigo-500';
                     const textColor = course.period === 'PERIODO_1' ? 'text-teal-800' : 'text-indigo-800';
+
                     return (
-                        <div
-                            key={course.id}
-                            onClick={() => {
-                                if (!isDisabled) {
-                                    handleSelectCourse(course);
-                                }
-                            }}
-                            className={`p-4 rounded-lg border border-gray-200 transition-all duration-200 flex flex-col justify-between h-full ${classNames} ${isDisabled ? '' : 'cursor-pointer'}`}
-                        >
-                            <div>
-                                <h3 className={`font-bold text-sm mb-2 ${textColor}`}>{course.name}</h3>
-                                <div className="text-xs text-gray-600 space-y-1">
-                                    <p><strong>Fechas:</strong> {course.dates}</p>
-                                    <p><strong>Horario:</strong> {course.schedule}</p>
-                                    <p><strong>Lugar:</strong> {course.location}</p>
+                        <div key={course.id} className="relative h-full">
+                            <input
+                                type="checkbox"
+                                id={`course-${course.id}`}
+                                checked={isSelected}
+                                disabled={isDisabled}
+                                onChange={() => handleSelectCourse(course)}
+                                className="sr-only peer"
+                            />
+                            <label
+                                htmlFor={`course-${course.id}`}
+                                className={`p-4 rounded-lg border border-gray-200 transition-all duration-200 flex flex-col justify-between h-full 
+                                            ${basePeriodStyles} 
+                                            peer-disabled:opacity-60 peer-disabled:cursor-not-allowed peer-disabled:bg-gray-100 peer-disabled:hover:shadow-none peer-disabled:border-gray-300
+                                            peer-checked:ring-2 peer-checked:ring-offset-2 ${selectedRing}
+                                            cursor-pointer`}
+                            >
+                                <div>
+                                    <h3 className={`font-bold text-sm mb-2 ${textColor}`}>{course.name}</h3>
+                                    <div className="text-xs text-gray-600 space-y-1">
+                                        <p><strong>Fechas:</strong> {course.dates}</p>
+                                        <p><strong>Horario:</strong> {course.schedule}</p>
+                                        <p><strong>Lugar:</strong> {course.location}</p>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="flex justify-end mt-3">
-                                <input
-                                    type="checkbox"
-                                    checked={selectedCourses.some(c => c.id === course.id)}
-                                    readOnly
-                                    disabled={isDisabled}
-                                    className="form-checkbox h-5 w-5 text-blue-600 rounded pointer-events-none"
-                                />
-                            </div>
+                                <div className="flex justify-end mt-3 h-5 w-5" aria-hidden="true">
+                                    {/* Visual indicator for checkbox */}
+                                    <div className={`h-5 w-5 border-2 rounded-sm flex items-center justify-center transition-colors ${isSelected ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-400'} ${isDisabled ? 'bg-gray-200 border-gray-300' : ''}`}>
+                                        {isSelected && <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>}
+                                    </div>
+                                </div>
+                            </label>
                         </div>
                     );
                 })}
@@ -1280,7 +1296,7 @@ const Step3Confirmation = ({ formData, courses, originalCourses, onBack, onSubmi
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
                     )}
-                    {isSubmitting ? 'Procesando...' : 'Confirmar Registro'}
+                    {isSubmitting ? 'Procesando...' : isCancellation ? 'Confirmar Cancelación' : 'Confirmar Registro'}
                 </button>
             </div>
         </div>
@@ -1349,7 +1365,6 @@ const Step4Success = ({ registrationResult, applicantName, selectedCourses }: St
     );
 };
 
-// START: Evidence Upload Feature - Upgraded FileInput component
 interface FileInputProps {
     id: string;
     label: string;
@@ -1371,7 +1386,7 @@ const FileInput = ({ id, label, onFileSelect, onError, acceptedFile, acceptedTyp
         );
 
         if (!isValidType) {
-            onError(`El archivo debe ser de tipo: ${acceptedTypes.join(', ').replace(/\/\*/g, '')}.`);
+            onError(`El archivo debe ser de tipo: ${acceptedTypes.join(', ')}.`);
             return false;
         }
 
@@ -1385,17 +1400,9 @@ const FileInput = ({ id, label, onFileSelect, onError, acceptedFile, acceptedTyp
         return true;
     };
 
-    const handleDragEnter = (e: React.DragEvent<HTMLLabelElement>) => {
-        e.preventDefault();
-        setIsDragging(true);
-    };
-    const handleDragLeave = (e: React.DragEvent<HTMLLabelElement>) => {
-        e.preventDefault();
-        setIsDragging(false);
-    };
-    const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
-        e.preventDefault(); // Necessary to allow dropping
-    };
+    const handleDragEnter = (e: React.DragEvent<HTMLLabelElement>) => { e.preventDefault(); setIsDragging(true); };
+    const handleDragLeave = (e: React.DragEvent<HTMLLabelElement>) => { e.preventDefault(); setIsDragging(false); };
+    const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => { e.preventDefault(); };
     const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
         e.preventDefault();
         setIsDragging(false);
@@ -1418,15 +1425,15 @@ const FileInput = ({ id, label, onFileSelect, onError, acceptedFile, acceptedTyp
             inputRef.current.value = "";
         }
     };
+    
+    const fileTypeString = acceptedTypes.includes('application/pdf') ? 'application/pdf' : 'PDF, JPG, PNG';
 
     return (
         <div>
             <label 
                 htmlFor={id} 
-                className={`relative block w-full border-2 border-dashed rounded-lg p-4 text-center cursor-pointer
-                transition-colors duration-200 ease-in-out
-                ${isDragging ? 'border-indigo-500 bg-indigo-50' : 'border-gray-300 hover:border-gray-400'}
-                ${acceptedFile ? 'border-green-500 bg-green-50' : ''}`}
+                className={`relative flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors
+                ${isDragging ? 'border-indigo-500' : ''}`}
                 onDragEnter={handleDragEnter}
                 onDragLeave={handleDragLeave}
                 onDragOver={handleDragOver}
@@ -1440,31 +1447,30 @@ const FileInput = ({ id, label, onFileSelect, onError, acceptedFile, acceptedTyp
                     accept={acceptedTypes.join(',')}
                     onChange={handleChange}
                 />
-                 <div className="flex flex-col items-center justify-center space-y-2">
-                     <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M12 15l-3-3m0 0l3-3m-3 3h12"></path></svg>
+                 <div className="flex flex-col items-center justify-center space-y-2 text-center">
+                    <svg className="w-8 h-8 text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/></svg>
                     {acceptedFile ? (
-                        <div className="text-sm font-semibold text-green-800">
-                           <p>Archivo cargado:</p>
-                           <p className="font-normal">{acceptedFile.name}</p>
+                        <div className="text-sm font-semibold text-green-700">
+                           <p>Archivo: {acceptedFile.name}</p>
                         </div>
                     ) : (
-                         <span className="text-sm font-medium text-gray-600">
-                            {label}
-                            <span className="text-indigo-600"> o arrastra y suelta</span>
-                         </span>
+                         <p className="text-sm text-gray-500 px-2">
+                            {label} <span className="text-blue-600 font-semibold">o arrastra y suelta</span>
+                         </p>
                     )}
                  </div>
             </label>
-             {acceptedFile && (
-                <button type="button" onClick={handleRemoveFile} className="mt-2 text-xs text-red-600 hover:underline">
-                    Quitar archivo
-                </button>
-            )}
-             <p className="text-xs text-gray-500 mt-1">{acceptedTypes.join(', ').replace(/\/\*/g, '')}. Máx {maxSizeMB}MB.</p>
+             <div className="flex justify-between items-center mt-1">
+                 <p className="text-xs text-gray-500">{fileTypeString}. Máx {maxSizeMB}MB.</p>
+                 {acceptedFile && (
+                    <button type="button" onClick={handleRemoveFile} className="text-xs text-red-600 hover:underline">
+                        Quitar archivo
+                    </button>
+                )}
+            </div>
         </div>
     );
 };
-// END: Evidence Upload Feature
 
 const formatCourseDates = (dates: string) => {
     if (!dates) return '';
@@ -1479,37 +1485,46 @@ interface InstructorFormProps {
     courses: Course[];
 }
 
-// START: Evidence Upload Feature - Revamped InstructorForm with TABS
 const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
     const [activeTab, setActiveTab] = React.useState<'proposal' | 'evidence'>('proposal');
 
     // State for Proposal Form
-    const [proposalInstructorName, setProposalInstructorName] = React.useState('');
-    const [proposalInstructorEmail, setProposalInstructorEmail] = React.useState('');
-    const [proposalCourseName, setProposalCourseName] = React.useState('');
+    const [proposalForm, setProposalForm] = React.useState({
+        instructorName: '',
+        instructorEmail: '',
+        courseName: '',
+    });
     const [cvuFile, setCvuFile] = React.useState<File | null>(null);
     const [fichaFile, setFichaFile] = React.useState<File | null>(null);
-    const [proposalStatus, setProposalStatus] = React.useState({ isSubmitting: false, error: null, success: null });
+    const [proposalStatus, setProposalStatus] = React.useState<{isSubmitting: boolean, error: string | null, success: string | null}>({ isSubmitting: false, error: null, success: null });
     const [cvuError, setCvuError] = React.useState<string | null>(null);
     const [fichaError, setFichaError] = React.useState<string | null>(null);
     
     // State for Evidence Form
-    const [evidenceInstructorName, setEvidenceInstructorName] = React.useState('');
-    const [evidenceInstructorEmail, setEvidenceInstructorEmail] = React.useState('');
-    const [evidenceCourseName, setEvidenceCourseName] = React.useState('');
-    const [evidenceFile, setEvidenceFile] = React.useState<File | null>(null);
-    const [evidenceFileError, setEvidenceFileError] = React.useState<string | null>(null);
-    const [evidenceStatus, setEvidenceStatus] = React.useState({ isSubmitting: false, error: null, success: null });
+    const [evidenceForm, setEvidenceForm] = React.useState({
+        instructorName: '',
+        instructorEmail: '',
+        courseName: '',
+    });
+    const [evidenceFiles, setEvidenceFiles] = React.useState<File[]>([]);
+    const [evidenceError, setEvidenceError] = React.useState<string | null>(null);
+    const [evidenceStatus, setEvidenceStatus] = React.useState<{isSubmitting: boolean, error: string | null, success: string | null}>({ isSubmitting: false, error: null, success: null });
 
 
     const handleProposalTeacherSelect = (teacher: Teacher) => {
-        setProposalInstructorName(teacher.nombreCompleto.toUpperCase());
-        setProposalInstructorEmail((teacher.email || '').toLowerCase());
+        setProposalForm(prev => ({
+            ...prev,
+            instructorName: teacher.nombreCompleto.toUpperCase(),
+            instructorEmail: (teacher.email || '').toLowerCase()
+        }));
     };
     
     const handleEvidenceTeacherSelect = (teacher: Teacher) => {
-        setEvidenceInstructorName(teacher.nombreCompleto.toUpperCase());
-        setEvidenceInstructorEmail((teacher.email || '').toLowerCase());
+        setEvidenceForm(prev => ({
+            ...prev,
+            instructorName: teacher.nombreCompleto.toUpperCase(),
+            instructorEmail: (teacher.email || '').toLowerCase()
+        }));
     };
 
     const handleProposalSubmit = async (e: React.FormEvent) => {
@@ -1521,7 +1536,7 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
             return;
         }
 
-        if (!proposalInstructorName || !proposalInstructorEmail || !proposalCourseName || !cvuFile || !fichaFile) {
+        if (!proposalForm.instructorName || !proposalForm.instructorEmail || !proposalForm.courseName || !cvuFile || !fichaFile) {
             setProposalStatus({ isSubmitting: false, error: 'Todos los campos y archivos son obligatorios.', success: null });
             return;
         }
@@ -1531,9 +1546,9 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
             const fichaFileBase64 = await fileToBase64(fichaFile);
 
             await submitInstructorProposal({
-                instructorName: proposalInstructorName,
-                instructorEmail: proposalInstructorEmail,
-                courseName: proposalCourseName,
+                instructorName: proposalForm.instructorName,
+                instructorEmail: proposalForm.instructorEmail,
+                courseName: proposalForm.courseName,
                 cvuFile: cvuFileBase64,
                 fichaFile: fichaFileBase64
             });
@@ -1548,35 +1563,34 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
     const handleEvidenceSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setEvidenceStatus({ isSubmitting: true, error: null, success: null });
+        setEvidenceError(null);
 
-        if (evidenceFileError) {
-            setEvidenceStatus({ isSubmitting: false, error: 'Por favor, corrija los errores en el archivo.', success: null });
+        if (evidenceFiles.length === 0) {
+            setEvidenceStatus({ isSubmitting: false, error: 'Debe subir al menos un archivo de evidencia.', success: null });
             return;
         }
 
-        if (!evidenceInstructorName || !evidenceInstructorEmail || !evidenceCourseName || !evidenceFile) {
-            setEvidenceStatus({ isSubmitting: false, error: 'Todos los campos y el archivo de evidencia son obligatorios.', success: null });
+        if (!evidenceForm.instructorName || !evidenceForm.instructorEmail || !evidenceForm.courseName) {
+            setEvidenceStatus({ isSubmitting: false, error: 'Todos los campos de información del instructor y del curso son obligatorios.', success: null });
             return;
         }
 
         try {
-            const evidenceFileBase64 = await fileToBase64(evidenceFile);
+            const evidenceFilesBase64 = await Promise.all(
+                evidenceFiles.map(file => fileToBase64(file))
+            );
             
             await submitEvidence({
-                instructorName: evidenceInstructorName,
-                instructorEmail: evidenceInstructorEmail,
-                courseName: evidenceCourseName,
-                evidenceFile: evidenceFileBase64,
-                fileName: evidenceFile.name,
-                fileType: evidenceFile.type
+                instructorName: evidenceForm.instructorName,
+                instructorEmail: evidenceForm.instructorEmail,
+                courseName: evidenceForm.courseName,
+                evidenceFiles: evidenceFilesBase64
             });
 
             setEvidenceStatus({ isSubmitting: false, error: null, success: '¡Evidencia enviada con éxito!' });
             // Clear form on success
-            setEvidenceInstructorName('');
-            setEvidenceInstructorEmail('');
-            setEvidenceCourseName('');
-            setEvidenceFile(null);
+            setEvidenceForm({ instructorName: '', instructorEmail: '', courseName: '' });
+            setEvidenceFiles([]);
 
         } catch (err) {
              const errorMessage = err instanceof Error ? err.message : "Hubo un error al enviar la evidencia.";
@@ -1596,19 +1610,6 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
         return acc;
     }, {} as { [key: string]: { courses: Course[], dates: string } });
     
-    const TabButton = ({ label, tabName, activeTab, setActiveTab }) => (
-        <button
-            onClick={() => setActiveTab(tabName)}
-            className={`px-6 py-3 font-semibold text-sm rounded-t-lg focus:outline-none transition-colors duration-200 ${
-                activeTab === tabName
-                    ? 'bg-white text-indigo-700 border-b-2 border-indigo-500'
-                    : 'bg-gray-50 text-gray-500 hover:bg-gray-200'
-            }`}
-        >
-            {label}
-        </button>
-    );
-
     const renderProposalForm = () => (
          <React.Fragment>
             {proposalStatus.success ? (
@@ -1636,44 +1637,63 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
                     {proposalStatus.error && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md" role="alert"><p>{proposalStatus.error}</p></div>}
                     <div className="space-y-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Nombre Completo del Instructor *</label>
-                            <AutocompleteInput teachers={teachers} onSelect={handleProposalTeacherSelect} value={proposalInstructorName} onChange={(e) => setProposalInstructorName(e.target.value.toUpperCase())} name="proposalInstructorName" placeholder="Escriba un nombre para buscar" required />
+                            <label htmlFor="proposalInstructorName" className="block text-sm font-medium text-gray-700">Nombre Completo del Instructor *</label>
+                            <AutocompleteInput teachers={teachers} onSelect={handleProposalTeacherSelect} value={proposalForm.instructorName} onChange={(e) => setProposalForm(prev => ({ ...prev, instructorName: e.target.value.toUpperCase() }))} name="proposalInstructorName" placeholder="Escriba un nombre para buscar" required />
                         </div>
                         <div>
-                             <label className="block text-sm font-medium text-gray-700">Email del Instructor *</label>
-                            <input type="email" value={proposalInstructorEmail} onChange={(e) => setProposalInstructorEmail(e.target.value.toLowerCase())} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="email@itdurango.edu.mx" required />
+                             <label htmlFor="proposalInstructorEmail" className="block text-sm font-medium text-gray-700">Email del Instructor *</label>
+                            <input id="proposalInstructorEmail" type="email" value={proposalForm.instructorEmail} onChange={(e) => setProposalForm(prev => ({ ...prev, instructorEmail: e.target.value.toLowerCase() }))} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="email@itdurango.edu.mx" required />
                         </div>
                         <div>
-                             <label id="course-selection-label" className="block text-sm font-medium text-gray-700 mb-4">Nombre del Curso a Ofrecer *</label>
-                             <div role="radiogroup" aria-labelledby="course-selection-label">
+                            <fieldset>
+                                <legend className="block text-sm font-medium text-gray-700 mb-4">Nombre del Curso a Ofrecer *</legend>
                                 {Object.entries(groupedCourses).map(([period, data]) => (
                                     <div key={period} className="mb-8">
                                         <h4 className="text-md font-semibold text-gray-600 border-b pb-2 mb-4">{data.dates ? `${period.replace(/_/g, ' ')} | ${data.dates}` : period.replace(/_/g, ' ')}</h4>
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                             {data.courses.map(course => {
-                                                const isSelected = proposalCourseName === course.name;
+                                                const isSelected = proposalForm.courseName === course.name;
                                                 const baseStyles = course.period === 'PERIODO_1' ? "border-t-4 border-teal-400 bg-teal-50" : "border-t-4 border-indigo-400 bg-indigo-50";
-                                                const ringStyle = course.period === 'PERIODO_1' ? 'ring-teal-500' : 'ring-indigo-500';
+                                                const ringStyle = course.period === 'PERIODO_1' ? 'peer-checked:ring-teal-500' : 'peer-checked:ring-indigo-500';
                                                 const textStyle = course.period === 'PERIODO_1' ? 'text-teal-800' : 'text-indigo-800';
+                                                const courseId = `proposal-course-${course.id}`;
+
                                                 return (
-                                                    <div key={course.id} role="radio" aria-checked={isSelected} tabIndex={0} onClick={() => setProposalCourseName(course.name)} onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') setProposalCourseName(course.name) }} className={`p-4 rounded-lg border border-gray-200 transition-all duration-200 flex flex-col justify-between h-full hover:shadow-md cursor-pointer ${baseStyles} ${isSelected ? `ring-2 ring-offset-2 ${ringStyle}` : ''}`}>
-                                                        <h3 className={`font-bold text-sm mb-2 ${textStyle}`}>{course.name}</h3>
-                                                        <div className="flex justify-end mt-3"><input type="radio" name="course-selection" checked={isSelected} readOnly className="form-radio h-5 w-5 text-indigo-600 pointer-events-none" /></div>
+                                                    <div key={course.id} className="relative h-full">
+                                                        <input 
+                                                            type="radio"
+                                                            id={courseId}
+                                                            name="course-selection"
+                                                            value={course.name}
+                                                            checked={isSelected}
+                                                            onChange={() => setProposalForm(prev => ({ ...prev, courseName: course.name }))}
+                                                            className="sr-only peer"
+                                                        />
+                                                        <label htmlFor={courseId} className={`p-4 rounded-lg border border-gray-200 transition-all duration-200 flex flex-col justify-between h-full hover:shadow-md cursor-pointer ${baseStyles} peer-checked:ring-2 peer-checked:ring-offset-2 ${ringStyle}`}>
+                                                            <h3 className={`font-bold text-sm mb-2 ${textStyle}`}>{course.name}</h3>
+                                                            <div className="flex justify-end mt-3 h-5 w-5" aria-hidden="true">
+                                                                <div className={`h-5 w-5 border-2 rounded-full flex items-center justify-center transition-colors ${isSelected ? 'border-indigo-600' : 'border-gray-400'}`}>
+                                                                    {isSelected && <div className="h-2.5 w-2.5 bg-indigo-600 rounded-full"></div>}
+                                                                </div>
+                                                            </div>
+                                                        </label>
                                                     </div>
                                                 );
                                             })}
                                         </div>
                                     </div>
                                 ))}
+                            </fieldset>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <FileInput id="cvuFile" label="Haz clic para subir tu CVU" onFileSelect={setCvuFile} onError={setCvuError} acceptedFile={cvuFile} acceptedTypes={['application/pdf']} maxSizeMB={1} />
+                                {cvuError && <p className="text-red-500 text-xs mt-1">{cvuError}</p>}
                             </div>
-                        </div>
-                        <div>
-                            <FileInput id="cvuFile" label="Haz clic para subir tu CVU" onFileSelect={setCvuFile} onError={setCvuError} acceptedFile={cvuFile} acceptedTypes={['application/pdf']} maxSizeMB={1} />
-                            {cvuError && <p className="text-red-500 text-xs mt-1">{cvuError}</p>}
-                        </div>
-                        <div>
-                            <FileInput id="fichaFile" label="Haz clic para subir la Ficha Técnica" onFileSelect={setFichaFile} onError={setFichaError} acceptedFile={fichaFile} acceptedTypes={['application/pdf']} maxSizeMB={1} />
-                            {fichaError && <p className="text-red-500 text-xs mt-1">{fichaError}</p>}
+                            <div>
+                                <FileInput id="fichaFile" label="Haz clic para subir la Ficha Técnica" onFileSelect={setFichaFile} onError={setFichaError} acceptedFile={fichaFile} acceptedTypes={['application/pdf']} maxSizeMB={1} />
+                                {fichaError && <p className="text-red-500 text-xs mt-1">{fichaError}</p>}
+                            </div>
                         </div>
                     </div>
                     <div className="mt-8 flex justify-end">
@@ -1687,46 +1707,173 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
          </React.Fragment>
     );
 
-    const renderEvidenceForm = () => (
-        <React.Fragment>
-             {evidenceStatus.success && <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-md" role="alert"><p>{evidenceStatus.success}</p></div>}
-             <form onSubmit={handleEvidenceSubmit} noValidate>
-                 <div className="bg-gray-50 border-l-4 border-gray-400 text-gray-800 p-4 rounded-lg mb-6 text-sm">
-                    <p>En esta sección puede subir las evidencias (PDFs o fotografías) del curso que impartió.</p>
-                </div>
+    const renderEvidenceForm = () => {
+        const MAX_TOTAL_FILES = 6;
+        const MAX_TOTAL_SIZE_MB = 3;
 
-                {evidenceStatus.error && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md" role="alert"><p>{evidenceStatus.error}</p></div>}
+        const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+            const newFiles = e.target.files ? Array.from(e.target.files) : [];
+            if (!newFiles.length) return;
+
+            setEvidenceError(null);
+
+            if (evidenceFiles.length + newFiles.length > MAX_TOTAL_FILES) {
+                setEvidenceError(`No puede subir más de ${MAX_TOTAL_FILES} archivos en total.`);
+                return;
+            }
+
+            const MAX_TOTAL_SIZE_BYTES = MAX_TOTAL_SIZE_MB * 1024 * 1024;
+            const existingSize = evidenceFiles.reduce((acc, file) => acc + file.size, 0);
+            const newSize = newFiles.reduce((acc, file) => acc + file.size, 0);
+
+            if (existingSize + newSize > MAX_TOTAL_SIZE_BYTES) {
+                 setEvidenceError(`El tamaño total de los archivos no puede exceder los ${MAX_TOTAL_SIZE_MB} MB.`);
+                return;
+            }
+
+            const validatedFiles: File[] = [];
+            for (const file of newFiles) {
+                const currentFile = file as File;
+                const acceptedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
                 
-                <div className="space-y-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Su Nombre Completo *</label>
-                        <AutocompleteInput teachers={teachers} onSelect={handleEvidenceTeacherSelect} value={evidenceInstructorName} onChange={(e) => setEvidenceInstructorName(e.target.value.toUpperCase())} name="evidenceInstructorName" placeholder="Escriba su nombre para buscar" required />
+                if (!acceptedTypes.includes(currentFile.type)) {
+                    setEvidenceError(`Tipo de archivo no válido: ${currentFile.name}. Solo se aceptan PDF, JPG, PNG.`);
+                    return;
+                }
+                validatedFiles.push(currentFile);
+            }
+
+            setEvidenceFiles(prev => [...prev, ...validatedFiles]);
+            e.target.value = '';
+        };
+
+        const handleRemoveFile = (indexToRemove: number) => {
+            setEvidenceFiles(prev => prev.filter((_, index) => index !== indexToRemove));
+        };
+
+        return (
+            <React.Fragment>
+                {evidenceStatus.success && <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-md" role="alert"><p>{evidenceStatus.success}</p></div>}
+                <form onSubmit={handleEvidenceSubmit} noValidate>
+                    <div className="bg-blue-50 border-l-4 border-blue-500 text-blue-800 p-4 rounded-lg mb-6 text-sm">
+                        <p>En esta sección puede subir las evidencias (hasta {MAX_TOTAL_FILES} archivos) del curso que impartió. El tamaño total no debe exceder {MAX_TOTAL_SIZE_MB}MB.</p>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Su Email *</label>
-                        <input type="email" value={evidenceInstructorEmail} onChange={(e) => setEvidenceInstructorEmail(e.target.value.toLowerCase())} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="email@itdurango.edu.mx" required />
+
+                    {evidenceStatus.error && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md" role="alert"><p>{evidenceStatus.error}</p></div>}
+                    
+                    <div className="space-y-6">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Su Nombre Completo *</label>
+                            <AutocompleteInput teachers={teachers} onSelect={handleEvidenceTeacherSelect} value={evidenceForm.instructorName} onChange={(e) => setEvidenceForm(prev => ({...prev, instructorName: e.target.value.toUpperCase()}))} name="evidenceInstructorName" placeholder="Escriba su nombre para buscar" required />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Su Email *</label>
+                            <input type="email" value={evidenceForm.instructorEmail} onChange={(e) => setEvidenceForm(prev => ({...prev, instructorEmail: e.target.value.toLowerCase()}))} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="email@itdurango.edu.mx" required />
+                        </div>
+                        <div>
+                            <fieldset>
+                                <legend className="block text-sm font-medium text-gray-700 mb-4">Curso que Impartió *</legend>
+                                {Object.entries(groupedCourses).map(([period, data]) => (
+                                    <div key={period} className="mb-8">
+                                        <h4 className="text-md font-semibold text-gray-600 border-b pb-2 mb-4">{data.dates ? `${period.replace(/_/g, ' ')} | ${data.dates}` : period.replace(/_/g, ' ')}</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {data.courses.map(course => {
+                                                const isSelected = evidenceForm.courseName === course.name;
+                                                const baseStyles = course.period === 'PERIODO_1' ? "border-t-4 border-teal-400 bg-teal-50" : "border-t-4 border-indigo-400 bg-indigo-50";
+                                                const ringStyle = course.period === 'PERIODO_1' ? 'peer-checked:ring-teal-500' : 'peer-checked:ring-indigo-500';
+                                                const textStyle = course.period === 'PERIODO_1' ? 'text-teal-800' : 'text-indigo-800';
+                                                const courseId = `evidence-course-${course.id}`;
+
+                                                return (
+                                                    <div key={course.id} className="relative h-full">
+                                                        <input 
+                                                            type="radio"
+                                                            id={courseId}
+                                                            name="evidence-course-selection"
+                                                            value={course.name}
+                                                            checked={isSelected}
+                                                            onChange={() => setEvidenceForm(prev => ({ ...prev, courseName: course.name }))}
+                                                            className="sr-only peer"
+                                                        />
+                                                        <label htmlFor={courseId} className={`p-4 rounded-lg border border-gray-200 transition-all duration-200 flex flex-col justify-between h-full hover:shadow-md cursor-pointer ${baseStyles} peer-checked:ring-2 peer-checked:ring-offset-2 ${ringStyle}`}>
+                                                            <h3 className={`font-bold text-sm mb-2 ${textStyle}`}>{course.name}</h3>
+                                                            <div className="flex justify-end mt-3 h-5 w-5" aria-hidden="true">
+                                                                <div className={`h-5 w-5 border-2 rounded-full flex items-center justify-center transition-colors ${isSelected ? 'border-indigo-600' : 'border-gray-400'}`}>
+                                                                    {isSelected && <div className="h-2.5 w-2.5 bg-indigo-600 rounded-full"></div>}
+                                                                </div>
+                                                            </div>
+                                                        </label>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ))}
+                            </fieldset>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Archivos de Evidencia *</label>
+                            <div className="mt-2">
+                                <label
+                                    htmlFor="evidence-files-input"
+                                    className="relative flex justify-center w-full px-6 py-4 text-center bg-white border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-indigo-500 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
+                                >
+                                    <div className="text-sm text-gray-600">
+                                        <svg className="w-8 h-8 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M12 15l-3-3m0 0l3-3m-3 3h12"></path></svg>
+                                        <span className="font-semibold text-indigo-600">Haga clic para subir</span> o arrastre y suelte
+                                        <p className="text-xs text-gray-500">PDF, PNG, JPG. Total máx: {MAX_TOTAL_SIZE_MB}MB</p>
+                                    </div>
+                                    <input
+                                        id="evidence-files-input"
+                                        name="evidence-files-input"
+                                        type="file"
+                                        multiple
+                                        className="sr-only"
+                                        onChange={handleFileSelect}
+                                        accept="application/pdf,image/png,image/jpeg"
+                                    />
+                                </label>
+                            </div>
+                            {evidenceError && <p className="mt-2 text-sm text-red-600">{evidenceError}</p>}
+
+                             {evidenceFiles.length > 0 && (
+                                <div className="mt-6">
+                                    <h4 className="text-sm font-medium text-gray-700">
+                                        Archivos para subir ({evidenceFiles.length}/{MAX_TOTAL_FILES})
+                                    </h4>
+                                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {evidenceFiles.map((file, index) => (
+                                            <div key={index} className="relative p-3 border-2 border-dashed border-gray-300 rounded-lg flex items-center space-x-3 bg-gray-50">
+                                                <svg className="flex-shrink-0 h-6 w-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M8 4a3 3 0 00-3 3v4a3 3 0 003 3h4a3 3 0 003-3V7a3 3 0 00-3-3H8zM6 7a1 1 0 011-1h4a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h4a1 1 0 100-2H7z" clipRule="evenodd" /></svg>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-gray-900 truncate">{file.name}</p>
+                                                    <p className="text-xs text-gray-500">{(file.size / 1024).toFixed(1)} KB</p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveFile(index)}
+                                                    className="absolute -top-2 -right-2 p-0.5 bg-white rounded-full text-gray-500 hover:text-red-600 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500"
+                                                >
+                                                    <span className="sr-only">Quitar archivo</span>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
-                     <div>
-                        <label htmlFor="evidenceCourse" className="block text-sm font-medium text-gray-700">Curso que Impartió *</label>
-                        <select name="evidenceCourse" id="evidenceCourse" value={evidenceCourseName} onChange={(e) => setEvidenceCourseName(e.target.value)} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" required>
-                            <option value="">Seleccione un curso</option>
-                            {courses.map(course => <option key={course.id} value={course.name}>{course.name}</option>)}
-                        </select>
+                    <div className="mt-8 flex justify-end">
+                        <button type="submit" className="bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 flex items-center justify-center disabled:opacity-50" disabled={evidenceStatus.isSubmitting}>
+                            {evidenceStatus.isSubmitting && <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>}
+                            {evidenceStatus.isSubmitting ? 'Enviando...' : 'Enviar Evidencia'}
+                        </button>
                     </div>
-                     <div>
-                        <FileInput id="evidenceFile" label="Haga clic para subir su evidencia" onFileSelect={setEvidenceFile} onError={setEvidenceFileError} acceptedFile={evidenceFile} acceptedTypes={['application/pdf', 'image/jpeg', 'image/png']} maxSizeMB={10} />
-                        {evidenceFileError && <p className="text-red-500 text-xs mt-1">{evidenceFileError}</p>}
-                    </div>
-                </div>
-                 <div className="mt-8 flex justify-end">
-                    <button type="submit" className="bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 flex items-center justify-center disabled:opacity-50" disabled={evidenceStatus.isSubmitting}>
-                        {evidenceStatus.isSubmitting && <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>}
-                        {evidenceStatus.isSubmitting ? 'Enviando...' : 'Enviar Evidencia'}
-                    </button>
-                </div>
-            </form>
-        </React.Fragment>
-    );
+                </form>
+            </React.Fragment>
+        );
+    };
 
     return (
         <div className="bg-white p-4 sm:p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto">
@@ -1734,19 +1881,49 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
              <h2 className="text-2xl font-bold mb-4 text-gray-800">Portal de Instructores</h2>
             
              <div className="border-b border-gray-200">
-                <nav className="-mb-px flex space-x-4" aria-label="Tabs">
-                    <TabButton label="Proponer Curso" tabName="proposal" activeTab={activeTab} setActiveTab={setActiveTab} />
-                    <TabButton label="Subir Evidencias" tabName="evidence" activeTab={activeTab} setActiveTab={setActiveTab} />
+                <nav className="-mb-px flex space-x-4" aria-label="Tabs" role="tablist">
+                    <button
+                        role="tab"
+                        id="proposal-tab"
+                        aria-selected={activeTab === 'proposal'}
+                        aria-controls="proposal-panel"
+                        onClick={() => setActiveTab('proposal')}
+                        className={`px-6 py-3 font-semibold text-sm rounded-t-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 transition-colors duration-200 ${
+                            activeTab === 'proposal'
+                                ? 'bg-white text-indigo-700 border-b-2 border-indigo-500'
+                                : 'bg-transparent text-gray-500 hover:bg-gray-200 hover:text-gray-700'
+                        }`}
+                    >
+                        Proponer Curso
+                    </button>
+                     <button
+                        role="tab"
+                        id="evidence-tab"
+                        aria-selected={activeTab === 'evidence'}
+                        aria-controls="evidence-panel"
+                        onClick={() => setActiveTab('evidence')}
+                        className={`px-6 py-3 font-semibold text-sm rounded-t-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 transition-colors duration-200 ${
+                            activeTab === 'evidence'
+                                ? 'bg-white text-indigo-700 border-b-2 border-indigo-500'
+                                : 'bg-transparent text-gray-500 hover:bg-gray-200 hover:text-gray-700'
+                        }`}
+                    >
+                        Subir Evidencias
+                    </button>
                 </nav>
             </div>
 
             <div className="pt-6">
-                {activeTab === 'proposal' ? renderProposalForm() : renderEvidenceForm()}
+                <div id="proposal-panel" role="tabpanel" tabIndex={0} aria-labelledby="proposal-tab" hidden={activeTab !== 'proposal'}>
+                    {renderProposalForm()}
+                </div>
+                 <div id="evidence-panel" role="tabpanel" tabIndex={0} aria-labelledby="evidence-tab" hidden={activeTab !== 'evidence'}>
+                    {renderEvidenceForm()}
+                </div>
             </div>
         </div>
     );
 };
-// END: Evidence Upload Feature
 
 // =============================================================================
 // == RENDER APPLICATION
