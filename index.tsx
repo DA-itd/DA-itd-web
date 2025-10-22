@@ -523,24 +523,34 @@ const App = () => {
 // == COMPONENTES UI - HEADER Y FOOTER
 // =============================================================================
 
-const Header = () => {
+ const Header = () => {
     return React.createElement('header', { className: 'bg-white shadow-md' },
         React.createElement('div', { className: 'container mx-auto px-4 sm:px-6 lg:px-8' },
-            React.createElement('div', { className: 'flex items-center justify-between h-24' },
+            React.createElement('div', { className: 'flex items-center justify-between gap-4 py-4 min-h-[100px]' },
+                // Logo TecNM (izquierda)
                 React.createElement('div', { className: 'flex-shrink-0' },
                     React.createElement('img', {
-                        className: 'h-16 md:h-20',
+                        className: 'h-16 md:h-20 lg:h-24',
+                        src: 'https://raw.githubusercontent.com/DA-itd/web/main/TecNM_logo.jpg',
+                        alt: 'Logo TecNM'
+                    })
+                ),
+                // Texto central
+                React.createElement('div', { className: 'text-center flex-1 px-2' },
+                    React.createElement('h1', { className: 'text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-blue-900' },
+                        'SISTEMA DE INSCRIPCIÓN A CURSOS DE ACTUALIZACIÓN DOCENTE'
+                    ),
+                    React.createElement('h2', { className: 'text-sm sm:text-base md:text-lg text-blue-900 mt-1' },
+                        'INSTITUTO TECNOLÓGICO DE DURANGO'
+                    )
+                ),
+                // Logo ITD (derecha)
+                React.createElement('div', { className: 'flex-shrink-0' },
+                    React.createElement('img', {
+                        className: 'h-16 md:h-20 lg:h-24',
                         src: 'https://raw.githubusercontent.com/DA-itd/web/main/logo_itdurango.png',
                         alt: 'Logo Instituto Tecnológico de Durango'
                     })
-                ),
-                React.createElement('div', { className: 'text-center' },
-                    React.createElement('h1', { className: 'text-xl md:text-2xl font-bold text-blue-900' },
-                        'SISTEMA DE INSCRIPCIÓN A CURSOS DE ACTUALIZACIÓN DOCENTE'
-                    ),
-                    React.createElement('h2', { className: 'text-md md:text-lg text-blue-900' },
-                        'INSTITUTO TECNOLÓGICO DE DURANGO'
-                    )
                 )
             )
         )
@@ -569,8 +579,8 @@ interface StepperProps {
 const Stepper = ({ currentStep, steps, mode, onStepClick }: StepperProps) => {
     const instructorStepIndex = 4;
 
-    return React.createElement('div', { className: 'w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8' },
-        React.createElement('div', { className: 'flex items-start' },
+    return React.createElement('div', { className: 'w-full max-w-5xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8' },
+        React.createElement('div', { className: 'flex items-start overflow-x-auto pb-2' },
             steps.map((step, index) => {
                 const isStudentStep = index < instructorStepIndex;
                 const isInstructorStep = index === instructorStepIndex;
@@ -585,11 +595,11 @@ const Stepper = ({ currentStep, steps, mode, onStepClick }: StepperProps) => {
                         onClick: () => onStepClick(index),
                         disabled: !isClickable && !isActive,
                         'aria-current': isActive ? 'step' : undefined,
-                        className: `flex flex-col items-center text-center group disabled:cursor-not-allowed ${isInstructorStep ? 'w-1/5' : 'w-1/4'}`
+                        className: `flex flex-col items-center text-center group disabled:cursor-not-allowed ${isInstructorStep ? 'w-1/5 min-w-[80px]' : 'w-1/4 min-w-[70px]'}`
                     },
                         React.createElement('div', { className: 'relative flex items-center justify-center' },
                             React.createElement('div', {
-                                className: `w-10 h-10 flex items-center justify-center z-10 rounded-full font-semibold text-white transition-colors duration-300 ${
+                                className: `w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center z-10 rounded-full font-semibold text-white text-sm sm:text-base transition-colors duration-300 ${
                                     isInstructorStep 
                                         ? (isActive ? 'bg-indigo-600 ring-4 ring-indigo-300' : 'bg-gray-400 group-hover:bg-gray-500') 
                                         : (isCompleted ? 'bg-rose-800 group-hover:bg-rose-900' : (isActive ? 'bg-rose-800' : 'bg-gray-300'))
@@ -601,7 +611,7 @@ const Stepper = ({ currentStep, steps, mode, onStepClick }: StepperProps) => {
                         ),
                         React.createElement('div', { className: 'mt-2' },
                             React.createElement('p', {
-                                className: `text-sm font-medium transition-colors duration-300 ${
+                                className: `text-xs sm:text-sm font-medium transition-colors duration-300 ${
                                     isInstructorStep 
                                         ? (isActive ? 'text-indigo-700' : 'text-gray-600 group-hover:text-gray-800') 
                                         : (isCompleted || isActive ? 'text-rose-800' : 'text-gray-500')
@@ -1717,121 +1727,242 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
         );
     };
 
-    const renderEvidenceForm = () => {
-        return React.createElement('form', { onSubmit: handleEvidenceSubmit },
-            React.createElement('p', { className: 'text-sm text-gray-600 mb-4' }, 'Suba hasta 6 archivos (máx 3MB total)'),
-            evidenceStatus.success && React.createElement('div', { className: 'bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-md' },
-                React.createElement('p', null, evidenceStatus.success)
+const renderEvidenceForm = () => {
+    const MAX_TOTAL_FILES = 6;
+    const MAX_TOTAL_SIZE_MB = 3;
+
+    // SI YA SE ENVIÓ CON ÉXITO, MOSTRAR CONFIRMACIÓN
+    if (evidenceStatus.success) {
+        return React.createElement('div', { className: 'text-center py-8' },
+            React.createElement('div', { className: 'bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-8 rounded-md' },
+                React.createElement('p', { className: 'font-bold text-lg' }, '✅ Evidencias enviadas con éxito')
             ),
-            evidenceStatus.error && React.createElement('div', { className: 'bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md' },
-                React.createElement('p', null, evidenceStatus.error)
+            React.createElement('button', {
+                onClick: onBack,
+                className: 'bg-indigo-600 text-white font-bold py-2 px-8 rounded-lg hover:bg-indigo-700'
+            }, 'Salir')
+        );
+    }
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newFiles = e.target.files ? Array.from(e.target.files) : [];
+        if (!newFiles.length) return;
+
+        setEvidenceError(null);
+
+        if (evidenceFiles.length + newFiles.length > MAX_TOTAL_FILES) {
+            setEvidenceError(`No puede subir más de ${MAX_TOTAL_FILES} archivos`);
+            return;
+        }
+
+        const MAX_TOTAL_SIZE_BYTES = MAX_TOTAL_SIZE_MB * 1024 * 1024;
+        const existingSize = evidenceFiles.reduce((acc, file) => acc + file.size, 0);
+        const newSize = newFiles.reduce((acc, file) => acc + file.size, 0);
+
+        if (existingSize + newSize > MAX_TOTAL_SIZE_BYTES) {
+            setEvidenceError(`Tamaño total no puede exceder ${MAX_TOTAL_SIZE_MB} MB`);
+            return;
+        }
+
+        setEvidenceFiles(prev => [...prev, ...newFiles]);
+        e.target.value = '';
+    };
+
+    const handleRemoveFile = (indexToRemove: number) => {
+        setEvidenceFiles(prev => prev.filter((_, index) => index !== indexToRemove));
+    };
+
+    return React.createElement('form', { onSubmit: handleEvidenceSubmit },
+        React.createElement('div', { className: 'bg-blue-50 border-l-4 border-blue-500 text-blue-800 p-4 rounded-lg mb-6 text-sm' },
+            React.createElement('p', null, `Suba hasta ${MAX_TOTAL_FILES} archivos (máx ${MAX_TOTAL_SIZE_MB}MB total). Los archivos se guardarán en Google Drive.`)
+        ),
+        
+        evidenceStatus.error && React.createElement('div', { className: 'bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md' },
+            React.createElement('p', null, evidenceStatus.error)
+        ),
+        
+        React.createElement('div', { className: 'space-y-6' },
+            React.createElement('div', null,
+                React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Su Nombre Completo *'),
+                React.createElement(AutocompleteInput, {
+                    teachers, onSelect: handleEvidenceTeacherSelect, value: evidenceForm.instructorName,
+                    onChange: (e: any) => setEvidenceForm(prev => ({ ...prev, instructorName: e.target.value.toUpperCase() })),
+                    name: 'evidenceInstructorName', required: true
+                })
             ),
-            React.createElement('div', { className: 'space-y-6' },
-                React.createElement('div', null,
-                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Nombre *'),
-                    React.createElement(AutocompleteInput, {
-                        teachers, onSelect: handleEvidenceTeacherSelect, value: evidenceForm.instructorName,
-                        onChange: (e: any) => setEvidenceForm(prev => ({ ...prev, instructorName: e.target.value.toUpperCase() })),
-                        name: 'evidenceInstructorName', required: true
-                    })
+            React.createElement('div', null,
+                React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Su Email *'),
+                React.createElement('input', {
+                    type: 'email', value: evidenceForm.instructorEmail,
+                    onChange: (e: any) => setEvidenceForm(prev => ({ ...prev, instructorEmail: e.target.value.toLowerCase() })),
+                    className: 'mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500',
+                    required: true,
+                    placeholder: 'email@itdurango.edu.mx'
+                })
+            ),
+            React.createElement('div', null,
+                React.createElement('fieldset', null,
+                    React.createElement('legend', { className: 'block text-sm font-medium text-gray-700 mb-4' }, 'Curso que Impartió *'),
+                    courses.length === 0 ? React.createElement('p', { className: 'text-red-500' }, 
+                        'No hay cursos disponibles.'
+                    ) : Object.entries(groupedCourses).map(([period, data]) =>
+                        React.createElement('div', { key: period, className: 'mb-6' },
+                            React.createElement('h4', { className: 'text-sm md:text-md font-semibold text-gray-600 border-b pb-2 mb-4' },
+                                data.dates ? `${period.replace(/_/g, ' ')} | ${data.dates}` : period.replace(/_/g, ' ')
+                            ),
+                            React.createElement('div', { className: 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3' },
+                                data.courses.map(course => {
+                                    const isSelected = evidenceForm.courseName === course.name;
+                                    return React.createElement('div', { key: course.id, className: 'relative' },
+                                        React.createElement('input', {
+                                            type: 'radio',
+                                            id: `evidence-course-${course.id}`,
+                                            name: 'evidence-course-selection',
+                                            checked: isSelected,
+                                            onChange: () => setEvidenceForm(prev => ({ ...prev, courseName: course.name })),
+                                            className: 'sr-only peer'
+                                        }),
+                                        React.createElement('label', {
+                                            htmlFor: `evidence-course-${course.id}`,
+                                            className: `block p-3 rounded-lg border transition-all hover:shadow-md cursor-pointer ${
+                                                course.period === 'PERIODO_1' ? 'border-teal-400 bg-teal-50' : 'border-indigo-400 bg-indigo-50'
+                                            } peer-checked:ring-2 peer-checked:ring-indigo-500`
+                                        },
+                                            React.createElement('h3', { className: 'font-bold text-xs sm:text-sm' }, course.name)
+                                        )
+                                    );
+                                })
+                            )
+                        )
+                    )
+                )
+            ),
+            React.createElement('div', null,
+                React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Archivos de Evidencia *'),
+                React.createElement('div', { className: 'mt-2' },
+                    React.createElement('label', {
+                        htmlFor: 'evidence-files-input',
+                        className: 'relative flex justify-center w-full px-4 py-6 sm:px-6 sm:py-8 text-center bg-white border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500'
+                    },
+                        React.createElement('div', { className: 'space-y-2' },
+                            React.createElement('svg', {
+                                className: 'w-10 h-10 sm:w-12 sm:h-12 mx-auto text-gray-400',
+                                fill: 'none',
+                                stroke: 'currentColor',
+                                viewBox: '0 0 24 24'
+                            },
+                                React.createElement('path', {
+                                    strokeLinecap: 'round',
+                                    strokeLinejoin: 'round',
+                                    strokeWidth: '1.5',
+                                    d: 'M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M12 15l-3-3m0 0l3-3m-3 3h12'
+                                })
+                            ),
+                            React.createElement('div', { className: 'text-sm text-gray-600' },
+                                React.createElement('span', { className: 'font-semibold text-indigo-600' }, 'Haga clic para subir'),
+                                ' o arrastre y suelte'
+                            ),
+                            React.createElement('p', { className: 'text-xs text-gray-500' }, 
+                                `PDF, PNG, JPG. Total máx: ${MAX_TOTAL_SIZE_MB}MB`
+                            )
+                        ),
+                        React.createElement('input', {
+                            id: 'evidence-files-input',
+                            name: 'evidence-files-input',
+                            type: 'file',
+                            multiple: true,
+                            className: 'sr-only',
+                            onChange: handleFileSelect,
+                            accept: 'application/pdf,image/png,image/jpeg'
+                        })
+                    )
                 ),
-                React.createElement('div', null,
-                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Email *'),
-                    React.createElement('input', {
-                        type: 'email', value: evidenceForm.instructorEmail,
-                        onChange: (e: any) => setEvidenceForm(prev => ({ ...prev, instructorEmail: e.target.value.toLowerCase() })),
-                        className: 'mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md',
-                        required: true
-                    })
-                ),
-                React.createElement('div', null,
-                    React.createElement('fieldset', null,
-                        React.createElement('legend', { className: 'block text-sm font-medium text-gray-700 mb-4' }, 'Curso que Impartió *'),
-                        courses.length === 0 ? React.createElement('p', { className: 'text-red-500' }, 
-                            'No hay cursos disponibles.'
-                        ) : Object.entries(groupedCourses).map(([period, data]) =>
-                            React.createElement('div', { key: period, className: 'mb-8' },
-                                React.createElement('h4', { className: 'text-md font-semibold text-gray-600 border-b pb-2 mb-4' },
-                                    data.dates ? `${period.replace(/_/g, ' ')} | ${data.dates}` : period.replace(/_/g, ' ')
+                evidenceError && React.createElement('p', { className: 'mt-2 text-sm text-red-600' }, evidenceError),
+                
+                evidenceFiles.length > 0 && React.createElement('div', { className: 'mt-4' },
+                    React.createElement('h4', { className: 'text-sm font-medium text-gray-700 mb-2' },
+                        `Archivos para subir (${evidenceFiles.length}/${MAX_TOTAL_FILES}):`
+                    ),
+                    React.createElement('div', { className: 'space-y-2' },
+                        evidenceFiles.map((file, index) =>
+                            React.createElement('div', {
+                                key: index,
+                                className: 'relative p-3 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-between gap-2 bg-gray-50'
+                            },
+                                React.createElement('div', { className: 'flex items-center gap-2 flex-1 min-w-0' },
+                                    React.createElement('svg', {
+                                        className: 'flex-shrink-0 h-5 w-5 text-gray-400',
+                                        xmlns: 'http://www.w3.org/2000/svg',
+                                        viewBox: '0 0 20 20',
+                                        fill: 'currentColor'
+                                    },
+                                        React.createElement('path', {
+                                            fillRule: 'evenodd',
+                                            d: 'M8 4a3 3 0 00-3 3v4a3 3 0 003 3h4a3 3 0 003-3V7a3 3 0 00-3-3H8zM6 7a1 1 0 011-1h4a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h4a1 1 0 100-2H7z',
+                                            clipRule: 'evenodd'
+                                        })
+                                    ),
+                                    React.createElement('div', { className: 'flex-1 min-w-0' },
+                                        React.createElement('p', { className: 'text-sm font-medium text-gray-900 truncate' }, file.name),
+                                        React.createElement('p', { className: 'text-xs text-gray-500' }, `${(file.size / 1024).toFixed(1)} KB`)
+                                    )
                                 ),
-                                React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' },
-                                    data.courses.map(course => {
-                                        const isSelected = evidenceForm.courseName === course.name;
-                                        return React.createElement('div', { key: course.id, className: 'relative' },
-                                            React.createElement('input', {
-                                                type: 'radio',
-                                                id: `evidence-course-${course.id}`,
-                                                name: 'evidence-course-selection',
-                                                checked: isSelected,
-                                                onChange: () => setEvidenceForm(prev => ({ ...prev, courseName: course.name })),
-                                                className: 'sr-only peer'
-                                            }),
-                                            React.createElement('label', {
-                                                htmlFor: `evidence-course-${course.id}`,
-                                                className: `p-4 rounded-lg border transition-all hover:shadow-md cursor-pointer ${
-                                                    course.period === 'PERIODO_1' ? 'border-teal-400 bg-teal-50' : 'border-indigo-400 bg-indigo-50'
-                                                } peer-checked:ring-2 peer-checked:ring-indigo-500`
-                                            },
-                                                React.createElement('h3', { className: 'font-bold text-sm' }, course.name)
-                                            )
-                                        );
-                                    })
+                                React.createElement('button', {
+                                    type: 'button',
+                                    onClick: () => handleRemoveFile(index),
+                                    className: 'flex-shrink-0 p-1 rounded-full text-gray-500 hover:text-red-600 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-indigo-500'
+                                },
+                                    React.createElement('span', { className: 'sr-only' }, 'Quitar archivo'),
+                                    React.createElement('svg', {
+                                        xmlns: 'http://www.w3.org/2000/svg',
+                                        className: 'h-5 w-5',
+                                        viewBox: '0 0 20 20',
+                                        fill: 'currentColor'
+                                    },
+                                        React.createElement('path', {
+                                            fillRule: 'evenodd',
+                                            d: 'M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z',
+                                            clipRule: 'evenodd'
+                                        })
+                                    )
                                 )
                             )
                         )
                     )
-                ),
-                React.createElement('div', null,
-                    React.createElement('input', {
-                        type: 'file',
-                        multiple: true,
-                        accept: 'application/pdf,image/*',
-                        onChange: (e: any) => {
-                            if (e.target.files) {
-                                setEvidenceFiles(Array.from(e.target.files));
-                            }
-                        },
-                        className: 'block w-full text-sm'
-                    }),
-                    evidenceFiles.length > 0 && React.createElement('p', { className: 'text-sm text-green-600 mt-2' },
-                        `${evidenceFiles.length} archivo(s) seleccionado(s)`
-                    )
                 )
-            ),
-            React.createElement('div', { className: 'mt-8 flex justify-end' },
-                React.createElement('button', {
-                    type: 'submit',
-                    disabled: evidenceStatus.isSubmitting,
-                    className: 'bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 disabled:opacity-50'
-                }, evidenceStatus.isSubmitting ? 'Enviando... ⏳' : 'Enviar Evidencia')
-            )
-        );
-    };
-
-    return React.createElement('div', { className: 'bg-white p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto' },
-        React.createElement('button', {
-            onClick: onBack,
-            className: 'text-sm text-blue-600 hover:underline mb-4'
-        }, '← Volver'),
-        React.createElement('h2', { className: 'text-2xl font-bold mb-4' }, 'Portal de Instructores'),
-        React.createElement('div', { className: 'border-b mb-4 bg-gray-50 rounded-t-lg' },
-            React.createElement('nav', { className: 'flex space-x-4 px-4' },
-                React.createElement('button', {
-                    onClick: () => setActiveTab('proposal'),
-                    className: `px-6 py-3 font-semibold rounded-t-lg transition-colors ${activeTab === 'proposal' ? 'bg-white text-indigo-700 border-b-2 border-indigo-500 -mb-px' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'}`
-                }, 'Subir documentación'),
-                React.createElement('button', {
-                    onClick: () => setActiveTab('evidence'),
-                    className: `px-6 py-3 font-semibold rounded-t-lg transition-colors ${activeTab === 'evidence' ? 'bg-white text-indigo-700 border-b-2 border-indigo-500 -mb-px' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'}`
-                }, 'Subir Evidencias')
             )
         ),
-        React.createElement('div', { className: 'pt-6' },
-            activeTab === 'proposal' ? renderProposalForm() : renderEvidenceForm()
+        React.createElement('div', { className: 'mt-8 flex justify-end' },
+            React.createElement('button', {
+                type: 'submit',
+                disabled: evidenceStatus.isSubmitting,
+                className: 'w-full sm:w-auto bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2'
+            },
+                evidenceStatus.isSubmitting && React.createElement('svg', {
+                    className: 'animate-spin h-5 w-5 text-white',
+                    xmlns: 'http://www.w3.org/2000/svg',
+                    fill: 'none',
+                    viewBox: '0 0 24 24'
+                },
+                    React.createElement('circle', {
+                        className: 'opacity-25',
+                        cx: '12',
+                        cy: '12',
+                        r: '10',
+                        stroke: 'currentColor',
+                        strokeWidth: '4'
+                    }),
+                    React.createElement('path', {
+                        className: 'opacity-75',
+                        fill: 'currentColor',
+                        d: 'M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
+                    })
+                ),
+                evidenceStatus.isSubmitting ? 'Enviando...' : 'Enviar Evidencia'
+            )
         )
     );
 };
-
 // =============================================================================
 // == RENDERIZADO DE LA APLICACIÓN
 // =============================================================================
