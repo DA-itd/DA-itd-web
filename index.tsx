@@ -1,6 +1,6 @@
 // =============================================================================
 // SISTEMA DE INSCRIPCIÓN A CURSOS - INSTITUTO TECNOLÓGICO DE DURANGO
-// Versión: 1.1.0 - Optimizado para móviles
+// Versión: 1.2.0 - CORREGIDO
 // Última actualización: Enero 2024
 // =============================================================================
 
@@ -70,6 +70,9 @@ interface RegistrationResult {
 
 const COURSES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSAe4dmVN4CArjEy_lvI5qrXf16naxZLO1lAxGm2Pj4TrdnoebBg03Vv4-DCXciAkHJFiZaBMKletUs/pub?gid=0&single=true&output=csv';
 const TEACHERS_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSAe4dmVN4CArjEy_lvI5qrXf16naxZLO1lAxGm2Pj4TrdnoebBg03Vv4-DCXciAkHJFiZaBMKletUs/pub?gid=987931491&single=true&output=csv';
+
+// AGREGADO: Regex para validación de CURP
+const CURP_REGEX = /^[A-Z]{4}\d{6}[HM][A-Z]{5}[0-9A-Z]\d$/;
 
 const MOCK_DEPARTMENTS = [
     "DEPARTAMENTO DE SISTEMAS Y COMPUTACION",
@@ -215,6 +218,7 @@ const getRegistrationByCurp = async (curp: string): Promise<string[]> => {
     }
 };
 
+// CORREGIDO: Mejor manejo de errores del backend
 const submitRegistration = async (submission: any): Promise<any> => {
     const APPS_SCRIPT_URL = window.CONFIG?.APPS_SCRIPT_URL;
     if (!APPS_SCRIPT_URL) throw new Error("URL de configuración no disponible");
@@ -232,10 +236,18 @@ const submitRegistration = async (submission: any): Promise<any> => {
         if (result?.success) {
             return result.data;
         } else {
+            // Propagar el mensaje de error del backend
             throw new Error(result.message || 'Error en el servidor');
         }
     } catch (error) {
         console.error("Error al enviar registro:", error);
+        
+        // Si ya es un error con mensaje del backend, propagarlo
+        if (error instanceof Error && error.message !== 'Failed to fetch') {
+            throw error;
+        }
+        
+        // Solo mostrar mensaje genérico para errores de red
         throw new Error(
             "No se pudo comunicar con el servidor.\n\n" +
             "Posibles causas:\n" +
@@ -482,8 +494,14 @@ const App = () => {
                     setSelectedCourses, setOriginalSelectedCourses, onNext: handleNext, onGoToStep: goToStep
                 });
             case 2:
+                // MODIFICADO: Pasar originalSelectedCourses
                 return React.createElement(Step2CourseSelection, {
-                    courses: allCourses, selectedCourses, setSelectedCourses, onNext: handleNext, onBack: handleBack
+                    courses: allCourses, 
+                    selectedCourses, 
+                    setSelectedCourses, 
+                    originalSelectedCourses,
+                    onNext: handleNext, 
+                    onBack: handleBack
                 });
             case 3:
                 return React.createElement(Step3Confirmation, {
@@ -622,6 +640,7 @@ const Stepper = ({ currentStep, steps, mode, onStepClick }: StepperProps) => {
         )
     );
 };
+
 // =============================================================================
 // == MODAL DE REGISTRO EXISTENTE
 // =============================================================================
@@ -902,14 +921,31 @@ const Step1PersonalInfo = ({ formData, setFormData, departments, teachers, allCo
         }
     };
     
+    // CORREGIDO: Validación de CURP con regex
     const validate = () => {
         const newErrors: { [key: string]: string } = {};
-        if (!formData.fullName) newErrors.fullName = "Campo obligatorio";
-        if (!formData.curp) newErrors.curp = "Campo obligatorio";
-        if (formData.curp.length !== 18) newErrors.curp = "CURP debe tener 18 caracteres";
-        if (!formData.email) newErrors.email = "Campo obligatorio";
-        if (!/^\S+@\S+\.\S+$/.test(formData.email)) newErrors.email = "Email inválido";
-        if (!formData.department) newErrors.department = "Campo obligatorio";
+        
+        if (!formData.fullName) {
+            newErrors.fullName = "Campo obligatorio";
+        }
+        
+        if (!formData.curp) {
+            newErrors.curp = "Campo obligatorio";
+        } else if (formData.curp.length !== 18) {
+            newErrors.curp = "CURP debe tener 18 caracteres";
+        } else if (!CURP_REGEX.test(formData.curp.toUpperCase())) {
+            newErrors.curp = "CURP inválido (formato incorrecto)";
+        }
+        
+        if (!formData.email) {
+            newErrors.email = "Campo obligatorio";
+        } else if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+            newErrors.email = "Email inválido";
+        }
+        
+        if (!formData.department) {
+            newErrors.department = "Campo obligatorio";
+        }
         
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -1070,11 +1106,12 @@ interface Step2CourseSelectionProps {
     courses: Course[];
     selectedCourses: Course[];
     setSelectedCourses: React.Dispatch<React.SetStateAction<Course[]>>;
+    originalSelectedCourses: Course[]; // AGREGADO
     onNext: () => void;
     onBack: () => void;
 }
 
-const Step2CourseSelection = ({ courses, selectedCourses, setSelectedCourses, onNext, onBack }: Step2CourseSelectionProps) => {
+const Step2CourseSelection = ({ courses, selectedCourses, setSelectedCourses, originalSelectedCourses, onNext, onBack }: Step2CourseSelectionProps) => {
     const { useState } = React;
     const [error, setError] = useState<string | null>(null);
 
@@ -1120,12 +1157,18 @@ const Step2CourseSelection = ({ courses, selectedCourses, setSelectedCourses, on
         setSelectedCourses(newSelection);
     };
 
+    // CORREGIDO: Permitir cancelación total
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (selectedCourses.length > 0) {
+        
+        const isTotalCancellation = selectedCourses.length === 0 && 
+                                   originalSelectedCourses && 
+                                   originalSelectedCourses.length > 0;
+        
+        if (selectedCourses.length > 0 || isTotalCancellation) {
             onNext();
         } else {
-            setError("Debe seleccionar al menos un curso");
+            setError("Debe seleccionar al menos un curso o confirmar la cancelación total");
         }
     };
 
@@ -1422,14 +1465,21 @@ const FileInput = ({ id, label, onFileSelect, onError, acceptedFile, acceptedTyp
     const [isDragging, setIsDragging] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
 
+    // CORREGIDO: Mejor validación de tipos de archivo incluyendo image/*
     const handleFileValidation = (file: File) => {
-        const fileTypeMajor = file.type.split('/')[0];
-        const isValidType = acceptedTypes.some(type => 
-            type.endsWith('/*') ? type.startsWith(fileTypeMajor) : type === file.type
-        );
+        const fileTypeParts = file.type.split('/');
+        const fileTypeMajor = fileTypeParts[0];
+        
+        const isValidType = acceptedTypes.some(type => {
+            if (type.endsWith('/*')) {
+                const typeMajor = type.split('/')[0];
+                return typeMajor === fileTypeMajor;
+            }
+            return type === file.type;
+        });
 
         if (!isValidType) {
-            onError(`Tipo de archivo inválido`);
+            onError(`Tipo de archivo no permitido: ${file.type}`);
             return false;
         }
 
@@ -1734,11 +1784,15 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
         }
 
         return React.createElement('form', { onSubmit: handleEvidenceSubmit },
+            // CORREGIDO: Mensaje correcto sobre límites de archivos
             React.createElement('div', { className: 'bg-blue-50 border-l-4 border-blue-500 text-blue-800 p-4 rounded-lg mb-6 text-xs sm:text-sm' },
-                React.createElement('p', null, 'Suba hasta 6 archivos (máx 3MB total). Los archivos se guardarán en Google Drive.')
+                React.createElement('p', null, 'Suba hasta 6 archivos (máx 5MB cada uno). Formatos: PDF o imágenes.')
             ),
             evidenceStatus.error && React.createElement('div', { className: 'bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md' },
                 React.createElement('p', { className: 'text-sm' }, evidenceStatus.error)
+            ),
+            evidenceError && React.createElement('div', { className: 'bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md' },
+                React.createElement('p', { className: 'text-sm' }, evidenceError)
             ),
             React.createElement('div', { className: 'space-y-6' },
                 React.createElement('div', null,
@@ -1796,9 +1850,24 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
                     )
                 ),
                 React.createElement('div', null,
+                    // CORREGIDO: Validación de límite de 6 archivos
                     React.createElement('input', {
-                        type: 'file', multiple: true, accept: 'application/pdf,image/*',
-                        onChange: (e: any) => { if (e.target.files) setEvidenceFiles(Array.from(e.target.files)); },
+                        type: 'file', 
+                        multiple: true, 
+                        accept: 'application/pdf,image/*',
+                        onChange: (e: any) => { 
+                            if (e.target.files) {
+                                const filesArray = Array.from(e.target.files) as File[];
+                                if (filesArray.length > 6) {
+                                    setEvidenceError('No puede seleccionar más de 6 archivos');
+                                    setEvidenceFiles([]);
+                                    e.target.value = '';
+                                } else {
+                                    setEvidenceError(null);
+                                    setEvidenceFiles(filesArray);
+                                }
+                            }
+                        },
                         className: 'block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100'
                     }),
                     evidenceFiles.length > 0 && React.createElement('p', { className: 'text-sm text-green-600 mt-2' },
