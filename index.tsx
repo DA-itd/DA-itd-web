@@ -1,6 +1,6 @@
 // =============================================================================
 // SISTEMA DE INSCRIPCIÓN A CURSOS - INSTITUTO TECNOLÓGICO DE DURANGO
-// Versión: 1.0.1
+// Versión: 1.1.0 - Optimizado para móviles
 // Última actualización: Enero 2024
 // =============================================================================
 
@@ -523,11 +523,10 @@ const App = () => {
 // == COMPONENTES UI - HEADER Y FOOTER
 // =============================================================================
 
- const Header = () => {
+const Header = () => {
     return React.createElement('header', { className: 'bg-white shadow-md' },
         React.createElement('div', { className: 'container mx-auto px-4 sm:px-6 lg:px-8' },
             React.createElement('div', { className: 'flex items-center justify-between gap-4 py-4 min-h-[100px]' },
-                // Logo TecNM (izquierda)
                 React.createElement('div', { className: 'flex-shrink-0' },
                     React.createElement('img', {
                         className: 'h-16 md:h-20 lg:h-24',
@@ -535,7 +534,6 @@ const App = () => {
                         alt: 'Logo TecNM'
                     })
                 ),
-                // Texto central
                 React.createElement('div', { className: 'text-center flex-1 px-2' },
                     React.createElement('h1', { className: 'text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-blue-900' },
                         'SISTEMA DE INSCRIPCIÓN A CURSOS DE ACTUALIZACIÓN DOCENTE'
@@ -544,7 +542,6 @@ const App = () => {
                         'INSTITUTO TECNOLÓGICO DE DURANGO'
                     )
                 ),
-                // Logo ITD (derecha)
                 React.createElement('div', { className: 'flex-shrink-0' },
                     React.createElement('img', {
                         className: 'h-16 md:h-20 lg:h-24',
@@ -559,14 +556,15 @@ const App = () => {
 
 const Footer = () => {
     return React.createElement('footer', { className: 'bg-blue-800 text-white text-center p-4 mt-auto' },
-        React.createElement('p', { className: 'font-semibold' },
+        React.createElement('p', { className: 'font-semibold text-sm sm:text-base' },
             '© Coordinación de actualización docente - M.C. Alejandro Calderón Rentería.'
         ),
-        React.createElement('p', { className: 'text-sm' }, 'Todos los derechos reservados 2026.')
+        React.createElement('p', { className: 'text-xs sm:text-sm' }, 'Todos los derechos reservados 2026.')
     );
 };
+
 // =============================================================================
-// == COMPONENTE STEPPER
+// == COMPONENTE STEPPER (OPTIMIZADO PARA MÓVILES)
 // =============================================================================
 
 interface StepperProps {
@@ -624,7 +622,6 @@ const Stepper = ({ currentStep, steps, mode, onStepClick }: StepperProps) => {
         )
     );
 };
-
 // =============================================================================
 // == MODAL DE REGISTRO EXISTENTE
 // =============================================================================
@@ -662,38 +659,38 @@ const ExistingRegistrationModal = ({ isOpen, courses, onModify, onClose, onDelet
         React.createElement('div', {
             role: 'dialog',
             'aria-modal': 'true',
-            className: 'relative mx-auto p-8 border w-full max-w-lg shadow-lg rounded-md bg-white'
+            className: 'relative mx-auto p-6 sm:p-8 border w-full max-w-lg shadow-lg rounded-md bg-white'
         },
-            React.createElement('h3', { className: 'text-2xl font-bold text-gray-800' }, 
+            React.createElement('h3', { className: 'text-xl sm:text-2xl font-bold text-gray-800' }, 
                 'Ya Tienes un Registro Activo'
             ),
             React.createElement('div', { className: 'mt-4' },
-                React.createElement('p', { className: 'text-gray-600' },
+                React.createElement('p', { className: 'text-sm sm:text-base text-gray-600' },
                     'Hemos detectado que ya estás inscrito en los siguientes cursos. ¿Qué te gustaría hacer?'
                 ),
                 React.createElement('div', { className: 'mt-4 space-y-2 bg-gray-50 p-4 rounded-md border' },
                     courses.length > 0 ? courses.map(course =>
                         React.createElement('div', {
                             key: course.id,
-                            className: 'flex items-center justify-between py-1'
+                            className: 'flex items-center justify-between py-1 gap-2'
                         },
-                            React.createElement('span', { className: 'font-semibold text-gray-700 flex-1 pr-4' }, 
+                            React.createElement('span', { className: 'font-semibold text-sm sm:text-base text-gray-700 flex-1 pr-2' }, 
                                 course.name
                             ),
                             React.createElement('button', {
                                 onClick: () => onDeleteCourse(course.id),
                                 disabled: !!deletingCourseId,
-                                className: 'p-2 rounded-full text-gray-500 hover:bg-red-100 hover:text-red-700 transition-colors disabled:opacity-50',
+                                className: 'p-2 rounded-full text-gray-500 hover:bg-red-100 hover:text-red-700 transition-colors disabled:opacity-50 flex-shrink-0',
                                 'aria-label': `Eliminar curso ${course.name}`
                             },
                                 deletingCourseId === course.id ? '⏳' : '🗑️'
                             )
                         )
-                    ) : React.createElement('p', { className: 'text-gray-500 italic' }, 
+                    ) : React.createElement('p', { className: 'text-gray-500 italic text-sm' }, 
                         'No tiene cursos registrados.'
                     )
                 ),
-                React.createElement('p', { className: 'text-gray-600 mt-6' },
+                React.createElement('p', { className: 'text-sm sm:text-base text-gray-600 mt-6' },
                     'Puede modificar su selección o cancelar toda su inscripción.'
                 )
             ),
@@ -783,7 +780,7 @@ const AutocompleteInput = ({ teachers, onSelect, value, onChange, name, placehol
                 }
             },
             placeholder: placeholder || "Escriba su nombre",
-            className: 'mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500',
+            className: 'mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base',
             required: required,
             autoComplete: 'off'
         }),
@@ -797,7 +794,7 @@ const AutocompleteInput = ({ teachers, onSelect, value, onChange, name, placehol
                         e.preventDefault();
                         handleSelect(teacher);
                     },
-                    className: 'px-4 py-2 hover:bg-gray-100 cursor-pointer'
+                    className: 'px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm sm:text-base'
                 }, teacher.nombreCompleto)
             )
         )
@@ -972,12 +969,12 @@ const Step1PersonalInfo = ({ formData, setFormData, departments, teachers, allCo
             deletingCourseId: deletingCourseId,
             onCancelAll: handleCancelAllRegistration
         }),
-        React.createElement('div', { className: 'bg-white p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto' },
-            React.createElement('h2', { className: 'text-2xl font-bold mb-6 text-gray-800' }, 
+        React.createElement('div', { className: 'bg-white p-4 sm:p-6 lg:p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto' },
+            React.createElement('h2', { className: 'text-xl sm:text-2xl font-bold mb-6 text-gray-800' }, 
                 'Información Personal'
             ),
             React.createElement('form', { onSubmit: handleSubmit, noValidate: true },
-                React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-6' },
+                React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6' },
                     React.createElement('div', null,
                         React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 
                             'Nombre Completo *'
@@ -997,7 +994,7 @@ const Step1PersonalInfo = ({ formData, setFormData, departments, teachers, allCo
                         React.createElement('div', { className: 'relative' },
                             React.createElement('input', {
                                 type: 'text', name: 'curp', value: formData.curp, onChange: handleChange,
-                                className: 'mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500',
+                                className: 'mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base',
                                 placeholder: '18 caracteres', maxLength: 18, required: true
                             }),
                             isCheckingCurp && React.createElement('div', {
@@ -1016,7 +1013,7 @@ const Step1PersonalInfo = ({ formData, setFormData, departments, teachers, allCo
                         ),
                         React.createElement('input', {
                             type: 'email', name: 'email', value: formData.email, onChange: handleChange,
-                            className: 'mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500',
+                            className: 'mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base',
                             placeholder: 'email@itdurango.edu.mx', required: true
                         }),
                         errors.email && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, 
@@ -1029,7 +1026,7 @@ const Step1PersonalInfo = ({ formData, setFormData, departments, teachers, allCo
                         ),
                         React.createElement('select', {
                             name: 'gender', value: formData.gender, onChange: handleChange,
-                            className: 'mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500',
+                            className: 'mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base',
                             required: true
                         },
                             React.createElement('option', null, 'Mujer'),
@@ -1043,7 +1040,7 @@ const Step1PersonalInfo = ({ formData, setFormData, departments, teachers, allCo
                         ),
                         React.createElement('select', {
                             name: 'department', value: formData.department, onChange: handleChange,
-                            className: 'mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500',
+                            className: 'mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base',
                             required: true
                         },
                             React.createElement('option', { value: '' }, 'Seleccione un departamento'),
@@ -1057,7 +1054,7 @@ const Step1PersonalInfo = ({ formData, setFormData, departments, teachers, allCo
                 React.createElement('div', { className: 'mt-8 flex justify-end' },
                     React.createElement('button', {
                         type: 'submit',
-                        className: 'bg-rose-800 text-white font-bold py-2 px-6 rounded-lg hover:bg-rose-900'
+                        className: 'w-full sm:w-auto bg-rose-800 text-white font-bold py-2 px-6 rounded-lg hover:bg-rose-900'
                     }, 'Continuar')
                 )
             )
@@ -1132,15 +1129,15 @@ const Step2CourseSelection = ({ courses, selectedCourses, setSelectedCourses, on
         }
     };
 
-    return React.createElement('div', { className: 'bg-white p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto' },
-        React.createElement('h2', { className: 'text-2xl font-bold mb-2 text-gray-800' }, 
+    return React.createElement('div', { className: 'bg-white p-4 sm:p-6 lg:p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto' },
+        React.createElement('h2', { className: 'text-xl sm:text-2xl font-bold mb-2 text-gray-800' }, 
             'Selección de Cursos'
         ),
-        React.createElement('p', { className: 'text-gray-600 mb-6' }, 
+        React.createElement('p', { className: 'text-sm sm:text-base text-gray-600 mb-6' }, 
             'Seleccione hasta 3 cursos. No puede seleccionar cursos con horarios que se solapen.'
         ),
         React.createElement('div', { className: 'bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 mb-6 rounded-md' },
-            React.createElement('p', { className: 'font-bold' }, 
+            React.createElement('p', { className: 'font-bold text-sm sm:text-base' }, 
                 `Cursos seleccionados: ${selectedCourses.length} / 3`
             )
         ),
@@ -1148,9 +1145,9 @@ const Step2CourseSelection = ({ courses, selectedCourses, setSelectedCourses, on
             className: 'bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md', 
             role: 'alert' 
         },
-            React.createElement('p', null, error)
+            React.createElement('p', { className: 'text-sm sm:text-base' }, error)
         ),
-        React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' },
+        React.createElement('div', { className: 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' },
             courses.map(course => {
                 const isSelected = selectedCourses.some(c => c.id === course.id);
                 const hasConflict = !isSelected && selectedCourses.some(selected => schedulesOverlap(selected, course));
@@ -1176,10 +1173,10 @@ const Step2CourseSelection = ({ courses, selectedCourses, setSelectedCourses, on
                     }),
                     React.createElement('label', {
                         htmlFor: `course-${course.id}`,
-                        className: `p-4 rounded-lg border border-gray-200 transition-all duration-200 flex flex-col justify-between h-full ${basePeriodStyles} peer-disabled:opacity-60 peer-disabled:cursor-not-allowed peer-checked:ring-2 peer-checked:ring-offset-2 ${selectedRing} cursor-pointer`
+                        className: `p-3 sm:p-4 rounded-lg border border-gray-200 transition-all duration-200 flex flex-col justify-between h-full ${basePeriodStyles} peer-disabled:opacity-60 peer-disabled:cursor-not-allowed peer-checked:ring-2 peer-checked:ring-offset-2 ${selectedRing} cursor-pointer`
                     },
                         React.createElement('div', null,
-                            React.createElement('h3', { className: `font-bold text-sm mb-2 ${textColor}` }, 
+                            React.createElement('h3', { className: `font-bold text-xs sm:text-sm mb-2 ${textColor}` }, 
                                 course.name
                             ),
                             React.createElement('div', { className: 'text-xs text-gray-600 space-y-1' },
@@ -1214,15 +1211,15 @@ const Step2CourseSelection = ({ courses, selectedCourses, setSelectedCourses, on
             })
         ),
         React.createElement('form', { onSubmit: handleSubmit },
-            React.createElement('div', { className: 'mt-8 flex justify-between' },
+            React.createElement('div', { className: 'mt-8 flex flex-col-reverse sm:flex-row justify-between gap-3' },
                 React.createElement('button', {
                     type: 'button',
                     onClick: onBack,
-                    className: 'bg-gray-300 text-gray-800 font-bold py-2 px-6 rounded-lg hover:bg-gray-400'
+                    className: 'w-full sm:w-auto bg-gray-300 text-gray-800 font-bold py-2 px-6 rounded-lg hover:bg-gray-400'
                 }, 'Regresar'),
                 React.createElement('button', {
                     type: 'submit',
-                    className: 'bg-rose-800 text-white font-bold py-2 px-6 rounded-lg hover:bg-rose-900'
+                    className: 'w-full sm:w-auto bg-rose-800 text-white font-bold py-2 px-6 rounded-lg hover:bg-rose-900'
                 }, 'Continuar')
             )
         )
@@ -1257,12 +1254,12 @@ const Step3Confirmation = ({ formData, courses, originalCourses, onBack, onSubmi
         }
     };
 
-    return React.createElement('div', { className: 'bg-white p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto' },
-        React.createElement('h2', { className: 'text-2xl font-bold mb-6 text-gray-800' }, 
+    return React.createElement('div', { className: 'bg-white p-4 sm:p-6 lg:p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto' },
+        React.createElement('h2', { className: 'text-xl sm:text-2xl font-bold mb-6 text-gray-800' }, 
             isCancellation ? 'Confirmar Cancelación' : 'Confirmación de Registro'
         ),
-        React.createElement('div', { className: 'border border-gray-200 rounded-lg p-6 mb-6' },
-            React.createElement('h3', { className: 'text-lg font-semibold text-gray-700 mb-4' }, 
+        React.createElement('div', { className: 'border border-gray-200 rounded-lg p-4 sm:p-6 mb-6' },
+            React.createElement('h3', { className: 'text-base sm:text-lg font-semibold text-gray-700 mb-4' }, 
                 'Resumen de su Registro'
             ),
             React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4 text-sm' },
@@ -1278,17 +1275,17 @@ const Step3Confirmation = ({ formData, courses, originalCourses, onBack, onSubmi
             )
         ),
         React.createElement('div', { className: 'mt-6' },
-            React.createElement('h3', { className: 'text-lg font-semibold text-gray-700 mb-4' }, 
+            React.createElement('h3', { className: 'text-base sm:text-lg font-semibold text-gray-700 mb-4' }, 
                 isCancellation ? "Cursos a Cancelar" : "Cursos Seleccionados"
             ),
             isCancellation ? React.createElement('div', { 
                 className: 'border border-yellow-400 bg-yellow-50 text-yellow-800 rounded-lg p-4' 
             },
                 React.createElement('p', { className: 'font-bold' }, 'Atención: Está a punto de cancelar su inscripción.'),
-                React.createElement('p', { className: 'mt-2' }, 
+                React.createElement('p', { className: 'mt-2 text-sm' }, 
                     `Al confirmar, se eliminará su registro de ${originalCourses.length} curso(s).`
                 ),
-                React.createElement('ul', { className: 'list-disc list-inside mt-2 space-y-1' },
+                React.createElement('ul', { className: 'list-disc list-inside mt-2 space-y-1 text-sm' },
                     originalCourses.map(course => 
                         React.createElement('li', { key: course.id }, course.name)
                     )
@@ -1299,8 +1296,8 @@ const Step3Confirmation = ({ formData, courses, originalCourses, onBack, onSubmi
                         key: course.id, 
                         className: 'border border-gray-200 rounded-lg p-4' 
                     },
-                        React.createElement('h4', { className: 'font-bold text-gray-800' }, course.name),
-                        React.createElement('div', { className: 'grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2 mt-2 text-sm text-gray-600' },
+                        React.createElement('h4', { className: 'font-bold text-sm sm:text-base text-gray-800' }, course.name),
+                        React.createElement('div', { className: 'grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2 mt-2 text-xs sm:text-sm text-gray-600' },
                             React.createElement('div', null, React.createElement('strong', null, 'Horario: '), course.schedule || 'N/A'),
                             React.createElement('div', null, React.createElement('strong', null, 'Lugar: '), course.location || 'N/A'),
                             React.createElement('div', null, React.createElement('strong', null, 'Fechas: '), course.dates),
@@ -1309,21 +1306,21 @@ const Step3Confirmation = ({ formData, courses, originalCourses, onBack, onSubmi
                     )
                 )
             ) : React.createElement('div', { className: 'border border-gray-200 rounded-lg p-4 bg-gray-50' },
-                React.createElement('p', { className: 'text-gray-600' }, 
+                React.createElement('p', { className: 'text-gray-600 text-sm' }, 
                     'No ha seleccionado ningún curso.'
                 )
             )
         ),
-        React.createElement('div', { className: 'mt-8 flex justify-between' },
+        React.createElement('div', { className: 'mt-8 flex flex-col-reverse sm:flex-row justify-between gap-3' },
             React.createElement('button', {
                 onClick: onBack,
                 disabled: isSubmitting,
-                className: 'bg-gray-300 text-gray-800 font-bold py-2 px-6 rounded-lg hover:bg-gray-400 disabled:opacity-50'
+                className: 'w-full sm:w-auto bg-gray-300 text-gray-800 font-bold py-2 px-6 rounded-lg hover:bg-gray-400 disabled:opacity-50'
             }, 'Regresar'),
             React.createElement('button', {
                 onClick: handleSubmit,
                 disabled: isSubmitting,
-                className: 'bg-rose-800 text-white font-bold py-2 px-6 rounded-lg hover:bg-rose-900 flex items-center disabled:opacity-50'
+                className: 'w-full sm:w-auto bg-rose-800 text-white font-bold py-2 px-6 rounded-lg hover:bg-rose-900 flex items-center justify-center gap-2 disabled:opacity-50'
             },
                 isSubmitting ? '⏳ Procesando...' : (isCancellation ? 'Confirmar Cancelación' : 'Confirmar Registro')
             )
@@ -1332,7 +1329,7 @@ const Step3Confirmation = ({ formData, courses, originalCourses, onBack, onSubmi
 };
 
 // =============================================================================
-// == STEP 4: ÉXITO (CON MEJORAS DE EMAIL)
+// == STEP 4: ÉXITO
 // =============================================================================
 
 interface Step4SuccessProps {
@@ -1349,12 +1346,12 @@ const Step4Success = ({ registrationResult, applicantName, selectedCourses, subm
     const hasResult = registrationResult && registrationResult.length > 0;
     const coursesToDisplay = hasResult ? registrationResult : selectedCourses;
 
-    return React.createElement('div', { className: 'bg-white p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto text-center' },
-        React.createElement('div', { className: 'mx-auto h-16 w-16 text-green-500 mb-4 text-6xl' }, '✅'),
-        React.createElement('h2', { className: 'text-2xl font-bold text-gray-800' },
+    return React.createElement('div', { className: 'bg-white p-4 sm:p-6 lg:p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto text-center' },
+        React.createElement('div', { className: 'mx-auto h-12 w-12 sm:h-16 sm:w-16 text-green-500 mb-4 text-5xl sm:text-6xl' }, '✅'),
+        React.createElement('h2', { className: 'text-xl sm:text-2xl font-bold text-gray-800' },
             isCancellation ? "¡Cancelación Exitosa!" : "¡Registro Exitoso!"
         ),
-        React.createElement('p', { className: 'mt-2 text-gray-600' },
+        React.createElement('p', { className: 'mt-2 text-sm sm:text-base text-gray-600' },
             isCancellation 
                 ? `Gracias, ${applicantName}. Tu cancelación ha sido procesada.`
                 : `Gracias, ${applicantName}. Tu inscripción ha sido procesada.`
@@ -1364,16 +1361,16 @@ const Step4Success = ({ registrationResult, applicantName, selectedCourses, subm
             className: 'mt-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-md text-left max-w-2xl mx-auto',
             role: 'alert'
         },
-            React.createElement('p', { className: 'font-bold' }, '⚠️ Advertencia sobre el email'),
-            React.createElement('p', { className: 'text-sm mt-1' }, 
-                emailError || 'No se pudo enviar el email de confirmación. Tu inscripción SÍ fue registrada exitosamente. Por favor verifica tu bandeja de spam o contacta a soporte si no recibes el correo en las próximas horas.'
+            React.createElement('p', { className: 'font-bold text-sm sm:text-base' }, '⚠️ Advertencia sobre el email'),
+            React.createElement('p', { className: 'text-xs sm:text-sm mt-1' }, 
+                emailError || 'No se pudo enviar el email de confirmación. Tu inscripción SÍ fue registrada exitosamente. Verifica tu bandeja de spam.'
             )
         ),
         
         !isCancellation && coursesToDisplay && coursesToDisplay.length > 0 && React.createElement('div', {
-            className: 'mt-6 text-left border border-gray-200 rounded-lg p-6'
+            className: 'mt-6 text-left border border-gray-200 rounded-lg p-4 sm:p-6'
         },
-            React.createElement('h3', { className: 'text-lg font-semibold text-gray-700 mb-4' }, 
+            React.createElement('h3', { className: 'text-base sm:text-lg font-semibold text-gray-700 mb-4' }, 
                 'Detalles de la Inscripción:'
             ),
             React.createElement('ul', { className: 'space-y-3' },
@@ -1382,12 +1379,12 @@ const Step4Success = ({ registrationResult, applicantName, selectedCourses, subm
                         key: result.registrationId || result.id,
                         className: 'p-3 bg-gray-50 rounded-md border'
                     },
-                        React.createElement('div', { className: 'flex justify-between flex-wrap gap-2' },
-                            React.createElement('span', { className: 'font-semibold text-gray-800' },
+                        React.createElement('div', { className: 'flex flex-col sm:flex-row sm:justify-between gap-2' },
+                            React.createElement('span', { className: 'font-semibold text-sm sm:text-base text-gray-800' },
                                 (result.courseName || result.name),
                                 result.dates && ` (${result.dates})`
                             ),
-                            result.folio && React.createElement('span', { className: 'text-sm' },
+                            result.folio && React.createElement('span', { className: 'text-xs sm:text-sm' },
                                 'Folio: ',
                                 React.createElement('strong', { className: 'font-mono bg-gray-200 px-2 py-1 rounded' }, 
                                     result.folio
@@ -1399,7 +1396,7 @@ const Step4Success = ({ registrationResult, applicantName, selectedCourses, subm
             )
         ),
         React.createElement('div', { className: 'mt-8 border-t pt-6' },
-            React.createElement('p', { className: 'text-sm text-gray-500' },
+            React.createElement('p', { className: 'text-xs sm:text-sm text-gray-500' },
                 'El proceso ha finalizado. Puede cerrar esta ventana.'
             )
         )
@@ -1432,7 +1429,7 @@ const FileInput = ({ id, label, onFileSelect, onError, acceptedFile, acceptedTyp
         );
 
         if (!isValidType) {
-            onError(`Tipo de archivo inválido: ${acceptedTypes.join(', ')}`);
+            onError(`Tipo de archivo inválido`);
             return false;
         }
 
@@ -1462,7 +1459,7 @@ const FileInput = ({ id, label, onFileSelect, onError, acceptedFile, acceptedTyp
     return React.createElement('div', null,
         React.createElement('label', {
             htmlFor: id,
-            className: `relative flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 ${isDragging ? 'border-indigo-500' : ''}`
+            className: `relative flex flex-col items-center justify-center w-full h-28 sm:h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 ${isDragging ? 'border-indigo-500' : ''}`
         },
             React.createElement('input', {
                 type: 'file',
@@ -1472,12 +1469,12 @@ const FileInput = ({ id, label, onFileSelect, onError, acceptedFile, acceptedTyp
                 accept: acceptedTypes.join(','),
                 onChange: handleChange
             }),
-            React.createElement('div', { className: 'flex flex-col items-center justify-center space-y-2 text-center' },
+            React.createElement('div', { className: 'flex flex-col items-center justify-center space-y-2 text-center px-4' },
                 acceptedFile 
-                    ? React.createElement('p', { className: 'text-sm font-semibold text-green-700' }, 
+                    ? React.createElement('p', { className: 'text-xs sm:text-sm font-semibold text-green-700 break-all' }, 
                         `📄 ${acceptedFile.name}`
                     )
-                    : React.createElement('p', { className: 'text-sm text-gray-500 px-2' }, 
+                    : React.createElement('p', { className: 'text-xs sm:text-sm text-gray-500' }, 
                         label
                     )
             )
@@ -1494,487 +1491,3 @@ const FileInput = ({ id, label, onFileSelect, onError, acceptedFile, acceptedTyp
         )
     );
 };
-
-// =============================================================================
-// == FORMULARIO DE INSTRUCTOR (CON CAMBIOS DE DISEÑO)
-// =============================================================================
-
-const formatCourseDates = (dates: string) => {
-    if (!dates) return '';
-    return dates.split(',').map(d => d.trim()).join(' | ');
-};
-
-interface InstructorFormProps {
-    onBack: () => void;
-    teachers: Teacher[];
-    courses: Course[];
-}
-
-const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
-    const { useState } = React;
-    const [activeTab, setActiveTab] = useState<'proposal' | 'evidence'>('proposal');
-
-    const [proposalForm, setProposalForm] = useState({ instructorName: '', instructorEmail: '', courseName: '', courseId: '' });
-    const [cvuFile, setCvuFile] = useState<File | null>(null);
-    const [fichaFile, setFichaFile] = useState<File | null>(null);
-    const [proposalStatus, setProposalStatus] = useState({ isSubmitting: false, error: null, success: null, progress: null });
-    const [cvuError, setCvuError] = useState<string | null>(null);
-    const [fichaError, setFichaError] = useState<string | null>(null);
-    
-    const [evidenceForm, setEvidenceForm] = useState({ instructorName: '', instructorEmail: '', courseName: '' });
-    const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
-    const [evidenceError, setEvidenceError] = useState<string | null>(null);
-    const [evidenceStatus, setEvidenceStatus] = useState({ isSubmitting: false, error: null, success: null });
-
-    const handleProposalTeacherSelect = (teacher: Teacher) => {
-        setProposalForm(prev => ({
-            ...prev,
-            instructorName: teacher.nombreCompleto.toUpperCase(),
-            instructorEmail: (teacher.email || '').toLowerCase()
-        }));
-    };
-    
-    const handleEvidenceTeacherSelect = (teacher: Teacher) => {
-        setEvidenceForm(prev => ({
-            ...prev,
-            instructorName: teacher.nombreCompleto.toUpperCase(),
-            instructorEmail: (teacher.email || '').toLowerCase()
-        }));
-    };
-
-    const handleProposalSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setProposalStatus({ isSubmitting: true, error: null, success: null, progress: null });
-        
-        if (cvuError || fichaError) {
-            setProposalStatus({ isSubmitting: false, error: 'Corrija los errores en los archivos', success: null, progress: null });
-            return;
-        }
-
-        if (!proposalForm.instructorName || !proposalForm.instructorEmail || !proposalForm.courseName || !cvuFile || !fichaFile) {
-            setProposalStatus({ isSubmitting: false, error: 'Todos los campos son obligatorios', success: null, progress: null });
-            return;
-        }
-
-        try {
-            setProposalStatus({ isSubmitting: true, error: null, success: null, progress: 'Convirtiendo archivos... ⏳' });
-            
-            const cvuFileBase64 = await fileToBase64(cvuFile);
-            
-            setProposalStatus({ isSubmitting: true, error: null, success: null, progress: 'Subiendo CVU... 📤' });
-            
-            const fichaFileBase64 = await fileToBase64(fichaFile);
-            
-            setProposalStatus({ isSubmitting: true, error: null, success: null, progress: 'Subiendo Ficha Técnica... 📤' });
-
-            await submitInstructorProposal({
-                instructorName: proposalForm.instructorName,
-                instructorEmail: proposalForm.instructorEmail,
-                courseName: proposalForm.courseName,
-                courseId: proposalForm.courseId,
-                cvuFile: cvuFileBase64,
-                fichaFile: fichaFileBase64
-            });
-
-            setProposalStatus({ isSubmitting: false, error: null, success: '¡Propuesta enviada con éxito! ✅', progress: null });
-        } catch (err) {
-            setProposalStatus({ isSubmitting: false, error: err instanceof Error ? err.message : "Error al enviar", success: null, progress: null });
-        }
-    };
-
-    const handleEvidenceSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setEvidenceStatus({ isSubmitting: true, error: null, success: null });
-
-        if (evidenceFiles.length === 0) {
-            setEvidenceStatus({ isSubmitting: false, error: 'Debe subir al menos un archivo', success: null });
-            return;
-        }
-
-        if (!evidenceForm.instructorName || !evidenceForm.instructorEmail || !evidenceForm.courseName) {
-            setEvidenceStatus({ isSubmitting: false, error: 'Todos los campos son obligatorios', success: null });
-            return;
-        }
-
-        try {
-            const evidenceFilesBase64 = await Promise.all(evidenceFiles.map(file => fileToBase64(file)));
-            
-            await submitEvidence({
-                instructorName: evidenceForm.instructorName,
-                instructorEmail: evidenceForm.instructorEmail,
-                courseName: evidenceForm.courseName,
-                evidenceFiles: evidenceFilesBase64
-            });
-
-            setEvidenceStatus({ isSubmitting: false, error: null, success: '¡Evidencia enviada con éxito!' });
-            setEvidenceForm({ instructorName: '', instructorEmail: '', courseName: '' });
-            setEvidenceFiles([]);
-        } catch (err) {
-            setEvidenceStatus({ isSubmitting: false, error: err instanceof Error ? err.message : "Error al enviar", success: null });
-        }
-    };
-
-    const groupedCourses = courses.reduce((acc, course) => {
-        const period = course.period || 'Sin Periodo';
-        if (!acc[period]) acc[period] = { courses: [], dates: '' };
-        acc[period].courses.push(course);
-        if (!acc[period].dates && course.dates) acc[period].dates = formatCourseDates(course.dates);
-        return acc;
-    }, {} as { [key: string]: { courses: Course[], dates: string } });
-
-    const renderProposalForm = () => {
-        if (proposalStatus.success) {
-            return React.createElement('div', { className: 'text-center py-8' },
-                React.createElement('div', { className: 'bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-8 rounded-md' },
-                    React.createElement('p', null, proposalStatus.success)
-                ),
-                React.createElement('button', {
-                    onClick: onBack,
-                    className: 'bg-indigo-600 text-white font-bold py-2 px-8 rounded-lg hover:bg-indigo-700'
-                }, 'Salir')
-            );
-        }
-
-        return React.createElement('form', { onSubmit: handleProposalSubmit, noValidate: true },
-            React.createElement('div', { className: 'bg-blue-700 text-white p-4 rounded-lg mb-6 text-sm text-center' },
-                React.createElement('p', null, 'Envíe CVU y ficha técnica en PDF genuinos (No fotos). Puede descargar las plantillas aquí.')
-            ),
-            proposalStatus.error && React.createElement('div', { className: 'bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md' },
-                React.createElement('p', null, proposalStatus.error)
-            ),
-            proposalStatus.progress && React.createElement('div', { className: 'bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-6 rounded-md' },
-                React.createElement('p', { className: 'font-bold animate-pulse' }, proposalStatus.progress)
-            ),
-            React.createElement('div', { className: 'space-y-6' },
-                React.createElement('div', null,
-                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Nombre Completo *'),
-                    React.createElement(AutocompleteInput, {
-                        teachers, onSelect: handleProposalTeacherSelect, value: proposalForm.instructorName,
-                        onChange: (e: any) => setProposalForm(prev => ({ ...prev, instructorName: e.target.value.toUpperCase() })),
-                        name: 'proposalInstructorName', required: true
-                    })
-                ),
-                React.createElement('div', null,
-                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Email *'),
-                    React.createElement('input', {
-                        type: 'email', value: proposalForm.instructorEmail,
-                        onChange: (e: any) => setProposalForm(prev => ({ ...prev, instructorEmail: e.target.value.toLowerCase() })),
-                        className: 'mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md',
-                        required: true
-                    })
-                ),
-                React.createElement('div', null,
-                    React.createElement('fieldset', null,
-                        React.createElement('legend', { className: 'block text-sm font-medium text-gray-700 mb-4' }, 'Curso a Ofrecer *'),
-                        courses.length === 0 ? React.createElement('p', { className: 'text-red-500' }, 
-                            'No hay cursos disponibles.'
-                        ) : Object.entries(groupedCourses).map(([period, data]) =>
-                            React.createElement('div', { key: period, className: 'mb-8' },
-                                React.createElement('h4', { className: 'text-md font-semibold text-gray-600 border-b pb-2 mb-4' },
-                                    data.dates ? `${period.replace(/_/g, ' ')} | ${data.dates}` : period.replace(/_/g, ' ')
-                                ),
-                                React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' },
-                                    data.courses.map(course => {
-                                        const isSelected = proposalForm.courseName === course.name;
-                                        return React.createElement('div', { key: course.id, className: 'relative' },
-                                            React.createElement('input', {
-                                                type: 'radio',
-                                                id: `proposal-course-${course.id}`,
-                                                name: 'course-selection',
-                                                checked: isSelected,
-                                                onChange: () => setProposalForm(prev => ({ ...prev, courseName: course.name, courseId: course.id })),
-                                                className: 'sr-only peer'
-                                            }),
-                                            React.createElement('label', {
-                                                htmlFor: `proposal-course-${course.id}`,
-                                                className: `p-4 rounded-lg border transition-all hover:shadow-md cursor-pointer ${
-                                                    course.period === 'PERIODO_1' ? 'border-teal-400 bg-teal-50' : 'border-indigo-400 bg-indigo-50'
-                                                } peer-checked:ring-2 peer-checked:ring-indigo-500`
-                                            },
-                                                React.createElement('h3', { className: 'font-bold text-sm' }, course.name)
-                                            )
-                                        );
-                                    })
-                                )
-                            )
-                        )
-                    )
-                ),
-                React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-6' },
-                    React.createElement('div', null,
-                        React.createElement(FileInput, {
-                            id: 'cvuFile', label: 'CVU', onFileSelect: setCvuFile, onError: setCvuError,
-                            acceptedFile: cvuFile, acceptedTypes: ['application/pdf'], maxSizeMB: 1
-                        }),
-                        cvuError && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, cvuError)
-                    ),
-                    React.createElement('div', null,
-                        React.createElement(FileInput, {
-                            id: 'fichaFile', label: 'Ficha Técnica', onFileSelect: setFichaFile, onError: setFichaError,
-                            acceptedFile: fichaFile, acceptedTypes: ['application/pdf'], maxSizeMB: 1
-                        }),
-                        fichaError && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, fichaError)
-                    )
-                )
-            ),
-            React.createElement('div', { className: 'mt-8 flex justify-end' },
-                React.createElement('button', {
-                    type: 'submit',
-                    disabled: proposalStatus.isSubmitting,
-                    className: 'bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 disabled:opacity-50'
-                }, proposalStatus.isSubmitting ? 'Enviando...' : 'Enviar Documentación')
-            )
-        );
-    };
-
-const renderEvidenceForm = () => {
-    const MAX_TOTAL_FILES = 6;
-    const MAX_TOTAL_SIZE_MB = 3;
-
-    // SI YA SE ENVIÓ CON ÉXITO, MOSTRAR CONFIRMACIÓN
-    if (evidenceStatus.success) {
-        return React.createElement('div', { className: 'text-center py-8' },
-            React.createElement('div', { className: 'bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-8 rounded-md' },
-                React.createElement('p', { className: 'font-bold text-lg' }, '✅ Evidencias enviadas con éxito')
-            ),
-            React.createElement('button', {
-                onClick: onBack,
-                className: 'bg-indigo-600 text-white font-bold py-2 px-8 rounded-lg hover:bg-indigo-700'
-            }, 'Salir')
-        );
-    }
-
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newFiles = e.target.files ? Array.from(e.target.files) : [];
-        if (!newFiles.length) return;
-
-        setEvidenceError(null);
-
-        if (evidenceFiles.length + newFiles.length > MAX_TOTAL_FILES) {
-            setEvidenceError(`No puede subir más de ${MAX_TOTAL_FILES} archivos`);
-            return;
-        }
-
-        const MAX_TOTAL_SIZE_BYTES = MAX_TOTAL_SIZE_MB * 1024 * 1024;
-        const existingSize = evidenceFiles.reduce((acc, file) => acc + file.size, 0);
-        const newSize = newFiles.reduce((acc, file) => acc + file.size, 0);
-
-        if (existingSize + newSize > MAX_TOTAL_SIZE_BYTES) {
-            setEvidenceError(`Tamaño total no puede exceder ${MAX_TOTAL_SIZE_MB} MB`);
-            return;
-        }
-
-        setEvidenceFiles(prev => [...prev, ...newFiles]);
-        e.target.value = '';
-    };
-
-    const handleRemoveFile = (indexToRemove: number) => {
-        setEvidenceFiles(prev => prev.filter((_, index) => index !== indexToRemove));
-    };
-
-    return React.createElement('form', { onSubmit: handleEvidenceSubmit },
-        React.createElement('div', { className: 'bg-blue-50 border-l-4 border-blue-500 text-blue-800 p-4 rounded-lg mb-6 text-sm' },
-            React.createElement('p', null, `Suba hasta ${MAX_TOTAL_FILES} archivos (máx ${MAX_TOTAL_SIZE_MB}MB total). Los archivos se guardarán en Google Drive.`)
-        ),
-        
-        evidenceStatus.error && React.createElement('div', { className: 'bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md' },
-            React.createElement('p', null, evidenceStatus.error)
-        ),
-        
-        React.createElement('div', { className: 'space-y-6' },
-            React.createElement('div', null,
-                React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Su Nombre Completo *'),
-                React.createElement(AutocompleteInput, {
-                    teachers, onSelect: handleEvidenceTeacherSelect, value: evidenceForm.instructorName,
-                    onChange: (e: any) => setEvidenceForm(prev => ({ ...prev, instructorName: e.target.value.toUpperCase() })),
-                    name: 'evidenceInstructorName', required: true
-                })
-            ),
-            React.createElement('div', null,
-                React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Su Email *'),
-                React.createElement('input', {
-                    type: 'email', value: evidenceForm.instructorEmail,
-                    onChange: (e: any) => setEvidenceForm(prev => ({ ...prev, instructorEmail: e.target.value.toLowerCase() })),
-                    className: 'mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500',
-                    required: true,
-                    placeholder: 'email@itdurango.edu.mx'
-                })
-            ),
-            React.createElement('div', null,
-                React.createElement('fieldset', null,
-                    React.createElement('legend', { className: 'block text-sm font-medium text-gray-700 mb-4' }, 'Curso que Impartió *'),
-                    courses.length === 0 ? React.createElement('p', { className: 'text-red-500' }, 
-                        'No hay cursos disponibles.'
-                    ) : Object.entries(groupedCourses).map(([period, data]) =>
-                        React.createElement('div', { key: period, className: 'mb-6' },
-                            React.createElement('h4', { className: 'text-sm md:text-md font-semibold text-gray-600 border-b pb-2 mb-4' },
-                                data.dates ? `${period.replace(/_/g, ' ')} | ${data.dates}` : period.replace(/_/g, ' ')
-                            ),
-                            React.createElement('div', { className: 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3' },
-                                data.courses.map(course => {
-                                    const isSelected = evidenceForm.courseName === course.name;
-                                    return React.createElement('div', { key: course.id, className: 'relative' },
-                                        React.createElement('input', {
-                                            type: 'radio',
-                                            id: `evidence-course-${course.id}`,
-                                            name: 'evidence-course-selection',
-                                            checked: isSelected,
-                                            onChange: () => setEvidenceForm(prev => ({ ...prev, courseName: course.name })),
-                                            className: 'sr-only peer'
-                                        }),
-                                        React.createElement('label', {
-                                            htmlFor: `evidence-course-${course.id}`,
-                                            className: `block p-3 rounded-lg border transition-all hover:shadow-md cursor-pointer ${
-                                                course.period === 'PERIODO_1' ? 'border-teal-400 bg-teal-50' : 'border-indigo-400 bg-indigo-50'
-                                            } peer-checked:ring-2 peer-checked:ring-indigo-500`
-                                        },
-                                            React.createElement('h3', { className: 'font-bold text-xs sm:text-sm' }, course.name)
-                                        )
-                                    );
-                                })
-                            )
-                        )
-                    )
-                )
-            ),
-            React.createElement('div', null,
-                React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Archivos de Evidencia *'),
-                React.createElement('div', { className: 'mt-2' },
-                    React.createElement('label', {
-                        htmlFor: 'evidence-files-input',
-                        className: 'relative flex justify-center w-full px-4 py-6 sm:px-6 sm:py-8 text-center bg-white border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500'
-                    },
-                        React.createElement('div', { className: 'space-y-2' },
-                            React.createElement('svg', {
-                                className: 'w-10 h-10 sm:w-12 sm:h-12 mx-auto text-gray-400',
-                                fill: 'none',
-                                stroke: 'currentColor',
-                                viewBox: '0 0 24 24'
-                            },
-                                React.createElement('path', {
-                                    strokeLinecap: 'round',
-                                    strokeLinejoin: 'round',
-                                    strokeWidth: '1.5',
-                                    d: 'M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M12 15l-3-3m0 0l3-3m-3 3h12'
-                                })
-                            ),
-                            React.createElement('div', { className: 'text-sm text-gray-600' },
-                                React.createElement('span', { className: 'font-semibold text-indigo-600' }, 'Haga clic para subir'),
-                                ' o arrastre y suelte'
-                            ),
-                            React.createElement('p', { className: 'text-xs text-gray-500' }, 
-                                `PDF, PNG, JPG. Total máx: ${MAX_TOTAL_SIZE_MB}MB`
-                            )
-                        ),
-                        React.createElement('input', {
-                            id: 'evidence-files-input',
-                            name: 'evidence-files-input',
-                            type: 'file',
-                            multiple: true,
-                            className: 'sr-only',
-                            onChange: handleFileSelect,
-                            accept: 'application/pdf,image/png,image/jpeg'
-                        })
-                    )
-                ),
-                evidenceError && React.createElement('p', { className: 'mt-2 text-sm text-red-600' }, evidenceError),
-                
-                evidenceFiles.length > 0 && React.createElement('div', { className: 'mt-4' },
-                    React.createElement('h4', { className: 'text-sm font-medium text-gray-700 mb-2' },
-                        `Archivos para subir (${evidenceFiles.length}/${MAX_TOTAL_FILES}):`
-                    ),
-                    React.createElement('div', { className: 'space-y-2' },
-                        evidenceFiles.map((file, index) =>
-                            React.createElement('div', {
-                                key: index,
-                                className: 'relative p-3 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-between gap-2 bg-gray-50'
-                            },
-                                React.createElement('div', { className: 'flex items-center gap-2 flex-1 min-w-0' },
-                                    React.createElement('svg', {
-                                        className: 'flex-shrink-0 h-5 w-5 text-gray-400',
-                                        xmlns: 'http://www.w3.org/2000/svg',
-                                        viewBox: '0 0 20 20',
-                                        fill: 'currentColor'
-                                    },
-                                        React.createElement('path', {
-                                            fillRule: 'evenodd',
-                                            d: 'M8 4a3 3 0 00-3 3v4a3 3 0 003 3h4a3 3 0 003-3V7a3 3 0 00-3-3H8zM6 7a1 1 0 011-1h4a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h4a1 1 0 100-2H7z',
-                                            clipRule: 'evenodd'
-                                        })
-                                    ),
-                                    React.createElement('div', { className: 'flex-1 min-w-0' },
-                                        React.createElement('p', { className: 'text-sm font-medium text-gray-900 truncate' }, file.name),
-                                        React.createElement('p', { className: 'text-xs text-gray-500' }, `${(file.size / 1024).toFixed(1)} KB`)
-                                    )
-                                ),
-                                React.createElement('button', {
-                                    type: 'button',
-                                    onClick: () => handleRemoveFile(index),
-                                    className: 'flex-shrink-0 p-1 rounded-full text-gray-500 hover:text-red-600 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-indigo-500'
-                                },
-                                    React.createElement('span', { className: 'sr-only' }, 'Quitar archivo'),
-                                    React.createElement('svg', {
-                                        xmlns: 'http://www.w3.org/2000/svg',
-                                        className: 'h-5 w-5',
-                                        viewBox: '0 0 20 20',
-                                        fill: 'currentColor'
-                                    },
-                                        React.createElement('path', {
-                                            fillRule: 'evenodd',
-                                            d: 'M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z',
-                                            clipRule: 'evenodd'
-                                        })
-                                    )
-                                )
-                            )
-                        )
-                    )
-                )
-            )
-        ),
-        React.createElement('div', { className: 'mt-8 flex justify-end' },
-            React.createElement('button', {
-                type: 'submit',
-                disabled: evidenceStatus.isSubmitting,
-                className: 'w-full sm:w-auto bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2'
-            },
-                evidenceStatus.isSubmitting && React.createElement('svg', {
-                    className: 'animate-spin h-5 w-5 text-white',
-                    xmlns: 'http://www.w3.org/2000/svg',
-                    fill: 'none',
-                    viewBox: '0 0 24 24'
-                },
-                    React.createElement('circle', {
-                        className: 'opacity-25',
-                        cx: '12',
-                        cy: '12',
-                        r: '10',
-                        stroke: 'currentColor',
-                        strokeWidth: '4'
-                    }),
-                    React.createElement('path', {
-                        className: 'opacity-75',
-                        fill: 'currentColor',
-                        d: 'M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
-                    })
-                ),
-                evidenceStatus.isSubmitting ? 'Enviando...' : 'Enviar Evidencia'
-            )
-        )
-    );
-};
-// =============================================================================
-// == RENDERIZADO DE LA APLICACIÓN
-// =============================================================================
-
-const rootElement = document.getElementById('root');
-if (rootElement) {
-    const root = ReactDOM.createRoot(rootElement);
-    root.render(
-        React.createElement(React.StrictMode, null,
-            React.createElement(App, null)
-        )
-    );
-} else {
-    console.error('No se encontró el elemento root');
-}
