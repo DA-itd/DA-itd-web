@@ -3,51 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Inscripción a Cursos</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!--
-    =============================================================================
-    == MÉTODO DE CARGA DE REACT SIMPLIFICADO Y ROBUSTO
-    =============================================================================
-    == Cargamos las librerías directamente. Esto crea las variables globales
-    == `React` y `ReactDOM`, que es el método más fiable para un entorno
-    == sin un proceso de "build" como este.
-    =============================================================================
-    -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <meta name="description" content="Sistema de Inscripción a Cursos de Actualización Docente - Instituto Tecnológico de Durango">
+    <meta name="keywords" content="ITD, cursos, actualización docente, inscripción">
+    <meta name="author" content="Instituto Tecnológico de Durango">
     
-    <!-- Babel sigue siendo necesario para traducir nuestro código JSX y TypeScript -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <title>Sistema de Inscripción a Cursos - ITD</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- React 18 (UMD - Variables Globales) -->
+    <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel Standalone para transpilar JSX/TSX -->
+    <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
+    
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { 
+            font-family: 'Inter', sans-serif; 
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* Clase de accesibilidad */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+        
+        /* Loading spinner */
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Smooth transitions */
+        * {
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
-    <div id="root"></div>
+    <!-- Contenedor principal de React -->
+    <div id="root">
+        <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column;">
+            <div class="spinner"></div>
+            <p style="margin-top: 1rem; color: #4B5563;">Cargando aplicación...</p>
+        </div>
+    </div>
 
-    <!-- 
-    =============================================================================
-    == CONFIGURACIÓN OBLIGATORIA
-    =============================================================================
-    == Reemplaza la siguiente URL de ejemplo con la URL de tu Google Apps Script.
-    =============================================================================
-    -->
+    <!-- Configuración de la aplicación -->
     <script>
-      window.CONFIG = {
-        APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycby_ESgq4InYsgJMqbsJz_je6M62PQ8uFFwiNwrHUuPt-131BxiiesiXf4wuEORrr7Cd4A/exec'
-      };
+        // =====================================================
+        // ⚠️ CONFIGURACIÓN IMPORTANTE
+        // =====================================================
+        // Reemplaza APPS_SCRIPT_URL con la URL de tu Google Apps Script
+        // Para obtenerla:
+        // 1. Abre tu proyecto en Google Apps Script
+        // 2. Click en "Implementar" > "Nueva implementación"
+        // 3. Tipo: "Aplicación web"
+        // 4. Ejecutar como: "Yo"
+        // 5. Quién tiene acceso: "Cualquier persona"
+        // 6. Copia la URL generada
+        // =====================================================
+        
+        window.CONFIG = {
+            // 🔴 REEMPLAZAR CON TU URL REAL
+            APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycby_ESgq4InYsgJMqbsJz_je6M62PQ8uFFwiNwrHUuPt-131BxiiesiXf4wuEORrr7Cd4A/exec',
+            
+            // Configuración adicional de la aplicación
+            APP_NAME: 'Sistema de Inscripción a Cursos',
+            INSTITUTION: 'Instituto Tecnológico de Durango',
+            
+            // Timeouts (en milisegundos)
+            REQUEST_TIMEOUT: 30000, // 30 segundos
+            
+            // Límites y validaciones
+            MAX_COURSES_PER_STUDENT: 3,
+            MIN_CURP_LENGTH: 18,
+            MAX_CURP_LENGTH: 18
+        };
+        
+        // Verificar que React se haya cargado correctamente
+        if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') {
+            console.error('❌ Error: React no se cargó correctamente');
+            document.getElementById('root').innerHTML = 
+                '<div style="text-align: center; padding: 2rem; max-width: 600px; margin: 0 auto;">' +
+                '<h1 style="color: #DC2626;">Error al cargar la aplicación</h1>' +
+                '<p>React no se pudo cargar. Por favor:</p>' +
+                '<ul style="text-align: left;">' +
+                '<li>Verifica tu conexión a Internet</li>' +
+                '<li>Recarga la página (Ctrl + F5)</li>' +
+                '<li>Intenta en otro navegador</li>' +
+                '</ul>' +
+                '</div>';
+        } else {
+            console.log('✅ React cargado correctamente');
+        }
+        
+        // Manejo de errores global
+        window.addEventListener('error', function(e) {
+            console.error('❌ Error global capturado:', e.error);
+        });
+        
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('❌ Promesa rechazada no manejada:', e.reason);
+        });
     </script>
     
-    <!--
-    =============================================================================
-    == SCRIPT DE LA APLICACIÓN
-    =============================================================================
-    == Usamos `text/babel` y le indicamos que use los presets de TypeScript y React
-    == para la transpilación en el navegador.
-    =============================================================================
+    <!-- =====================================================
+         Código principal de la aplicación
+         ===================================================== -->
+    <script type="text/babel" data-type="module" data-presets="typescript,react" src="index.tsx"></script>
+    
+    <!-- Analytics (opcional - descomentar si se necesita) -->
+    <!-- 
+    <script>
+        // Google Analytics o cualquier otro servicio de analíticas
+    </script>
     -->
-    <script type="text/babel" data-presets="typescript,react" src="index.tsx"></script>
 </body>
 </html>
