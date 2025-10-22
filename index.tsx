@@ -1,6 +1,7 @@
 // =============================================================================
 // SISTEMA DE INSCRIPCIÓN A CURSOS - INSTITUTO TECNOLÓGICO DE DURANGO
-// Versión: 1.0.0
+// Versión: 1.0.1
+// Última actualización: Enero 2024
 // =============================================================================
 
 // =============================================================================
@@ -351,6 +352,8 @@ const App = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [submissionType, setSubmissionType] = useState<'enrollment' | 'cancellation'>('enrollment');
+    const [emailSent, setEmailSent] = useState<boolean>(true);
+    const [emailError, setEmailError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -435,6 +438,9 @@ const App = () => {
             });
             
             setRegistrationResult(augmentedResult);
+            setEmailSent(result.emailSent !== false);
+            setEmailError(result.emailError);
+            
             handleNext();
 
         } catch (err) {
@@ -486,7 +492,8 @@ const App = () => {
                 });
             case 4:
                 return React.createElement(Step4Success, {
-                    registrationResult, applicantName: formData.fullName, selectedCourses, submissionType
+                    registrationResult, applicantName: formData.fullName, selectedCourses, submissionType,
+                    emailSent, emailError
                 });
             default:
                 return React.createElement('div', null, 'Paso desconocido');
@@ -548,7 +555,6 @@ const Footer = () => {
         React.createElement('p', { className: 'text-sm' }, 'Todos los derechos reservados 2026.')
     );
 };
-
 // =============================================================================
 // == COMPONENTE STEPPER
 // =============================================================================
@@ -670,8 +676,7 @@ const ExistingRegistrationModal = ({ isOpen, courses, onModify, onClose, onDelet
                                 className: 'p-2 rounded-full text-gray-500 hover:bg-red-100 hover:text-red-700 transition-colors disabled:opacity-50',
                                 'aria-label': `Eliminar curso ${course.name}`
                             },
-                                deletingCourseId === course.id ?
-                                    '⏳' : '🗑️'
+                                deletingCourseId === course.id ? '⏳' : '🗑️'
                             )
                         )
                     ) : React.createElement('p', { className: 'text-gray-500 italic' }, 
@@ -1317,7 +1322,7 @@ const Step3Confirmation = ({ formData, courses, originalCourses, onBack, onSubmi
 };
 
 // =============================================================================
-// == STEP 4: ÉXITO
+// == STEP 4: ÉXITO (CON MEJORAS DE EMAIL)
 // =============================================================================
 
 interface Step4SuccessProps {
@@ -1325,23 +1330,36 @@ interface Step4SuccessProps {
     applicantName: string;
     selectedCourses: Course[];
     submissionType: 'enrollment' | 'cancellation';
+    emailSent?: boolean;
+    emailError?: string | null;
 }
 
-const Step4Success = ({ registrationResult, applicantName, selectedCourses, submissionType }: Step4SuccessProps) => {
+const Step4Success = ({ registrationResult, applicantName, selectedCourses, submissionType, emailSent, emailError }: Step4SuccessProps) => {
     const isCancellation = submissionType === 'cancellation';
     const hasResult = registrationResult && registrationResult.length > 0;
     const coursesToDisplay = hasResult ? registrationResult : selectedCourses;
 
     return React.createElement('div', { className: 'bg-white p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto text-center' },
-        React.createElement('div', { className: 'mx-auto h-16 w-16 text-green-500 mb-4' }, '✅'),
+        React.createElement('div', { className: 'mx-auto h-16 w-16 text-green-500 mb-4 text-6xl' }, '✅'),
         React.createElement('h2', { className: 'text-2xl font-bold text-gray-800' },
             isCancellation ? "¡Cancelación Exitosa!" : "¡Registro Exitoso!"
         ),
         React.createElement('p', { className: 'mt-2 text-gray-600' },
             isCancellation 
                 ? `Gracias, ${applicantName}. Tu cancelación ha sido procesada.`
-                : `Gracias, ${applicantName}. Tu inscripción ha sido procesada. Se ha enviado un correo de confirmación.`
+                : `Gracias, ${applicantName}. Tu inscripción ha sido procesada.`
         ),
+        
+        !isCancellation && emailSent === false && React.createElement('div', {
+            className: 'mt-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-md text-left max-w-2xl mx-auto',
+            role: 'alert'
+        },
+            React.createElement('p', { className: 'font-bold' }, '⚠️ Advertencia sobre el email'),
+            React.createElement('p', { className: 'text-sm mt-1' }, 
+                emailError || 'No se pudo enviar el email de confirmación. Tu inscripción SÍ fue registrada exitosamente. Por favor verifica tu bandeja de spam o contacta a soporte si no recibes el correo en las próximas horas.'
+            )
+        ),
+        
         !isCancellation && coursesToDisplay && coursesToDisplay.length > 0 && React.createElement('div', {
             className: 'mt-6 text-left border border-gray-200 rounded-lg p-6'
         },
@@ -1468,7 +1486,7 @@ const FileInput = ({ id, label, onFileSelect, onError, acceptedFile, acceptedTyp
 };
 
 // =============================================================================
-// == FORMULARIO DE INSTRUCTOR
+// == FORMULARIO DE INSTRUCTOR (CON CAMBIOS DE DISEÑO)
 // =============================================================================
 
 const formatCourseDates = (dates: string) => {
@@ -1486,15 +1504,13 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
     const { useState } = React;
     const [activeTab, setActiveTab] = useState<'proposal' | 'evidence'>('proposal');
 
-    // Proposal state
     const [proposalForm, setProposalForm] = useState({ instructorName: '', instructorEmail: '', courseName: '', courseId: '' });
     const [cvuFile, setCvuFile] = useState<File | null>(null);
     const [fichaFile, setFichaFile] = useState<File | null>(null);
-    const [proposalStatus, setProposalStatus] = useState({ isSubmitting: false, error: null, success: null });
+    const [proposalStatus, setProposalStatus] = useState({ isSubmitting: false, error: null, success: null, progress: null });
     const [cvuError, setCvuError] = useState<string | null>(null);
     const [fichaError, setFichaError] = useState<string | null>(null);
     
-    // Evidence state
     const [evidenceForm, setEvidenceForm] = useState({ instructorName: '', instructorEmail: '', courseName: '' });
     const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
     const [evidenceError, setEvidenceError] = useState<string | null>(null);
@@ -1518,21 +1534,28 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
 
     const handleProposalSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setProposalStatus({ isSubmitting: true, error: null, success: null });
+        setProposalStatus({ isSubmitting: true, error: null, success: null, progress: null });
         
         if (cvuError || fichaError) {
-            setProposalStatus({ isSubmitting: false, error: 'Corrija los errores en los archivos', success: null });
+            setProposalStatus({ isSubmitting: false, error: 'Corrija los errores en los archivos', success: null, progress: null });
             return;
         }
 
         if (!proposalForm.instructorName || !proposalForm.instructorEmail || !proposalForm.courseName || !cvuFile || !fichaFile) {
-            setProposalStatus({ isSubmitting: false, error: 'Todos los campos son obligatorios', success: null });
+            setProposalStatus({ isSubmitting: false, error: 'Todos los campos son obligatorios', success: null, progress: null });
             return;
         }
 
         try {
+            setProposalStatus({ isSubmitting: true, error: null, success: null, progress: 'Convirtiendo archivos... ⏳' });
+            
             const cvuFileBase64 = await fileToBase64(cvuFile);
+            
+            setProposalStatus({ isSubmitting: true, error: null, success: null, progress: 'Subiendo CVU... 📤' });
+            
             const fichaFileBase64 = await fileToBase64(fichaFile);
+            
+            setProposalStatus({ isSubmitting: true, error: null, success: null, progress: 'Subiendo Ficha Técnica... 📤' });
 
             await submitInstructorProposal({
                 instructorName: proposalForm.instructorName,
@@ -1543,9 +1566,9 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
                 fichaFile: fichaFileBase64
             });
 
-            setProposalStatus({ isSubmitting: false, error: null, success: '¡Propuesta enviada con éxito!' });
+            setProposalStatus({ isSubmitting: false, error: null, success: '¡Propuesta enviada con éxito! ✅', progress: null });
         } catch (err) {
-            setProposalStatus({ isSubmitting: false, error: err instanceof Error ? err.message : "Error al enviar", success: null });
+            setProposalStatus({ isSubmitting: false, error: err instanceof Error ? err.message : "Error al enviar", success: null, progress: null });
         }
     };
 
@@ -1609,6 +1632,9 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
             proposalStatus.error && React.createElement('div', { className: 'bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md' },
                 React.createElement('p', null, proposalStatus.error)
             ),
+            proposalStatus.progress && React.createElement('div', { className: 'bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-6 rounded-md' },
+                React.createElement('p', { className: 'font-bold animate-pulse' }, proposalStatus.progress)
+            ),
             React.createElement('div', { className: 'space-y-6' },
                 React.createElement('div', null,
                     React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Nombre Completo *'),
@@ -1630,7 +1656,9 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
                 React.createElement('div', null,
                     React.createElement('fieldset', null,
                         React.createElement('legend', { className: 'block text-sm font-medium text-gray-700 mb-4' }, 'Curso a Ofrecer *'),
-                        Object.entries(groupedCourses).map(([period, data]) =>
+                        courses.length === 0 ? React.createElement('p', { className: 'text-red-500' }, 
+                            'No hay cursos disponibles.'
+                        ) : Object.entries(groupedCourses).map(([period, data]) =>
                             React.createElement('div', { key: period, className: 'mb-8' },
                                 React.createElement('h4', { className: 'text-md font-semibold text-gray-600 border-b pb-2 mb-4' },
                                     data.dates ? `${period.replace(/_/g, ' ')} | ${data.dates}` : period.replace(/_/g, ' ')
@@ -1684,7 +1712,7 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
                     type: 'submit',
                     disabled: proposalStatus.isSubmitting,
                     className: 'bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 disabled:opacity-50'
-                }, proposalStatus.isSubmitting ? 'Enviando...' : 'Enviar Propuesta')
+                }, proposalStatus.isSubmitting ? 'Enviando...' : 'Enviar Documentación')
             )
         );
     };
@@ -1717,13 +1745,41 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
                     })
                 ),
                 React.createElement('div', null,
-                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Curso Impartido *'),
-                    React.createElement('input', {
-                        type: 'text', value: evidenceForm.courseName,
-                        onChange: (e: any) => setEvidenceForm(prev => ({ ...prev, courseName: e.target.value })),
-                        className: 'mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md',
-                        required: true
-                    })
+                    React.createElement('fieldset', null,
+                        React.createElement('legend', { className: 'block text-sm font-medium text-gray-700 mb-4' }, 'Curso que Impartió *'),
+                        courses.length === 0 ? React.createElement('p', { className: 'text-red-500' }, 
+                            'No hay cursos disponibles.'
+                        ) : Object.entries(groupedCourses).map(([period, data]) =>
+                            React.createElement('div', { key: period, className: 'mb-8' },
+                                React.createElement('h4', { className: 'text-md font-semibold text-gray-600 border-b pb-2 mb-4' },
+                                    data.dates ? `${period.replace(/_/g, ' ')} | ${data.dates}` : period.replace(/_/g, ' ')
+                                ),
+                                React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' },
+                                    data.courses.map(course => {
+                                        const isSelected = evidenceForm.courseName === course.name;
+                                        return React.createElement('div', { key: course.id, className: 'relative' },
+                                            React.createElement('input', {
+                                                type: 'radio',
+                                                id: `evidence-course-${course.id}`,
+                                                name: 'evidence-course-selection',
+                                                checked: isSelected,
+                                                onChange: () => setEvidenceForm(prev => ({ ...prev, courseName: course.name })),
+                                                className: 'sr-only peer'
+                                            }),
+                                            React.createElement('label', {
+                                                htmlFor: `evidence-course-${course.id}`,
+                                                className: `p-4 rounded-lg border transition-all hover:shadow-md cursor-pointer ${
+                                                    course.period === 'PERIODO_1' ? 'border-teal-400 bg-teal-50' : 'border-indigo-400 bg-indigo-50'
+                                                } peer-checked:ring-2 peer-checked:ring-indigo-500`
+                                            },
+                                                React.createElement('h3', { className: 'font-bold text-sm' }, course.name)
+                                            )
+                                        );
+                                    })
+                                )
+                            )
+                        )
+                    )
                 ),
                 React.createElement('div', null,
                     React.createElement('input', {
@@ -1747,7 +1803,7 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
                     type: 'submit',
                     disabled: evidenceStatus.isSubmitting,
                     className: 'bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 disabled:opacity-50'
-                }, evidenceStatus.isSubmitting ? 'Enviando...' : 'Enviar Evidencia')
+                }, evidenceStatus.isSubmitting ? 'Enviando... ⏳' : 'Enviar Evidencia')
             )
         );
     };
@@ -1758,15 +1814,15 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
             className: 'text-sm text-blue-600 hover:underline mb-4'
         }, '← Volver'),
         React.createElement('h2', { className: 'text-2xl font-bold mb-4' }, 'Portal de Instructores'),
-        React.createElement('div', { className: 'border-b mb-4' },
-            React.createElement('nav', { className: 'flex space-x-4' },
+        React.createElement('div', { className: 'border-b mb-4 bg-gray-50 rounded-t-lg' },
+            React.createElement('nav', { className: 'flex space-x-4 px-4' },
                 React.createElement('button', {
                     onClick: () => setActiveTab('proposal'),
-                    className: `px-6 py-3 font-semibold ${activeTab === 'proposal' ? 'bg-white text-indigo-700 border-b-2 border-indigo-500' : 'text-gray-500'}`
-                }, 'Proponer Curso'),
+                    className: `px-6 py-3 font-semibold rounded-t-lg transition-colors ${activeTab === 'proposal' ? 'bg-white text-indigo-700 border-b-2 border-indigo-500 -mb-px' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'}`
+                }, 'Subir documentación'),
                 React.createElement('button', {
                     onClick: () => setActiveTab('evidence'),
-                    className: `px-6 py-3 font-semibold ${activeTab === 'evidence' ? 'bg-white text-indigo-700 border-b-2 border-indigo-500' : 'text-gray-500'}`
+                    className: `px-6 py-3 font-semibold rounded-t-lg transition-colors ${activeTab === 'evidence' ? 'bg-white text-indigo-700 border-b-2 border-indigo-500 -mb-px' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'}`
                 }, 'Subir Evidencias')
             )
         ),
