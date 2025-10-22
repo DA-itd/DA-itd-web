@@ -1491,3 +1491,367 @@ const FileInput = ({ id, label, onFileSelect, onError, acceptedFile, acceptedTyp
         )
     );
 };
+
+// =============================================================================
+// == FORMULARIO DE INSTRUCTOR (COMPLETO CON EVIDENCIAS)
+// =============================================================================
+
+const formatCourseDates = (dates: string) => {
+    if (!dates) return '';
+    return dates.split(',').map(d => d.trim()).join(' | ');
+};
+
+interface InstructorFormProps {
+    onBack: () => void;
+    teachers: Teacher[];
+    courses: Course[];
+}
+
+const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
+    const { useState } = React;
+    const [activeTab, setActiveTab] = useState<'proposal' | 'evidence'>('proposal');
+
+    const [proposalForm, setProposalForm] = useState({ instructorName: '', instructorEmail: '', courseName: '', courseId: '' });
+    const [cvuFile, setCvuFile] = useState<File | null>(null);
+    const [fichaFile, setFichaFile] = useState<File | null>(null);
+    const [proposalStatus, setProposalStatus] = useState({ isSubmitting: false, error: null, success: null, progress: null });
+    const [cvuError, setCvuError] = useState<string | null>(null);
+    const [fichaError, setFichaError] = useState<string | null>(null);
+    
+    const [evidenceForm, setEvidenceForm] = useState({ instructorName: '', instructorEmail: '', courseName: '' });
+    const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
+    const [evidenceError, setEvidenceError] = useState<string | null>(null);
+    const [evidenceStatus, setEvidenceStatus] = useState({ isSubmitting: false, error: null, success: null });
+
+    const handleProposalTeacherSelect = (teacher: Teacher) => {
+        setProposalForm(prev => ({
+            ...prev,
+            instructorName: teacher.nombreCompleto.toUpperCase(),
+            instructorEmail: (teacher.email || '').toLowerCase()
+        }));
+    };
+    
+    const handleEvidenceTeacherSelect = (teacher: Teacher) => {
+        setEvidenceForm(prev => ({
+            ...prev,
+            instructorName: teacher.nombreCompleto.toUpperCase(),
+            instructorEmail: (teacher.email || '').toLowerCase()
+        }));
+    };
+
+    const handleProposalSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setProposalStatus({ isSubmitting: true, error: null, success: null, progress: null });
+        
+        if (cvuError || fichaError) {
+            setProposalStatus({ isSubmitting: false, error: 'Corrija los errores en los archivos', success: null, progress: null });
+            return;
+        }
+
+        if (!proposalForm.instructorName || !proposalForm.instructorEmail || !proposalForm.courseName || !cvuFile || !fichaFile) {
+            setProposalStatus({ isSubmitting: false, error: 'Todos los campos son obligatorios', success: null, progress: null });
+            return;
+        }
+
+        try {
+            setProposalStatus({ isSubmitting: true, error: null, success: null, progress: 'Convirtiendo archivos... ⏳' });
+            const cvuFileBase64 = await fileToBase64(cvuFile);
+            
+            setProposalStatus({ isSubmitting: true, error: null, success: null, progress: 'Subiendo CVU... 📤' });
+            const fichaFileBase64 = await fileToBase64(fichaFile);
+            
+            setProposalStatus({ isSubmitting: true, error: null, success: null, progress: 'Subiendo Ficha Técnica... 📤' });
+
+            await submitInstructorProposal({
+                instructorName: proposalForm.instructorName,
+                instructorEmail: proposalForm.instructorEmail,
+                courseName: proposalForm.courseName,
+                courseId: proposalForm.courseId,
+                cvuFile: cvuFileBase64,
+                fichaFile: fichaFileBase64
+            });
+
+            setProposalStatus({ isSubmitting: false, error: null, success: '¡Propuesta enviada con éxito! ✅', progress: null });
+        } catch (err) {
+            setProposalStatus({ isSubmitting: false, error: err instanceof Error ? err.message : "Error al enviar", success: null, progress: null });
+        }
+    };
+
+    const handleEvidenceSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setEvidenceStatus({ isSubmitting: true, error: null, success: null });
+
+        if (evidenceFiles.length === 0) {
+            setEvidenceStatus({ isSubmitting: false, error: 'Debe subir al menos un archivo', success: null });
+            return;
+        }
+
+        if (!evidenceForm.instructorName || !evidenceForm.instructorEmail || !evidenceForm.courseName) {
+            setEvidenceStatus({ isSubmitting: false, error: 'Todos los campos son obligatorios', success: null });
+            return;
+        }
+
+        try {
+            const evidenceFilesBase64 = await Promise.all(evidenceFiles.map(file => fileToBase64(file)));
+            
+            await submitEvidence({
+                instructorName: evidenceForm.instructorName,
+                instructorEmail: evidenceForm.instructorEmail,
+                courseName: evidenceForm.courseName,
+                evidenceFiles: evidenceFilesBase64
+            });
+
+            setEvidenceStatus({ isSubmitting: false, error: null, success: '¡Evidencias enviadas con éxito! ✅' });
+        } catch (err) {
+            setEvidenceStatus({ isSubmitting: false, error: err instanceof Error ? err.message : "Error al enviar", success: null });
+        }
+    };
+
+    const groupedCourses = courses.reduce((acc, course) => {
+        const period = course.period || 'Sin Periodo';
+        if (!acc[period]) acc[period] = { courses: [], dates: '' };
+        acc[period].courses.push(course);
+        if (!acc[period].dates && course.dates) acc[period].dates = formatCourseDates(course.dates);
+        return acc;
+    }, {} as { [key: string]: { courses: Course[], dates: string } });
+
+    const renderProposalForm = () => {
+        if (proposalStatus.success) {
+            return React.createElement('div', { className: 'text-center py-8' },
+                React.createElement('div', { className: 'bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-8 rounded-md' },
+                    React.createElement('p', { className: 'font-bold text-lg' }, proposalStatus.success)
+                ),
+                React.createElement('button', {
+                    onClick: onBack,
+                    className: 'bg-indigo-600 text-white font-bold py-2 px-8 rounded-lg hover:bg-indigo-700'
+                }, 'Salir')
+            );
+        }
+
+        return React.createElement('form', { onSubmit: handleProposalSubmit, noValidate: true },
+            React.createElement('div', { className: 'bg-blue-700 text-white p-4 rounded-lg mb-6 text-xs sm:text-sm text-center' },
+                React.createElement('p', null, 'Envíe CVU y ficha técnica en PDF genuinos (No fotos).')
+            ),
+            proposalStatus.error && React.createElement('div', { className: 'bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md' },
+                React.createElement('p', { className: 'text-sm' }, proposalStatus.error)
+            ),
+            proposalStatus.progress && React.createElement('div', { className: 'bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-6 rounded-md' },
+                React.createElement('p', { className: 'font-bold text-sm animate-pulse' }, proposalStatus.progress)
+            ),
+            React.createElement('div', { className: 'space-y-6' },
+                React.createElement('div', null,
+                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Nombre Completo *'),
+                    React.createElement(AutocompleteInput, {
+                        teachers, onSelect: handleProposalTeacherSelect, value: proposalForm.instructorName,
+                        onChange: (e: any) => setProposalForm(prev => ({ ...prev, instructorName: e.target.value.toUpperCase() })),
+                        name: 'proposalInstructorName', required: true
+                    })
+                ),
+                React.createElement('div', null,
+                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Email *'),
+                    React.createElement('input', {
+                        type: 'email', value: proposalForm.instructorEmail,
+                        onChange: (e: any) => setProposalForm(prev => ({ ...prev, instructorEmail: e.target.value.toLowerCase() })),
+                        className: 'mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base',
+                        required: true, placeholder: 'email@itdurango.edu.mx'
+                    })
+                ),
+                React.createElement('div', null,
+                    React.createElement('fieldset', null,
+                        React.createElement('legend', { className: 'block text-sm font-medium text-gray-700 mb-4' }, 'Curso a Ofrecer *'),
+                        courses.length === 0 ? React.createElement('p', { className: 'text-red-500 text-sm' }, 
+                            'No hay cursos disponibles.'
+                        ) : Object.entries(groupedCourses).map(([period, data]) =>
+                            React.createElement('div', { key: period, className: 'mb-6' },
+                                React.createElement('h4', { className: 'text-sm sm:text-md font-semibold text-gray-600 border-b pb-2 mb-4' },
+                                    data.dates ? `${period.replace(/_/g, ' ')} | ${data.dates}` : period.replace(/_/g, ' ')
+                                ),
+                                React.createElement('div', { className: 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3' },
+                                    data.courses.map(course => {
+                                        const isSelected = proposalForm.courseName === course.name;
+                                        return React.createElement('div', { key: course.id, className: 'relative' },
+                                            React.createElement('input', {
+                                                type: 'radio',
+                                                id: `proposal-course-${course.id}`,
+                                                name: 'course-selection',
+                                                checked: isSelected,
+                                                onChange: () => setProposalForm(prev => ({ ...prev, courseName: course.name, courseId: course.id })),
+                                                className: 'sr-only peer'
+                                            }),
+                                            React.createElement('label', {
+                                                htmlFor: `proposal-course-${course.id}`,
+                                                className: `block p-3 rounded-lg border transition-all hover:shadow-md cursor-pointer ${
+                                                    course.period === 'PERIODO_1' ? 'border-teal-400 bg-teal-50' : 'border-indigo-400 bg-indigo-50'
+                                                } peer-checked:ring-2 peer-checked:ring-indigo-500`
+                                            },
+                                                React.createElement('h3', { className: 'font-bold text-xs sm:text-sm' }, course.name)
+                                            )
+                                        );
+                                    })
+                                )
+                            )
+                        )
+                    )
+                ),
+                React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6' },
+                    React.createElement('div', null,
+                        React.createElement(FileInput, {
+                            id: 'cvuFile', label: 'CVU', onFileSelect: setCvuFile, onError: setCvuError,
+                            acceptedFile: cvuFile, acceptedTypes: ['application/pdf'], maxSizeMB: 1
+                        }),
+                        cvuError && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, cvuError)
+                    ),
+                    React.createElement('div', null,
+                        React.createElement(FileInput, {
+                            id: 'fichaFile', label: 'Ficha Técnica', onFileSelect: setFichaFile, onError: setFichaError,
+                            acceptedFile: fichaFile, acceptedTypes: ['application/pdf'], maxSizeMB: 1
+                        }),
+                        fichaError && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, fichaError)
+                    )
+                )
+            ),
+            React.createElement('div', { className: 'mt-8 flex justify-end' },
+                React.createElement('button', {
+                    type: 'submit',
+                    disabled: proposalStatus.isSubmitting,
+                    className: 'w-full sm:w-auto bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 disabled:opacity-50'
+                }, proposalStatus.isSubmitting ? 'Enviando...' : 'Enviar Documentación')
+            )
+        );
+    };
+
+    const renderEvidenceForm = () => {
+        if (evidenceStatus.success) {
+            return React.createElement('div', { className: 'text-center py-8' },
+                React.createElement('div', { className: 'bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-8 rounded-md' },
+                    React.createElement('p', { className: 'font-bold text-lg' }, evidenceStatus.success)
+                ),
+                React.createElement('button', {
+                    onClick: onBack,
+                    className: 'bg-indigo-600 text-white font-bold py-2 px-8 rounded-lg hover:bg-indigo-700'
+                }, 'Salir')
+            );
+        }
+
+        return React.createElement('form', { onSubmit: handleEvidenceSubmit },
+            React.createElement('div', { className: 'bg-blue-50 border-l-4 border-blue-500 text-blue-800 p-4 rounded-lg mb-6 text-xs sm:text-sm' },
+                React.createElement('p', null, 'Suba hasta 6 archivos (máx 3MB total). Los archivos se guardarán en Google Drive.')
+            ),
+            evidenceStatus.error && React.createElement('div', { className: 'bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md' },
+                React.createElement('p', { className: 'text-sm' }, evidenceStatus.error)
+            ),
+            React.createElement('div', { className: 'space-y-6' },
+                React.createElement('div', null,
+                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Nombre *'),
+                    React.createElement(AutocompleteInput, {
+                        teachers, onSelect: handleEvidenceTeacherSelect, value: evidenceForm.instructorName,
+                        onChange: (e: any) => setEvidenceForm(prev => ({ ...prev, instructorName: e.target.value.toUpperCase() })),
+                        name: 'evidenceInstructorName', required: true
+                    })
+                ),
+                React.createElement('div', null,
+                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Email *'),
+                    React.createElement('input', {
+                        type: 'email', value: evidenceForm.instructorEmail,
+                        onChange: (e: any) => setEvidenceForm(prev => ({ ...prev, instructorEmail: e.target.value.toLowerCase() })),
+                        className: 'mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base',
+                        required: true, placeholder: 'email@itdurango.edu.mx'
+                    })
+                ),
+                React.createElement('div', null,
+                    React.createElement('fieldset', null,
+                        React.createElement('legend', { className: 'block text-sm font-medium text-gray-700 mb-4' }, 'Curso Impartido *'),
+                        courses.length === 0 ? React.createElement('p', { className: 'text-red-500 text-sm' }, 
+                            'No hay cursos disponibles.'
+                        ) : Object.entries(groupedCourses).map(([period, data]) =>
+                            React.createElement('div', { key: period, className: 'mb-6' },
+                                React.createElement('h4', { className: 'text-sm sm:text-md font-semibold text-gray-600 border-b pb-2 mb-4' },
+                                    data.dates ? `${period.replace(/_/g, ' ')} | ${data.dates}` : period.replace(/_/g, ' ')
+                                ),
+                                React.createElement('div', { className: 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3' },
+                                    data.courses.map(course => {
+                                        const isSelected = evidenceForm.courseName === course.name;
+                                        return React.createElement('div', { key: course.id, className: 'relative' },
+                                            React.createElement('input', {
+                                                type: 'radio',
+                                                id: `evidence-course-${course.id}`,
+                                                name: 'evidence-course-selection',
+                                                checked: isSelected,
+                                                onChange: () => setEvidenceForm(prev => ({ ...prev, courseName: course.name })),
+                                                className: 'sr-only peer'
+                                            }),
+                                            React.createElement('label', {
+                                                htmlFor: `evidence-course-${course.id}`,
+                                                className: `block p-3 rounded-lg border transition-all hover:shadow-md cursor-pointer ${
+                                                    course.period === 'PERIODO_1' ? 'border-teal-400 bg-teal-50' : 'border-indigo-400 bg-indigo-50'
+                                                } peer-checked:ring-2 peer-checked:ring-indigo-500`
+                                            },
+                                                React.createElement('h3', { className: 'font-bold text-xs sm:text-sm' }, course.name)
+                                            )
+                                        );
+                                    })
+                                )
+                            )
+                        )
+                    )
+                ),
+                React.createElement('div', null,
+                    React.createElement('input', {
+                        type: 'file', multiple: true, accept: 'application/pdf,image/*',
+                        onChange: (e: any) => { if (e.target.files) setEvidenceFiles(Array.from(e.target.files)); },
+                        className: 'block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100'
+                    }),
+                    evidenceFiles.length > 0 && React.createElement('p', { className: 'text-sm text-green-600 mt-2' },
+                        `${evidenceFiles.length} archivo(s) seleccionado(s)`
+                    )
+                )
+            ),
+            React.createElement('div', { className: 'mt-8 flex justify-end' },
+                React.createElement('button', {
+                    type: 'submit',
+                    disabled: evidenceStatus.isSubmitting,
+                    className: 'w-full sm:w-auto bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 disabled:opacity-50'
+                }, evidenceStatus.isSubmitting ? 'Enviando...' : 'Enviar Evidencia')
+            )
+        );
+    };
+
+    return React.createElement('div', { className: 'bg-white p-4 sm:p-6 lg:p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto' },
+        React.createElement('button', {
+            onClick: onBack,
+            className: 'text-sm text-blue-600 hover:underline mb-4'
+        }, '← Volver'),
+        React.createElement('h2', { className: 'text-xl sm:text-2xl font-bold mb-4' }, 'Portal de Instructores'),
+        React.createElement('div', { className: 'border-b mb-4 bg-gray-50 rounded-t-lg' },
+            React.createElement('nav', { className: 'flex space-x-2 sm:space-x-4 px-2 sm:px-4' },
+                React.createElement('button', {
+                    onClick: () => setActiveTab('proposal'),
+                    className: `px-4 sm:px-6 py-3 font-semibold text-sm sm:text-base rounded-t-lg transition-colors ${activeTab === 'proposal' ? 'bg-white text-indigo-700 border-b-2 border-indigo-500 -mb-px' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'}`
+                }, 'Subir documentación'),
+                React.createElement('button', {
+                    onClick: () => setActiveTab('evidence'),
+                    className: `px-4 sm:px-6 py-3 font-semibold text-sm sm:text-base rounded-t-lg transition-colors ${activeTab === 'evidence' ? 'bg-white text-indigo-700 border-b-2 border-indigo-500 -mb-px' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'}`
+                }, 'Subir Evidencias')
+            )
+        ),
+        React.createElement('div', { className: 'pt-6' },
+            activeTab === 'proposal' ? renderProposalForm() : renderEvidenceForm()
+        )
+    );
+};
+
+// =============================================================================
+// == RENDERIZADO DE LA APLICACIÓN
+// =============================================================================
+
+const rootElement = document.getElementById('root');
+if (rootElement) {
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(
+        React.createElement(React.StrictMode, null,
+            React.createElement(App, null)
+        )
+    );
+} else {
+    console.error('No se encontró el elemento root');
+}
