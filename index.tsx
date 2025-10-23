@@ -1447,6 +1447,71 @@ const Step4Success = ({ registrationResult, applicantName, selectedCourses, subm
 };
 
 // =============================================================================
+// == COMPONENTE DE DESCARGA DE FORMATOS
+// =============================================================================
+
+const DownloadFormatsSection = () => {
+    const formats = [
+        {
+            name: 'CVU - Curriculum del Instructor',
+            url: 'https://github.com/DA-itd/DA-itd-web/raw/main/TecNM-AC-PO-005-11%20CVU%20curriculum%20del%20instructor%20(1).doc',
+            icon: '📘'
+        },
+        {
+            name: 'Ficha Técnica del Curso',
+            url: 'https://github.com/DA-itd/DA-itd-web/raw/main/TecNM-AC-PO-005-12%20FICHA%20TECNICA%20(1).doc',
+            icon: '📗'
+        }
+    ];
+
+    return React.createElement('div', { 
+        className: 'bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-indigo-200 rounded-lg p-4 sm:p-6 mb-6' 
+    },
+        React.createElement('div', { className: 'flex items-center mb-4' },
+            React.createElement('div', { className: 'text-3xl mr-3' }, '📋'),
+            React.createElement('h3', { className: 'text-lg sm:text-xl font-bold text-indigo-900' }, 
+                'Formatos Oficiales'
+            )
+        ),
+        React.createElement('p', { className: 'text-sm text-gray-700 mb-4' },
+            'Descargue los formatos oficiales, complételos y conviértalos a PDF antes de subirlos.'
+        ),
+        React.createElement('div', { className: 'grid grid-cols-1 sm:grid-cols-2 gap-3' },
+            formats.map((format, index) =>
+                React.createElement('a', {
+                    key: index,
+                    href: format.url,
+                    download: true,
+                    target: '_blank',
+                    rel: 'noopener noreferrer',
+                    className: 'flex items-center gap-3 bg-white hover:bg-indigo-50 border-2 border-indigo-300 rounded-lg p-4 transition-all hover:shadow-md group'
+                },
+                    React.createElement('div', { 
+                        className: 'text-4xl group-hover:scale-110 transition-transform' 
+                    }, format.icon),
+                    React.createElement('div', { className: 'flex-1' },
+                        React.createElement('p', { className: 'font-semibold text-sm text-gray-800' }, 
+                            format.name
+                        ),
+                        React.createElement('p', { className: 'text-xs text-gray-500 mt-1' }, 
+                            'Formato Word (.doc)'
+                        )
+                    ),
+                    React.createElement('div', { className: 'text-indigo-600 text-xl' }, '⬇️')
+                )
+            )
+        ),
+        React.createElement('div', { className: 'mt-4 flex items-start gap-2 bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded' },
+            React.createElement('span', { className: 'text-xl' }, '⚠️'),
+            React.createElement('p', { className: 'text-xs text-yellow-800' },
+                React.createElement('strong', null, 'Importante: '),
+                'Los archivos deben ser convertidos a PDF antes de subirlos al sistema.'
+            )
+        )
+    );
+};
+
+// =============================================================================
 // == COMPONENTE FILE INPUT
 // =============================================================================
 
@@ -1543,6 +1608,65 @@ const FileInput = ({ id, label, onFileSelect, onError, acceptedFile, acceptedTyp
 };
 
 // =============================================================================
+// == COMPONENTE DE PANTALLA FINAL
+// =============================================================================
+
+interface FinalScreenProps {
+    onClose: () => void;
+}
+
+const FinalScreen = ({ onClose }: FinalScreenProps) => {
+    return React.createElement('div', { 
+        className: 'fixed inset-0 bg-gradient-to-br from-blue-900 to-indigo-900 z-50 flex items-center justify-center p-4'
+    },
+        React.createElement('div', { 
+            className: 'bg-white rounded-2xl shadow-2xl p-8 sm:p-12 max-w-2xl w-full text-center animate-fadeIn'
+        },
+            React.createElement('div', { className: 'mb-6' },
+                React.createElement('img', {
+                    src: 'https://raw.githubusercontent.com/DA-itd/web/main/logo_itdurango.png',
+                    alt: 'Logo ITD',
+                    className: 'h-24 sm:h-32 mx-auto mb-6'
+                })
+            ),
+            React.createElement('div', { className: 'text-6xl mb-6' }, '🎓'),
+            React.createElement('h2', { 
+                className: 'text-2xl sm:text-4xl font-bold text-blue-900 mb-4' 
+            }, '¡Gracias!'),
+            React.createElement('div', { 
+                className: 'text-base sm:text-lg text-gray-700 space-y-3 mb-8' 
+            },
+                React.createElement('p', null, 
+                    'Por tu interés en la ',
+                    React.createElement('strong', { className: 'text-indigo-700' }, 
+                        'superación académica'
+                    ),
+                    ' y la ',
+                    React.createElement('strong', { className: 'text-indigo-700' }, 
+                        'mejora continua'
+                    ),
+                    ' del'
+                ),
+                React.createElement('p', { className: 'text-xl sm:text-2xl font-bold text-blue-900' },
+                    'Instituto Tecnológico de Durango'
+                )
+            ),
+            React.createElement('div', { 
+                className: 'border-t-2 border-gray-200 pt-6 mt-6' 
+            },
+                React.createElement('p', { className: 'text-sm text-gray-600 mb-4' },
+                    'Tu compromiso con la excelencia educativa es fundamental para nuestra institución.'
+                ),
+                React.createElement('button', {
+                    onClick: onClose,
+                    className: 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 px-8 rounded-lg text-lg transition-all transform hover:scale-105 shadow-lg'
+                }, '✓ Cerrar')
+            )
+        )
+    );
+};
+
+// =============================================================================
 // == FORMULARIO DE INSTRUCTOR (COMPLETO CON EVIDENCIAS)
 // =============================================================================
 
@@ -1560,6 +1684,7 @@ interface InstructorFormProps {
 const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
     const { useState } = React;
     const [activeTab, setActiveTab] = useState<'proposal' | 'evidence'>('proposal');
+    const [showFinalScreen, setShowFinalScreen] = useState(false);
 
     const [proposalForm, setProposalForm] = useState({ instructorName: '', instructorEmail: '', courseName: '', courseId: '' });
     const [cvuFile, setCvuFile] = useState<File | null>(null);
@@ -1657,6 +1782,15 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
         }
     };
 
+    const handleExit = () => {
+        setShowFinalScreen(true);
+    };
+
+    const handleCloseFinalScreen = () => {
+        setShowFinalScreen(false);
+        window.location.reload();
+    };
+
     const groupedCourses = courses.reduce((acc, course) => {
         const period = course.period || 'Sin Periodo';
         if (!acc[period]) acc[period] = { courses: [], dates: '' };
@@ -1665,22 +1799,30 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
         return acc;
     }, {} as { [key: string]: { courses: Course[], dates: string } });
 
+    // MODIFICADO: Pantallas de éxito con botón "Salir"
     const renderProposalForm = () => {
         if (proposalStatus.success) {
             return React.createElement('div', { className: 'text-center py-8' },
-                React.createElement('div', { className: 'bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-8 rounded-md' },
-                    React.createElement('p', { className: 'font-bold text-lg' }, proposalStatus.success)
+                React.createElement('div', { className: 'bg-green-100 border-l-4 border-green-500 text-green-700 p-6 mb-8 rounded-md' },
+                    React.createElement('div', { className: 'text-5xl mb-4' }, '✅'),
+                    React.createElement('p', { className: 'font-bold text-xl' }, proposalStatus.success),
+                    React.createElement('p', { className: 'text-sm mt-2' }, 
+                        'Tu documentación ha sido recibida y será revisada por la coordinación.'
+                    )
                 ),
                 React.createElement('button', {
-                    onClick: onBack,
-                    className: 'bg-indigo-600 text-white font-bold py-2 px-8 rounded-lg hover:bg-indigo-700'
-                }, 'Salir')
+                    onClick: handleExit,
+                    className: 'bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold py-3 px-8 rounded-lg text-lg transition-all transform hover:scale-105 shadow-lg'
+                }, '🚪 Salir')
             );
         }
 
         return React.createElement('form', { onSubmit: handleProposalSubmit, noValidate: true },
+            // AGREGADO: Sección de descarga de formatos
+            React.createElement(DownloadFormatsSection),
+            
             React.createElement('div', { className: 'bg-blue-700 text-white p-4 rounded-lg mb-6 text-xs sm:text-sm text-center' },
-                React.createElement('p', null, 'Envíe CVU y ficha técnica en PDF genuinos (No fotos).')
+                React.createElement('p', null, '⚠️ Envíe CVU y ficha técnica en PDF genuinos (No fotos ni capturas de pantalla).')
             ),
             proposalStatus.error && React.createElement('div', { className: 'bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md' },
                 React.createElement('p', { className: 'text-sm' }, proposalStatus.error)
@@ -1746,14 +1888,14 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
                 React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6' },
                     React.createElement('div', null,
                         React.createElement(FileInput, {
-                            id: 'cvuFile', label: 'CVU', onFileSelect: setCvuFile, onError: setCvuError,
+                            id: 'cvuFile', label: 'CVU (PDF)', onFileSelect: setCvuFile, onError: setCvuError,
                             acceptedFile: cvuFile, acceptedTypes: ['application/pdf'], maxSizeMB: 1
                         }),
                         cvuError && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, cvuError)
                     ),
                     React.createElement('div', null,
                         React.createElement(FileInput, {
-                            id: 'fichaFile', label: 'Ficha Técnica', onFileSelect: setFichaFile, onError: setFichaError,
+                            id: 'fichaFile', label: 'Ficha Técnica (PDF)', onFileSelect: setFichaFile, onError: setFichaError,
                             acceptedFile: fichaFile, acceptedTypes: ['application/pdf'], maxSizeMB: 1
                         }),
                         fichaError && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, fichaError)
@@ -1773,18 +1915,21 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
     const renderEvidenceForm = () => {
         if (evidenceStatus.success) {
             return React.createElement('div', { className: 'text-center py-8' },
-                React.createElement('div', { className: 'bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-8 rounded-md' },
-                    React.createElement('p', { className: 'font-bold text-lg' }, evidenceStatus.success)
+                React.createElement('div', { className: 'bg-green-100 border-l-4 border-green-500 text-green-700 p-6 mb-8 rounded-md' },
+                    React.createElement('div', { className: 'text-5xl mb-4' }, '✅'),
+                    React.createElement('p', { className: 'font-bold text-xl' }, evidenceStatus.success),
+                    React.createElement('p', { className: 'text-sm mt-2' }, 
+                        'Tus evidencias han sido recibidas correctamente.'
+                    )
                 ),
                 React.createElement('button', {
-                    onClick: onBack,
-                    className: 'bg-indigo-600 text-white font-bold py-2 px-8 rounded-lg hover:bg-indigo-700'
-                }, 'Salir')
+                    onClick: handleExit,
+                    className: 'bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold py-3 px-8 rounded-lg text-lg transition-all transform hover:scale-105 shadow-lg'
+                }, '🚪 Salir')
             );
         }
 
         return React.createElement('form', { onSubmit: handleEvidenceSubmit },
-            // CORREGIDO: Mensaje correcto sobre límites de archivos
             React.createElement('div', { className: 'bg-blue-50 border-l-4 border-blue-500 text-blue-800 p-4 rounded-lg mb-6 text-xs sm:text-sm' },
                 React.createElement('p', null, 'Suba hasta 6 archivos (máx 5MB cada uno). Formatos: PDF o imágenes.')
             ),
@@ -1850,7 +1995,6 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
                     )
                 ),
                 React.createElement('div', null,
-                    // CORREGIDO: Validación de límite de 6 archivos
                     React.createElement('input', {
                         type: 'file', 
                         multiple: true, 
@@ -1884,6 +2028,10 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
             )
         );
     };
+
+    if (showFinalScreen) {
+        return React.createElement(FinalScreen, { onClose: handleCloseFinalScreen });
+    }
 
     return React.createElement('div', { className: 'bg-white p-4 sm:p-6 lg:p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto' },
         React.createElement('button', {
