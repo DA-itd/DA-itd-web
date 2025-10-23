@@ -3,147 +3,288 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Sistema de Inscripción a Cursos de Actualización Docente - Instituto Tecnológico de Durango">
-    <meta name="keywords" content="ITD, cursos, actualización docente, inscripción">
-    <meta name="author" content="Instituto Tecnológico de Durango">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     
-    <title>Sistema de Inscripción a Cursos - ITD</title>
+    <title>Sistema de Inscripción - Instituto Tecnológico de Durango</title>
     
-    <!-- Tailwind CSS -->
+    <!-- Favicon (opcional) -->
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/DA-itd/web/main/logo_itdurango.png">
+    
+    <!-- Tailwind CSS desde CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- React 18 (UMD - Variables Globales) -->
-    <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-    
-    <!-- Babel Standalone para transpilar JSX/TSX -->
-    <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
-    
+    <!-- Estilos Personalizados -->
     <style>
-        body { 
-            font-family: 'Inter', sans-serif; 
+        /* =============================================================================
+           RESET Y ESTILOS BASE
+           ============================================================================= */
+        
+        * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
         }
-        
-        /* Clase de accesibilidad */
-        .sr-only {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border-width: 0;
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+                sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #f3f4f6;
         }
-        
-        /* Loading spinner */
-        .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #3498db;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
+
+        #root {
+            min-height: 100vh;
         }
-        
+
+        /* =============================================================================
+           ANIMACIONES PERSONALIZADAS
+           ============================================================================= */
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .animate-fadeIn {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-slideDown {
+            animation: slideDown 0.4s ease-out;
+        }
+
+        /* =============================================================================
+           UTILIDADES ADICIONALES
+           ============================================================================= */
+
+        /* Scroll suave */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Ocultar scrollbar pero mantener funcionalidad */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Loading spinner personalizado */
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
-        
-        /* Smooth transitions */
-        * {
-            transition: background-color 0.2s ease, border-color 0.2s ease;
+
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+
+        /* Transiciones suaves para botones */
+        button {
+            transition: all 0.2s ease-in-out;
+        }
+
+        /* Mejora de contraste para accesibilidad */
+        .text-shadow {
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Efecto de hover para cards */
+        .card-hover {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        /* =============================================================================
+           ESTILOS PARA IMPRESIÓN (opcional)
+           ============================================================================= */
+
+        @media print {
+            body {
+                background: white;
+            }
+            
+            button,
+            nav,
+            .no-print {
+                display: none !important;
+            }
+        }
+
+        /* =============================================================================
+           RESPONSIVE UTILITIES
+           ============================================================================= */
+
+        @media (max-width: 640px) {
+            /* Mejoras para pantallas pequeñas */
+            h1 {
+                font-size: 1.25rem;
+            }
+            
+            h2 {
+                font-size: 1.125rem;
+            }
         }
     </style>
-</head>
-<body class="bg-gray-100">
-    <!-- Contenedor principal de React -->
-    <div id="root">
-        <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column;">
-            <div class="spinner"></div>
-            <p style="margin-top: 1rem; color: #4B5563;">Cargando aplicación...</p>
-        </div>
-    </div>
 
     <!-- Configuración de la aplicación -->
     <script>
-        // =====================================================
-        // ⚠️ CONFIGURACIÓN IMPORTANTE
-        // =====================================================
-        // Reemplaza APPS_SCRIPT_URL con la URL de tu Google Apps Script
-        // Para obtenerla:
-        // 1. Abre tu proyecto en Google Apps Script
-        // 2. Click en "Implementar" > "Nueva implementación"
-        // 3. Tipo: "Aplicación web"
-        // 4. Ejecutar como: "Yo"
-        // 5. Quién tiene acceso: "Cualquier persona"
-        // 6. Copia la URL generada
-        // =====================================================
+        // =============================================================================
+        // CONFIGURACIÓN GLOBAL
+        // =============================================================================
         
         window.CONFIG = {
-            // 🔴 REEMPLAZAR CON TU URL REAL
-            APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycby_ESgq4InYsgJMqbsJz_je6M62PQ8uFFwiNwrHUuPt-131BxiiesiXf4wuEORrr7Cd4A/exec',
+            // ⚠️ IMPORTANTE: Reemplaza esta URL con la de tu Apps Script desplegado
+            APPS_SCRIPT_URL: 'https://script.google.com/macros/s/TU_DEPLOYMENT_ID_AQUI/exec',
             
-            // Configuración adicional de la aplicación
-            APP_NAME: 'Sistema de Inscripción a Cursos',
+            // Configuración adicional
+            APP_NAME: 'Sistema de Inscripción ITD',
             INSTITUTION: 'Instituto Tecnológico de Durango',
-            
-            // Timeouts (en milisegundos)
             REQUEST_TIMEOUT: 30000, // 30 segundos
-            
-            // Límites y validaciones
             MAX_COURSES_PER_STUDENT: 3,
             MIN_CURP_LENGTH: 18,
             MAX_CURP_LENGTH: 18
         };
+
+        // =============================================================================
+        // MANEJO DE ERRORES GLOBAL
+        // =============================================================================
         
-        // Verificar que React se haya cargado correctamente
-        if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') {
-            console.error('❌ Error: React no se cargó correctamente');
-            document.getElementById('root').innerHTML = 
-                '<div style="text-align: center; padding: 2rem; max-width: 600px; margin: 0 auto;">' +
-                '<h1 style="color: #DC2626;">Error al cargar la aplicación</h1>' +
-                '<p>React no se pudo cargar. Por favor:</p>' +
-                '<ul style="text-align: left;">' +
-                '<li>Verifica tu conexión a Internet</li>' +
-                '<li>Recarga la página (Ctrl + F5)</li>' +
-                '<li>Intenta en otro navegador</li>' +
-                '</ul>' +
-                '</div>';
-        } else {
-            console.log('✅ React cargado correctamente');
-        }
-        
-        // Manejo de errores global
-        window.addEventListener('error', function(e) {
-            console.error('❌ Error global capturado:', e.error);
+        window.addEventListener('error', function(event) {
+            console.error('Error detectado:', event.error);
+            
+            // Mostrar mensaje amigable al usuario
+            if (event.error && event.error.message) {
+                // Solo en desarrollo, en producción puedes comentar esto
+                console.error('Detalles del error:', event.error.message);
+            }
         });
+
+        // Detectar errores de promesas no manejadas
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('Promesa rechazada no manejada:', event.reason);
+            event.preventDefault();
+        });
+
+        // =============================================================================
+        // FUNCIÓN DE VALIDACIÓN DE CONFIGURACIÓN
+        // =============================================================================
         
-        window.addEventListener('unhandledrejection', function(e) {
-            console.error('❌ Promesa rechazada no manejada:', e.reason);
+        window.addEventListener('DOMContentLoaded', function() {
+            // Verificar que la URL del Apps Script esté configurada
+            if (!window.CONFIG.APPS_SCRIPT_URL || 
+                window.CONFIG.APPS_SCRIPT_URL.includes('TU_DEPLOYMENT_ID_AQUI')) {
+                console.warn(
+                    '⚠️ ADVERTENCIA: La URL del Apps Script no está configurada.\n' +
+                    'Por favor, actualiza window.CONFIG.APPS_SCRIPT_URL en index.html'
+                );
+                
+                // Mostrar alerta solo en desarrollo
+                // alert('Configuración incompleta. Ver consola para más detalles.');
+            }
         });
     </script>
+</head>
+
+<body>
+    <!-- Contenedor principal de React -->
+    <div id="root"></div>
+
+    <!-- Mensaje de carga mientras React se inicializa -->
+    <noscript>
+        <div style="
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%);
+            color: white;
+            text-align: center;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        ">
+            <div>
+                <h1 style="font-size: 2rem; margin-bottom: 1rem;">
+                    ⚠️ JavaScript Requerido
+                </h1>
+                <p style="font-size: 1.125rem;">
+                    Este sistema requiere JavaScript habilitado para funcionar.
+                </p>
+                <p style="margin-top: 1rem; font-size: 0.875rem; opacity: 0.8;">
+                    Por favor, habilita JavaScript en tu navegador y recarga la página.
+                </p>
+            </div>
+        </div>
+    </noscript>
+
+    <!-- =============================================================================
+         SCRIPTS EXTERNOS
+         ============================================================================= -->
+
+    <!-- React 18 - Producción -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     
-    <!-- =====================================================
-         Código principal de la aplicación
-         ===================================================== -->
-    <script type="text/babel" data-type="module" data-presets="typescript,react" src="index.tsx"></script>
+    <!-- ReactDOM 18 - Producción -->
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+    <!-- =============================================================================
+         SCRIPT PRINCIPAL DE LA APLICACIÓN
+         ============================================================================= -->
+
+    <!-- Tu archivo TypeScript compilado a JavaScript -->
+    <script src="index.js"></script>
     
-    <!-- Analytics (opcional - descomentar si se necesita) -->
     <!-- 
-    <script>
-        // Google Analytics o cualquier otro servicio de analíticas
-    </script>
+        NOTA: Si estás usando TypeScript (.tsx), necesitas compilarlo primero a .js
+        Comandos comunes:
+        - npx tsc index.tsx (si usas TypeScript Compiler)
+        - npx babel index.tsx --out-file index.js (si usas Babel)
+        
+        O puedes usar directamente .tsx si tu servidor lo soporta
     -->
+
+    <!-- =============================================================================
+         SCRIPT DE INICIALIZACIÓN (Opcional)
+         ============================================================================= -->
+
+    <script>
+        // Mostrar versión de React cargada
+        console.log('%c Sistema de Inscripción ITD ', 
+            'background: #1e3a8a; color: white; font-size: 16px; padding: 4px 8px; border-radius: 4px;');
+        console.log('React version:', React.version);
+        console.log('Configuración:', window.CONFIG);
+
+        // Verificar que el elemento root existe
+        if (!document.getElementById('root')) {
+            console.error('❌ ERROR: No se encontró el elemento #root en el DOM');
+        }
+    </script>
 </body>
 </html>
