@@ -162,7 +162,7 @@
         
         window.CONFIG = {
             // ⚠️ IMPORTANTE: Reemplaza esta URL con la de tu Apps Script desplegado
-            APPS_SCRIPT_URL: 'https://script.google.com/macros/s/TU_DEPLOYMENT_ID_AQUI/exec',
+            APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycby_ESgq4InYsgJMqbsJz_je6M62PQ8uFFwiNwrHUuPt-131BxiiesiXf4wuEORrr7Cd4A/exec',
             
             // Configuración adicional
             APP_NAME: 'Sistema de Inscripción ITD',
@@ -200,7 +200,7 @@
         window.addEventListener('DOMContentLoaded', function() {
             // Verificar que la URL del Apps Script esté configurada
             if (!window.CONFIG.APPS_SCRIPT_URL || 
-                window.CONFIG.APPS_SCRIPT_URL.includes('TU_DEPLOYMENT_ID_AQUI')) {
+                window.CONFIG.APPS_SCRIPT_URL.includes('https://script.google.com/macros/s/AKfycby_ESgq4InYsgJMqbsJz_je6M62PQ8uFFwiNwrHUuPt-131BxiiesiXf4wuEORrr7Cd4A/exec')) {
                 console.warn(
                     '⚠️ ADVERTENCIA: La URL del Apps Script no está configurada.\n' +
                     'Por favor, actualiza window.CONFIG.APPS_SCRIPT_URL en index.html'
@@ -259,7 +259,7 @@
          ============================================================================= -->
 
     <!-- Tu archivo TypeScript compilado a JavaScript -->
-    <script src="index.js"></script>
+    <script src="index.tsx"></script>
     
     <!-- 
         NOTA: Si estás usando TypeScript (.tsx), necesitas compilarlo primero a .js
