@@ -1,68 +1,8 @@
 // =============================================================================
 // SISTEMA DE INSCRIPCIÓN A CURSOS - INSTITUTO TECNOLÓGICO DE DURANGO
-// Versión: 1.2.0 - CORREGIDO
+// Versión: 1.2.0 - Optimizado y corregido
 // Última actualización: Enero 2024
 // =============================================================================
-
-// =============================================================================
-// == DECLARACIÓN DE TIPOS GLOBALES
-// =============================================================================
-
-declare const React: any;
-declare const ReactDOM: any;
-
-declare global {
-    interface Window {
-        CONFIG?: {
-            APPS_SCRIPT_URL?: string;
-            APP_NAME?: string;
-            INSTITUTION?: string;
-            REQUEST_TIMEOUT?: number;
-            MAX_COURSES_PER_STUDENT?: number;
-            MIN_CURP_LENGTH?: number;
-            MAX_CURP_LENGTH?: number;
-        };
-    }
-}
-
-// =============================================================================
-// == INTERFACES Y TIPOS
-// =============================================================================
-
-interface IFormData {
-    fullName: string;
-    curp: string;
-    email: string;
-    gender: string;
-    department: string;
-    selectedCourses: Course[];
-}
-
-interface Course {
-    id: string;
-    name: string;
-    dates: string;
-    period: string;
-    hours: number;
-    location: string;
-    schedule: string;
-    type: string;
-}
-
-interface Teacher {
-    nombreCompleto: string;
-    curp: string;
-    email: string;
-}
-
-interface RegistrationResult {
-    success: boolean;
-    message: string;
-    courseName?: string;
-    registrationId?: string;
-    folio?: string;
-    dates?: string;
-}
 
 // =============================================================================
 // == CONSTANTES Y CONFIGURACIÓN
@@ -71,7 +11,6 @@ interface RegistrationResult {
 const COURSES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSAe4dmVN4CArjEy_lvI5qrXf16naxZLO1lAxGm2Pj4TrdnoebBg03Vv4-DCXciAkHJFiZaBMKletUs/pub?gid=0&single=true&output=csv';
 const TEACHERS_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSAe4dmVN4CArjEy_lvI5qrXf16naxZLO1lAxGm2Pj4TrdnoebBg03Vv4-DCXciAkHJFiZaBMKletUs/pub?gid=987931491&single=true&output=csv';
 
-// AGREGADO: Regex para validación de CURP
 const CURP_REGEX = /^[A-Z]{4}\d{6}[HM][A-Z]{5}[0-9A-Z]\d$/;
 
 const MOCK_DEPARTMENTS = [
@@ -89,11 +28,16 @@ const MOCK_DEPARTMENTS = [
 ];
 
 // =============================================================================
-// == FUNCIONES DE UTILIDAD CSV
+// == FUNCIONES DE UTILIDAD
 // =============================================================================
 
-const parseCSVLine = (line: string): string[] => {
-    const result: string[] = [];
+const removeAccents = (text) => {
+    if (!text) return '';
+    return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+};
+
+const parseCSVLine = (line) => {
+    const result = [];
     let current = '';
     let inQuotes = false;
     
@@ -119,7 +63,7 @@ const parseCSVLine = (line: string): string[] => {
     return result;
 };
 
-const cleanCSVValue = (val: string): string => {
+const cleanCSVValue = (val) => {
     let cleaned = val.trim();
     if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
         cleaned = cleaned.substring(1, cleaned.length - 1).replace(/""/g, '"');
@@ -131,7 +75,7 @@ const cleanCSVValue = (val: string): string => {
 // == API SERVICE
 // =============================================================================
 
-const getTeachers = async (): Promise<Teacher[]> => {
+const getTeachers = async () => {
     try {
         const response = await fetch(`${TEACHERS_CSV_URL}&_=${Date.now()}`);
         if (!response.ok) throw new Error('Error al cargar docentes');
@@ -150,14 +94,14 @@ const getTeachers = async (): Promise<Teacher[]> => {
                     email: cleanCSVValue(values[2])
                 };
             })
-            .filter((teacher): teacher is Teacher => teacher !== null);
+            .filter(teacher => teacher !== null);
     } catch (error) {
         console.error("Error al obtener docentes:", error);
         return [];
     }
 };
 
-const getCourses = async (): Promise<Course[]> => {
+const getCourses = async () => {
     try {
         const response = await fetch(`${COURSES_CSV_URL}&_=${Date.now()}`);
         if (!response.ok) throw new Error('Error al cargar cursos');
@@ -184,18 +128,18 @@ const getCourses = async (): Promise<Course[]> => {
                     type: cleanCSVValue(values[7])
                 };
             })
-            .filter((course): course is Course => course !== null);
+            .filter(course => course !== null);
     } catch (error) {
         console.error("Error al obtener cursos:", error);
         return [];
     }
 };
 
-const getDepartments = (): Promise<string[]> => {
+const getDepartments = () => {
     return Promise.resolve(MOCK_DEPARTMENTS);
 };
 
-const getRegistrationByCurp = async (curp: string): Promise<string[]> => {
+const getRegistrationByCurp = async (curp) => {
     const APPS_SCRIPT_URL = window.CONFIG?.APPS_SCRIPT_URL;
     if (!APPS_SCRIPT_URL) throw new Error("URL no configurada");
     
@@ -218,8 +162,7 @@ const getRegistrationByCurp = async (curp: string): Promise<string[]> => {
     }
 };
 
-// CORREGIDO: Mejor manejo de errores del backend
-const submitRegistration = async (submission: any): Promise<any> => {
+const submitRegistration = async (submission) => {
     const APPS_SCRIPT_URL = window.CONFIG?.APPS_SCRIPT_URL;
     if (!APPS_SCRIPT_URL) throw new Error("URL de configuración no disponible");
 
@@ -236,18 +179,15 @@ const submitRegistration = async (submission: any): Promise<any> => {
         if (result?.success) {
             return result.data;
         } else {
-            // Propagar el mensaje de error del backend
             throw new Error(result.message || 'Error en el servidor');
         }
     } catch (error) {
         console.error("Error al enviar registro:", error);
         
-        // Si ya es un error con mensaje del backend, propagarlo
         if (error instanceof Error && error.message !== 'Failed to fetch') {
             throw error;
         }
         
-        // Solo mostrar mensaje genérico para errores de red
         throw new Error(
             "No se pudo comunicar con el servidor.\n\n" +
             "Posibles causas:\n" +
@@ -258,7 +198,7 @@ const submitRegistration = async (submission: any): Promise<any> => {
     }
 };
 
-const cancelSingleCourse = async (payload: any) => {
+const cancelSingleCourse = async (payload) => {
     const APPS_SCRIPT_URL = window.CONFIG?.APPS_SCRIPT_URL;
     if (!APPS_SCRIPT_URL) throw new Error("URL no disponible");
 
@@ -280,16 +220,16 @@ const cancelSingleCourse = async (payload: any) => {
     }
 };
 
-const fileToBase64 = (file: File): Promise<string> => {
+const fileToBase64 = (file) => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result as string);
+        reader.onload = () => resolve(reader.result);
         reader.onerror = error => reject(error);
     });
 };
 
-const submitInstructorProposal = async (data: any) => {
+const submitInstructorProposal = async (data) => {
     const APPS_SCRIPT_URL = window.CONFIG?.APPS_SCRIPT_URL;
     if (!APPS_SCRIPT_URL) throw new Error("URL no disponible");
     
@@ -313,7 +253,7 @@ const submitInstructorProposal = async (data: any) => {
     }
 };
 
-const submitEvidence = async (data: any) => {
+const submitEvidence = async (data) => {
     const APPS_SCRIPT_URL = window.CONFIG?.APPS_SCRIPT_URL;
     if (!APPS_SCRIPT_URL) throw new Error("URL no disponible");
     
@@ -346,7 +286,7 @@ const App = () => {
     
     const [currentStep, setCurrentStep] = useState(1);
     const [mode, setMode] = useState('student');
-    const [formData, setFormData] = useState<IFormData>({
+    const [formData, setFormData] = useState({
         fullName: '',
         curp: '',
         email: '',
@@ -355,17 +295,17 @@ const App = () => {
         selectedCourses: [],
     });
     
-    const [allCourses, setAllCourses] = useState<Course[]>([]);
-    const [teachers, setTeachers] = useState<Teacher[]>([]);
-    const [departments, setDepartments] = useState<string[]>([]);
-    const [selectedCourses, setSelectedCourses] = useState<Course[]>([]);
-    const [originalSelectedCourses, setOriginalSelectedCourses] = useState<Course[]>([]);
-    const [registrationResult, setRegistrationResult] = useState<RegistrationResult[]>([]);
+    const [allCourses, setAllCourses] = useState([]);
+    const [teachers, setTeachers] = useState([]);
+    const [departments, setDepartments] = useState([]);
+    const [selectedCourses, setSelectedCourses] = useState([]);
+    const [originalSelectedCourses, setOriginalSelectedCourses] = useState([]);
+    const [registrationResult, setRegistrationResult] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [submissionType, setSubmissionType] = useState<'enrollment' | 'cancellation'>('enrollment');
-    const [emailSent, setEmailSent] = useState<boolean>(true);
-    const [emailError, setEmailError] = useState<string | null>(null);
+    const [error, setError] = useState(null);
+    const [submissionType, setSubmissionType] = useState('enrollment');
+    const [emailSent, setEmailSent] = useState(true);
+    const [emailError, setEmailError] = useState(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -394,11 +334,11 @@ const App = () => {
     
     const handleNext = () => setCurrentStep(prev => prev < 4 ? prev + 1 : prev);
     const handleBack = () => setCurrentStep(prev => prev > 1 ? prev - 1 : prev);
-    const goToStep = (step: number) => {
+    const goToStep = (step) => {
         if (step > 0 && step <= studentSteps.length) setCurrentStep(step);
     };
 
-    const handleStepClick = (stepIndex: number) => {
+    const handleStepClick = (stepIndex) => {
         const instructorStepIndex = studentSteps.length;
         if (stepIndex === instructorStepIndex) {
             setMode('instructor');
@@ -441,7 +381,7 @@ const App = () => {
             const result = await submitRegistration(submissionData);
             const registrationResultsArray = result.results || [];
 
-            const augmentedResult = registrationResultsArray.map((reg: any) => {
+            const augmentedResult = registrationResultsArray.map((reg) => {
                 const courseDetails = selectedCourses.find(c => c.id === reg.registrationId);
                 return {
                     ...reg,
@@ -494,7 +434,6 @@ const App = () => {
                     setSelectedCourses, setOriginalSelectedCourses, onNext: handleNext, onGoToStep: goToStep
                 });
             case 2:
-                // MODIFICADO: Pasar originalSelectedCourses
                 return React.createElement(Step2CourseSelection, {
                     courses: allCourses, 
                     selectedCourses, 
@@ -580,19 +519,11 @@ const Footer = () => {
         React.createElement('p', { className: 'text-xs sm:text-sm' }, 'Todos los derechos reservados 2026.')
     );
 };
-
 // =============================================================================
-// == COMPONENTE STEPPER (OPTIMIZADO PARA MÓVILES)
+// == COMPONENTE STEPPER
 // =============================================================================
 
-interface StepperProps {
-    currentStep: number;
-    steps: string[];
-    mode: string;
-    onStepClick: (index: number) => void;
-}
-
-const Stepper = ({ currentStep, steps, mode, onStepClick }: StepperProps) => {
+const Stepper = ({ currentStep, steps, mode, onStepClick }) => {
     const instructorStepIndex = 4;
 
     return React.createElement('div', { className: 'w-full max-w-5xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8' },
@@ -645,21 +576,11 @@ const Stepper = ({ currentStep, steps, mode, onStepClick }: StepperProps) => {
 // == MODAL DE REGISTRO EXISTENTE
 // =============================================================================
 
-interface ExistingRegistrationModalProps {
-    isOpen: boolean;
-    courses: Course[];
-    onModify: () => void;
-    onClose: () => void;
-    onDeleteCourse: (courseId: string) => void;
-    deletingCourseId: string | null;
-    onCancelAll: () => void;
-}
-
-const ExistingRegistrationModal = ({ isOpen, courses, onModify, onClose, onDeleteCourse, deletingCourseId, onCancelAll }: ExistingRegistrationModalProps) => {
+const ExistingRegistrationModal = ({ isOpen, courses, onModify, onClose, onDeleteCourse, deletingCourseId, onCancelAll }) => {
     const { useEffect } = React;
     
     useEffect(() => {
-        const handleEsc = (event: KeyboardEvent) => {
+        const handleEsc = (event) => {
            if (event.key === 'Escape') onClose();
         };
         if (isOpen) {
@@ -732,28 +653,18 @@ const ExistingRegistrationModal = ({ isOpen, courses, onModify, onClose, onDelet
 };
 
 // =============================================================================
-// == COMPONENTE AUTOCOMPLETE
+// == COMPONENTE AUTOCOMPLETE (CON BÚSQUEDA SIN ACENTOS)
 // =============================================================================
 
-interface AutocompleteInputProps {
-    teachers: Teacher[];
-    onSelect: (teacher: Teacher) => void;
-    value: string;
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    name: string;
-    placeholder?: string;
-    required?: boolean;
-}
-
-const AutocompleteInput = ({ teachers, onSelect, value, onChange, name, placeholder, required = false }: AutocompleteInputProps) => {
+const AutocompleteInput = ({ teachers, onSelect, value, onChange, name, placeholder, required = false }) => {
     const { useState, useEffect, useRef } = React;
-    const [suggestions, setSuggestions] = useState<Teacher[]>([]);
+    const [suggestions, setSuggestions] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
-    const containerRef = useRef<HTMLDivElement>(null);
+    const containerRef = useRef(null);
 
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        const handleClickOutside = (event) => {
+            if (containerRef.current && !containerRef.current.contains(event.target)) {
                 setShowSuggestions(false);
             }
         };
@@ -761,13 +672,14 @@ const AutocompleteInput = ({ teachers, onSelect, value, onChange, name, placehol
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleInputChange = (e) => {
         const currentValue = e.target.value;
         onChange(e);
 
         if (currentValue && currentValue.length > 0) {
+            const normalizedInput = removeAccents(currentValue.toLowerCase());
             const filtered = teachers.filter(teacher =>
-                teacher.nombreCompleto.toLowerCase().includes(currentValue.toLowerCase())
+                removeAccents(teacher.nombreCompleto.toLowerCase()).includes(normalizedInput)
             ).slice(0, 5);
             setSuggestions(filtered);
             setShowSuggestions(filtered.length > 0);
@@ -777,7 +689,7 @@ const AutocompleteInput = ({ teachers, onSelect, value, onChange, name, placehol
         }
     };
 
-    const handleSelect = (teacher: Teacher) => {
+    const handleSelect = (teacher) => {
         onSelect(teacher);
         setShowSuggestions(false);
     };
@@ -788,11 +700,12 @@ const AutocompleteInput = ({ teachers, onSelect, value, onChange, name, placehol
             name: name,
             value: value,
             onChange: handleInputChange,
-            onFocus: (e: React.FocusEvent<HTMLInputElement>) => {
+            onFocus: (e) => {
                 const val = e.target.value;
                 if (val) {
+                    const normalizedInput = removeAccents(val.toLowerCase());
                     const filtered = teachers.filter(t =>
-                        t.nombreCompleto.toLowerCase().includes(val.toLowerCase())
+                        removeAccents(t.nombreCompleto.toLowerCase()).includes(normalizedInput)
                     ).slice(0, 5);
                     setSuggestions(filtered);
                     setShowSuggestions(filtered.length > 0);
@@ -809,7 +722,7 @@ const AutocompleteInput = ({ teachers, onSelect, value, onChange, name, placehol
             suggestions.map((teacher) =>
                 React.createElement('li', {
                     key: teacher.curp || teacher.nombreCompleto,
-                    onMouseDown: (e: React.MouseEvent) => {
+                    onMouseDown: (e) => {
                         e.preventDefault();
                         handleSelect(teacher);
                     },
@@ -824,25 +737,13 @@ const AutocompleteInput = ({ teachers, onSelect, value, onChange, name, placehol
 // == STEP 1: INFORMACIÓN PERSONAL
 // =============================================================================
 
-interface Step1PersonalInfoProps {
-    formData: IFormData;
-    setFormData: React.Dispatch<React.SetStateAction<IFormData>>;
-    departments: string[];
-    teachers: Teacher[];
-    allCourses: Course[];
-    setSelectedCourses: React.Dispatch<React.SetStateAction<Course[]>>;
-    setOriginalSelectedCourses: React.Dispatch<React.SetStateAction<Course[]>>;
-    onNext: () => void;
-    onGoToStep: (step: number) => void;
-}
-
-const Step1PersonalInfo = ({ formData, setFormData, departments, teachers, allCourses, setSelectedCourses, setOriginalSelectedCourses, onNext, onGoToStep }: Step1PersonalInfoProps) => {
+const Step1PersonalInfo = ({ formData, setFormData, departments, teachers, allCourses, setSelectedCourses, setOriginalSelectedCourses, onNext, onGoToStep }) => {
     const { useState, useEffect, useRef } = React;
-    const [errors, setErrors] = useState<{ [key: string]: string }>({});
+    const [errors, setErrors] = useState({});
     const [isCheckingCurp, setIsCheckingCurp] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [existingCourses, setExistingCourses] = useState<Course[]>([]);
-    const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
+    const [existingCourses, setExistingCourses] = useState([]);
+    const [deletingCourseId, setDeletingCourseId] = useState(null);
     const lastCheckedCurp = useRef('');
 
     useEffect(() => {
@@ -896,7 +797,7 @@ const Step1PersonalInfo = ({ formData, setFormData, departments, teachers, allCo
         onGoToStep(3);
     };
     
-    const handleDeleteCourse = async (courseIdToDelete: string) => {
+    const handleDeleteCourse = async (courseIdToDelete) => {
         setDeletingCourseId(courseIdToDelete);
         try {
             const courseToDelete = existingCourses.find(c => c.id === courseIdToDelete);
@@ -921,9 +822,8 @@ const Step1PersonalInfo = ({ formData, setFormData, departments, teachers, allCo
         }
     };
     
-    // CORREGIDO: Validación de CURP con regex
     const validate = () => {
-        const newErrors: { [key: string]: string } = {};
+        const newErrors = {};
         
         if (!formData.fullName) {
             newErrors.fullName = "Campo obligatorio";
@@ -951,12 +851,12 @@ const Step1PersonalInfo = ({ formData, setFormData, departments, teachers, allCo
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = (e) => {
         e.preventDefault();
         if (validate()) onNext();
     };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const handleChange = (e) => {
         const { name, value } = e.target;
         let finalValue = value;
 
@@ -974,7 +874,7 @@ const Step1PersonalInfo = ({ formData, setFormData, departments, teachers, allCo
         });
     };
 
-    const handleTeacherSelect = (teacher: Teacher) => {
+    const handleTeacherSelect = (teacher) => {
         const { nombreCompleto, curp, email } = teacher;
         const upperCurp = (curp || '').toUpperCase();
         
@@ -1097,29 +997,19 @@ const Step1PersonalInfo = ({ formData, setFormData, departments, teachers, allCo
         )
     );
 };
-
 // =============================================================================
 // == STEP 2: SELECCIÓN DE CURSOS
 // =============================================================================
 
-interface Step2CourseSelectionProps {
-    courses: Course[];
-    selectedCourses: Course[];
-    setSelectedCourses: React.Dispatch<React.SetStateAction<Course[]>>;
-    originalSelectedCourses: Course[]; // AGREGADO
-    onNext: () => void;
-    onBack: () => void;
-}
-
-const Step2CourseSelection = ({ courses, selectedCourses, setSelectedCourses, originalSelectedCourses, onNext, onBack }: Step2CourseSelectionProps) => {
+const Step2CourseSelection = ({ courses, selectedCourses, setSelectedCourses, originalSelectedCourses, onNext, onBack }) => {
     const { useState } = React;
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState(null);
 
-    const schedulesOverlap = (course1: Course, course2: Course) => {
+    const schedulesOverlap = (course1, course2) => {
         if (!course1.dates || !course2.dates || course1.dates !== course2.dates) return false;
         if (!course1.schedule || !course2.schedule) return false;
 
-        const parseTime = (schedule: string) => {
+        const parseTime = (schedule) => {
             const matches = schedule.match(/(\d{1,2}:\d{2})/g);
             if (!matches || matches.length < 2) return null;
             return [
@@ -1135,7 +1025,7 @@ const Step2CourseSelection = ({ courses, selectedCourses, setSelectedCourses, or
         return time1[0] < time2[1] && time2[0] < time1[1];
     };
 
-    const handleSelectCourse = (course: Course) => {
+    const handleSelectCourse = (course) => {
         const isSelected = selectedCourses.some(c => c.id === course.id);
         let newSelection = [...selectedCourses];
         setError(null);
@@ -1157,8 +1047,7 @@ const Step2CourseSelection = ({ courses, selectedCourses, setSelectedCourses, or
         setSelectedCourses(newSelection);
     };
 
-    // CORREGIDO: Permitir cancelación total
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = (e) => {
         e.preventDefault();
         
         const isTotalCancellation = selectedCourses.length === 0 && 
@@ -1273,15 +1162,7 @@ const Step2CourseSelection = ({ courses, selectedCourses, setSelectedCourses, or
 // == STEP 3: CONFIRMACIÓN
 // =============================================================================
 
-interface Step3ConfirmationProps {
-    formData: IFormData;
-    courses: Course[];
-    originalCourses: Course[];
-    onBack: () => void;
-    onSubmit: () => Promise<void>;
-}
-
-const Step3Confirmation = ({ formData, courses, originalCourses, onBack, onSubmit }: Step3ConfirmationProps) => {
+const Step3Confirmation = ({ formData, courses, originalCourses, onBack, onSubmit }) => {
     const { useState } = React;
     const [isSubmitting, setIsSubmitting] = useState(false);
     const isCancellation = courses.length === 0 && originalCourses.length > 0;
@@ -1375,16 +1256,7 @@ const Step3Confirmation = ({ formData, courses, originalCourses, onBack, onSubmi
 // == STEP 4: ÉXITO
 // =============================================================================
 
-interface Step4SuccessProps {
-    registrationResult: RegistrationResult[];
-    applicantName: string;
-    selectedCourses: Course[];
-    submissionType: 'enrollment' | 'cancellation';
-    emailSent?: boolean;
-    emailError?: string | null;
-}
-
-const Step4Success = ({ registrationResult, applicantName, selectedCourses, submissionType, emailSent, emailError }: Step4SuccessProps) => {
+const Step4Success = ({ registrationResult, applicantName, selectedCourses, submissionType, emailSent, emailError }) => {
     const isCancellation = submissionType === 'cancellation';
     const hasResult = registrationResult && registrationResult.length > 0;
     const coursesToDisplay = hasResult ? registrationResult : selectedCourses;
@@ -1417,7 +1289,7 @@ const Step4Success = ({ registrationResult, applicantName, selectedCourses, subm
                 'Detalles de la Inscripción:'
             ),
             React.createElement('ul', { className: 'space-y-3' },
-                coursesToDisplay.map((result: any) =>
+                coursesToDisplay.map((result) =>
                     React.createElement('li', {
                         key: result.registrationId || result.id,
                         className: 'p-3 bg-gray-50 rounded-md border'
@@ -1512,110 +1384,10 @@ const DownloadFormatsSection = () => {
 };
 
 // =============================================================================
-// == COMPONENTE FILE INPUT
-// =============================================================================
-
-interface FileInputProps {
-    id: string;
-    label: string;
-    onFileSelect: (file: File | null) => void;
-    onError: (error: string | null) => void;
-    acceptedFile: File | null;
-    acceptedTypes: string[];
-    maxSizeMB: number;
-}
-
-const FileInput = ({ id, label, onFileSelect, onError, acceptedFile, acceptedTypes, maxSizeMB }: FileInputProps) => {
-    const { useState, useRef } = React;
-    const [isDragging, setIsDragging] = useState(false);
-    const inputRef = useRef<HTMLInputElement>(null);
-
-    // CORREGIDO: Mejor validación de tipos de archivo incluyendo image/*
-    const handleFileValidation = (file: File) => {
-        const fileTypeParts = file.type.split('/');
-        const fileTypeMajor = fileTypeParts[0];
-        
-        const isValidType = acceptedTypes.some(type => {
-            if (type.endsWith('/*')) {
-                const typeMajor = type.split('/')[0];
-                return typeMajor === fileTypeMajor;
-            }
-            return type === file.type;
-        });
-
-        if (!isValidType) {
-            onError(`Tipo de archivo no permitido: ${file.type}`);
-            return false;
-        }
-
-        if (file.size > maxSizeMB * 1024 * 1024) {
-            onError(`El archivo excede ${maxSizeMB} MB`);
-            return false;
-        }
-
-        onError(null);
-        onFileSelect(file);
-        return true;
-    };
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            handleFileValidation(e.target.files[0]);
-        } else {
-            onFileSelect(null);
-        }
-    };
-
-    const handleRemoveFile = () => {
-        onFileSelect(null);
-        if (inputRef.current) inputRef.current.value = "";
-    };
-
-    return React.createElement('div', null,
-        React.createElement('label', {
-            htmlFor: id,
-            className: `relative flex flex-col items-center justify-center w-full h-28 sm:h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 ${isDragging ? 'border-indigo-500' : ''}`
-        },
-            React.createElement('input', {
-                type: 'file',
-                id: id,
-                ref: inputRef,
-                className: 'sr-only',
-                accept: acceptedTypes.join(','),
-                onChange: handleChange
-            }),
-            React.createElement('div', { className: 'flex flex-col items-center justify-center space-y-2 text-center px-4' },
-                acceptedFile 
-                    ? React.createElement('p', { className: 'text-xs sm:text-sm font-semibold text-green-700 break-all' }, 
-                        `📄 ${acceptedFile.name}`
-                    )
-                    : React.createElement('p', { className: 'text-xs sm:text-sm text-gray-500' }, 
-                        label
-                    )
-            )
-        ),
-        React.createElement('div', { className: 'flex justify-between items-center mt-1' },
-            React.createElement('p', { className: 'text-xs text-gray-500' }, 
-                `PDF. Máx ${maxSizeMB}MB`
-            ),
-            acceptedFile && React.createElement('button', {
-                type: 'button',
-                onClick: handleRemoveFile,
-                className: 'text-xs text-red-600 hover:underline'
-            }, 'Quitar')
-        )
-    );
-};
-
-// =============================================================================
 // == COMPONENTE DE PANTALLA FINAL
 // =============================================================================
 
-interface FinalScreenProps {
-    onClose: () => void;
-}
-
-const FinalScreen = ({ onClose }: FinalScreenProps) => {
+const FinalScreen = ({ onClose }) => {
     return React.createElement('div', { 
         className: 'fixed inset-0 bg-gradient-to-br from-blue-900 to-indigo-900 z-50 flex items-center justify-center p-4'
     },
@@ -1667,38 +1439,117 @@ const FinalScreen = ({ onClose }: FinalScreenProps) => {
 };
 
 // =============================================================================
-// == FORMULARIO DE INSTRUCTOR (COMPLETO CON EVIDENCIAS)
+// == COMPONENTE FILE INPUT
 // =============================================================================
 
-const formatCourseDates = (dates: string) => {
+const FileInput = ({ id, label, onFileSelect, onError, acceptedFile, acceptedTypes, maxSizeMB }) => {
+    const { useState, useRef } = React;
+    const [isDragging, setIsDragging] = useState(false);
+    const inputRef = useRef(null);
+
+    const handleFileValidation = (file) => {
+        const fileTypeParts = file.type.split('/');
+        const fileTypeMajor = fileTypeParts[0];
+        
+        const isValidType = acceptedTypes.some(type => {
+            if (type.endsWith('/*')) {
+                const typeMajor = type.split('/')[0];
+                return typeMajor === fileTypeMajor;
+            }
+            return type === file.type;
+        });
+
+        if (!isValidType) {
+            onError(`Tipo de archivo no permitido: ${file.type}`);
+            return false;
+        }
+
+        if (file.size > maxSizeMB * 1024 * 1024) {
+            onError(`El archivo excede ${maxSizeMB} MB`);
+            return false;
+        }
+
+        onError(null);
+        onFileSelect(file);
+        return true;
+    };
+
+    const handleChange = (e) => {
+        if (e.target.files && e.target.files[0]) {
+            handleFileValidation(e.target.files[0]);
+        } else {
+            onFileSelect(null);
+        }
+    };
+
+    const handleRemoveFile = () => {
+        onFileSelect(null);
+        if (inputRef.current) inputRef.current.value = "";
+    };
+
+    return React.createElement('div', null,
+        React.createElement('label', {
+            htmlFor: id,
+            className: `relative flex flex-col items-center justify-center w-full h-28 sm:h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 ${isDragging ? 'border-indigo-500' : ''}`
+        },
+            React.createElement('input', {
+                type: 'file',
+                id: id,
+                ref: inputRef,
+                className: 'sr-only',
+                accept: acceptedTypes.join(','),
+                onChange: handleChange
+            }),
+            React.createElement('div', { className: 'flex flex-col items-center justify-center space-y-2 text-center px-4' },
+                acceptedFile 
+                    ? React.createElement('p', { className: 'text-xs sm:text-sm font-semibold text-green-700 break-all' }, 
+                        `📄 ${acceptedFile.name}`
+                    )
+                    : React.createElement('p', { className: 'text-xs sm:text-sm text-gray-500' }, 
+                        label
+                    )
+            )
+        ),
+        React.createElement('div', { className: 'flex justify-between items-center mt-1' },
+            React.createElement('p', { className: 'text-xs text-gray-500' }, 
+                `PDF. Máx ${maxSizeMB}MB`
+            ),
+            acceptedFile && React.createElement('button', {
+                type: 'button',
+                onClick: handleRemoveFile,
+                className: 'text-xs text-red-600 hover:underline'
+            }, 'Quitar')
+        )
+    );
+};
+
+// =============================================================================
+// == FORMULARIO DE INSTRUCTOR
+// =============================================================================
+
+const formatCourseDates = (dates) => {
     if (!dates) return '';
     return dates.split(',').map(d => d.trim()).join(' | ');
 };
 
-interface InstructorFormProps {
-    onBack: () => void;
-    teachers: Teacher[];
-    courses: Course[];
-}
-
-const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
+const InstructorForm = ({ onBack, teachers, courses }) => {
     const { useState } = React;
-    const [activeTab, setActiveTab] = useState<'proposal' | 'evidence'>('proposal');
+    const [activeTab, setActiveTab] = useState('proposal');
     const [showFinalScreen, setShowFinalScreen] = useState(false);
 
     const [proposalForm, setProposalForm] = useState({ instructorName: '', instructorEmail: '', courseName: '', courseId: '' });
-    const [cvuFile, setCvuFile] = useState<File | null>(null);
-    const [fichaFile, setFichaFile] = useState<File | null>(null);
+    const [cvuFile, setCvuFile] = useState(null);
+    const [fichaFile, setFichaFile] = useState(null);
     const [proposalStatus, setProposalStatus] = useState({ isSubmitting: false, error: null, success: null, progress: null });
-    const [cvuError, setCvuError] = useState<string | null>(null);
-    const [fichaError, setFichaError] = useState<string | null>(null);
+    const [cvuError, setCvuError] = useState(null);
+    const [fichaError, setFichaError] = useState(null);
     
     const [evidenceForm, setEvidenceForm] = useState({ instructorName: '', instructorEmail: '', courseName: '' });
-    const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
-    const [evidenceError, setEvidenceError] = useState<string | null>(null);
+    const [evidenceFiles, setEvidenceFiles] = useState([]);
+    const [evidenceError, setEvidenceError] = useState(null);
     const [evidenceStatus, setEvidenceStatus] = useState({ isSubmitting: false, error: null, success: null });
 
-    const handleProposalTeacherSelect = (teacher: Teacher) => {
+    const handleProposalTeacherSelect = (teacher) => {
         setProposalForm(prev => ({
             ...prev,
             instructorName: teacher.nombreCompleto.toUpperCase(),
@@ -1706,7 +1557,7 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
         }));
     };
     
-    const handleEvidenceTeacherSelect = (teacher: Teacher) => {
+    const handleEvidenceTeacherSelect = (teacher) => {
         setEvidenceForm(prev => ({
             ...prev,
             instructorName: teacher.nombreCompleto.toUpperCase(),
@@ -1714,7 +1565,7 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
         }));
     };
 
-    const handleProposalSubmit = async (e: React.FormEvent) => {
+    const handleProposalSubmit = async (e) => {
         e.preventDefault();
         setProposalStatus({ isSubmitting: true, error: null, success: null, progress: null });
         
@@ -1752,7 +1603,7 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
         }
     };
 
-    const handleEvidenceSubmit = async (e: React.FormEvent) => {
+    const handleEvidenceSubmit = async (e) => {
         e.preventDefault();
         setEvidenceStatus({ isSubmitting: true, error: null, success: null });
 
@@ -1797,9 +1648,8 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
         acc[period].courses.push(course);
         if (!acc[period].dates && course.dates) acc[period].dates = formatCourseDates(course.dates);
         return acc;
-    }, {} as { [key: string]: { courses: Course[], dates: string } });
+    }, {});
 
-    // MODIFICADO: Pantallas de éxito con botón "Salir"
     const renderProposalForm = () => {
         if (proposalStatus.success) {
             return React.createElement('div', { className: 'text-center py-8' },
@@ -1818,7 +1668,6 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
         }
 
         return React.createElement('form', { onSubmit: handleProposalSubmit, noValidate: true },
-            // AGREGADO: Sección de descarga de formatos
             React.createElement(DownloadFormatsSection),
             
             React.createElement('div', { className: 'bg-blue-700 text-white p-4 rounded-lg mb-6 text-xs sm:text-sm text-center' },
@@ -1835,7 +1684,7 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
                     React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Nombre Completo *'),
                     React.createElement(AutocompleteInput, {
                         teachers, onSelect: handleProposalTeacherSelect, value: proposalForm.instructorName,
-                        onChange: (e: any) => setProposalForm(prev => ({ ...prev, instructorName: e.target.value.toUpperCase() })),
+                        onChange: (e) => setProposalForm(prev => ({ ...prev, instructorName: e.target.value.toUpperCase() })),
                         name: 'proposalInstructorName', required: true
                     })
                 ),
@@ -1843,7 +1692,7 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
                     React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Email *'),
                     React.createElement('input', {
                         type: 'email', value: proposalForm.instructorEmail,
-                        onChange: (e: any) => setProposalForm(prev => ({ ...prev, instructorEmail: e.target.value.toLowerCase() })),
+                        onChange: (e) => setProposalForm(prev => ({ ...prev, instructorEmail: e.target.value.toLowerCase() })),
                         className: 'mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base',
                         required: true, placeholder: 'email@itdurango.edu.mx'
                     })
@@ -1944,7 +1793,7 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
                     React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Nombre *'),
                     React.createElement(AutocompleteInput, {
                         teachers, onSelect: handleEvidenceTeacherSelect, value: evidenceForm.instructorName,
-                        onChange: (e: any) => setEvidenceForm(prev => ({ ...prev, instructorName: e.target.value.toUpperCase() })),
+                        onChange: (e) => setEvidenceForm(prev => ({ ...prev, instructorName: e.target.value.toUpperCase() })),
                         name: 'evidenceInstructorName', required: true
                     })
                 ),
@@ -1952,7 +1801,7 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
                     React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Email *'),
                     React.createElement('input', {
                         type: 'email', value: evidenceForm.instructorEmail,
-                        onChange: (e: any) => setEvidenceForm(prev => ({ ...prev, instructorEmail: e.target.value.toLowerCase() })),
+                        onChange: (e) => setEvidenceForm(prev => ({ ...prev, instructorEmail: e.target.value.toLowerCase() })),
                         className: 'mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base',
                         required: true, placeholder: 'email@itdurango.edu.mx'
                     })
@@ -1999,9 +1848,9 @@ const InstructorForm = ({ onBack, teachers, courses }: InstructorFormProps) => {
                         type: 'file', 
                         multiple: true, 
                         accept: 'application/pdf,image/*',
-                        onChange: (e: any) => { 
+                        onChange: (e) => { 
                             if (e.target.files) {
-                                const filesArray = Array.from(e.target.files) as File[];
+                                const filesArray = Array.from(e.target.files);
                                 if (filesArray.length > 6) {
                                     setEvidenceError('No puede seleccionar más de 6 archivos');
                                     setEvidenceFiles([]);
