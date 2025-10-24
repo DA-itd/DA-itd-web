@@ -1761,122 +1761,167 @@ const InstructorForm = ({ onBack, teachers, courses }) => {
         );
     };
 
-    const renderEvidenceForm = () => {
-        if (evidenceStatus.success) {
-            return React.createElement('div', { className: 'text-center py-8' },
-                React.createElement('div', { className: 'bg-green-100 border-l-4 border-green-500 text-green-700 p-6 mb-8 rounded-md' },
-                    React.createElement('div', { className: 'text-5xl mb-4' }, '✅'),
-                    React.createElement('p', { className: 'font-bold text-xl' }, evidenceStatus.success),
-                    React.createElement('p', { className: 'text-sm mt-2' }, 
-                        'Tus evidencias han sido recibidas correctamente.'
+  const renderEvidenceForm = () => {
+    if (evidenceStatus.success) {
+        return React.createElement('div', { className: 'text-center py-8' },
+            React.createElement('div', { className: 'bg-green-100 border-l-4 border-green-500 text-green-700 p-6 mb-8 rounded-md' },
+                React.createElement('div', { className: 'text-5xl mb-4' }, '✅'),
+                React.createElement('p', { className: 'font-bold text-xl' }, evidenceStatus.success),
+                React.createElement('p', { className: 'text-sm mt-2' }, 
+                    'Tus evidencias han sido recibidas correctamente.'
+                )
+            ),
+            React.createElement('button', {
+                onClick: handleExit,
+                className: 'bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold py-3 px-8 rounded-lg text-lg transition-all transform hover:scale-105 shadow-lg'
+            }, '🚪 Salir')
+        );
+    }
+
+    return React.createElement('form', { onSubmit: handleEvidenceSubmit },
+        React.createElement('div', { className: 'bg-blue-50 border-l-4 border-blue-500 text-blue-800 p-4 rounded-lg mb-6 text-xs sm:text-sm' },
+            React.createElement('p', null, 'Suba hasta 6 archivos (máx 5MB cada uno). Formatos: PDF o imágenes.')
+        ),
+        evidenceStatus.error && React.createElement('div', { className: 'bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md' },
+            React.createElement('p', { className: 'text-sm' }, evidenceStatus.error)
+        ),
+        evidenceError && React.createElement('div', { className: 'bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md' },
+            React.createElement('p', { className: 'text-sm' }, evidenceError)
+        ),
+        React.createElement('div', { className: 'space-y-6' },
+            React.createElement('div', null,
+                React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Nombre *'),
+                React.createElement(AutocompleteInput, {
+                    teachers, onSelect: handleEvidenceTeacherSelect, value: evidenceForm.instructorName,
+                    onChange: (e) => setEvidenceForm(prev => ({ ...prev, instructorName: e.target.value.toUpperCase() })),
+                    name: 'evidenceInstructorName', required: true
+                })
+            ),
+            React.createElement('div', null,
+                React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Email *'),
+                React.createElement('input', {
+                    type: 'email', value: evidenceForm.instructorEmail,
+                    onChange: (e) => setEvidenceForm(prev => ({ ...prev, instructorEmail: e.target.value.toLowerCase() })),
+                    className: 'mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base',
+                    required: true, placeholder: 'email@itdurango.edu.mx'
+                })
+            ),
+            React.createElement('div', null,
+                React.createElement('fieldset', null,
+                    React.createElement('legend', { className: 'block text-sm font-medium text-gray-700 mb-4' }, 'Curso Impartido *'),
+                    courses.length === 0 ? React.createElement('p', { className: 'text-red-500 text-sm' }, 
+                        'No hay cursos disponibles.'
+                    ) : Object.entries(groupedCourses).map(([period, data]) =>
+                        React.createElement('div', { key: period, className: 'mb-6' },
+                            React.createElement('h4', { className: 'text-sm sm:text-md font-semibold text-gray-600 border-b pb-2 mb-4' },
+                                data.dates ? `${period.replace(/_/g, ' ')} | ${data.dates}` : period.replace(/_/g, ' ')
+                            ),
+                            React.createElement('div', { className: 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3' },
+                                data.courses.map(course => {
+                                    const isSelected = evidenceForm.courseName === course.name;
+                                    return React.createElement('div', { key: course.id, className: 'relative' },
+                                        React.createElement('input', {
+                                            type: 'radio',
+                                            id: `evidence-course-${course.id}`,
+                                            name: 'evidence-course-selection',
+                                            checked: isSelected,
+                                            onChange: () => setEvidenceForm(prev => ({ ...prev, courseName: course.name })),
+                                            className: 'sr-only peer'
+                                        }),
+                                        React.createElement('label', {
+                                            htmlFor: `evidence-course-${course.id}`,
+                                            className: `block p-3 rounded-lg border transition-all hover:shadow-md cursor-pointer ${
+                                                course.period === 'PERIODO_1' ? 'border-teal-400 bg-teal-50' : 'border-indigo-400 bg-indigo-50'
+                                            } peer-checked:ring-2 peer-checked:ring-indigo-500`
+                                        },
+                                            React.createElement('h3', { className: 'font-bold text-xs sm:text-sm' }, course.name)
+                                        )
+                                    );
+                                })
+                            )
+                        )
+                    )
+                )
+            ),
+            // MEJORADO: Selector de archivos más visible y en español
+            React.createElement('div', null,
+                React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 
+                    'Archivos de Evidencia (hasta 6 archivos) *'
+                ),
+                React.createElement('div', { 
+                    className: 'border-2 border-dashed border-indigo-300 rounded-lg p-6 bg-indigo-50 hover:bg-indigo-100 transition-colors'
+                },
+                    React.createElement('div', { className: 'text-center' },
+                        React.createElement('div', { className: 'text-5xl mb-3' }, '📎'),
+                        React.createElement('label', {
+                            htmlFor: 'evidence-files',
+                            className: 'cursor-pointer inline-flex items-center px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-md'
+                        },
+                            React.createElement('span', { className: 'text-2xl mr-2' }, '📁'),
+                            React.createElement('span', null, 'Seleccionar Archivos')
+                        ),
+                        React.createElement('input', {
+                            type: 'file',
+                            id: 'evidence-files',
+                            multiple: true,
+                            accept: 'application/pdf,image/*',
+                            onChange: (e) => {
+                                if (e.target.files) {
+                                    const filesArray = Array.from(e.target.files);
+                                    if (filesArray.length > 6) {
+                                        setEvidenceError('No puede seleccionar más de 6 archivos');
+                                        setEvidenceFiles([]);
+                                        e.target.value = '';
+                                    } else {
+                                        setEvidenceError(null);
+                                        setEvidenceFiles(filesArray);
+                                    }
+                                }
+                            },
+                            className: 'hidden'
+                        }),
+                        React.createElement('p', { className: 'text-xs text-gray-600 mt-3' },
+                            'PDF o imágenes (JPG, PNG) • Máximo 5MB por archivo'
+                        )
                     )
                 ),
-                React.createElement('button', {
-                    onClick: handleExit,
-                    className: 'bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold py-3 px-8 rounded-lg text-lg transition-all transform hover:scale-105 shadow-lg'
-                }, '🚪 Salir')
-            );
-        }
-
-        return React.createElement('form', { onSubmit: handleEvidenceSubmit },
-            React.createElement('div', { className: 'bg-blue-50 border-l-4 border-blue-500 text-blue-800 p-4 rounded-lg mb-6 text-xs sm:text-sm' },
-                React.createElement('p', null, 'Suba hasta 6 archivos (máx 5MB cada uno). Formatos: PDF o imágenes.')
-            ),
-            evidenceStatus.error && React.createElement('div', { className: 'bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md' },
-                React.createElement('p', { className: 'text-sm' }, evidenceStatus.error)
-            ),
-            evidenceError && React.createElement('div', { className: 'bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md' },
-                React.createElement('p', { className: 'text-sm' }, evidenceError)
-            ),
-            React.createElement('div', { className: 'space-y-6' },
-                React.createElement('div', null,
-                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Nombre *'),
-                    React.createElement(AutocompleteInput, {
-                        teachers, onSelect: handleEvidenceTeacherSelect, value: evidenceForm.instructorName,
-                        onChange: (e) => setEvidenceForm(prev => ({ ...prev, instructorName: e.target.value.toUpperCase() })),
-                        name: 'evidenceInstructorName', required: true
-                    })
-                ),
-                React.createElement('div', null,
-                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Email *'),
-                    React.createElement('input', {
-                        type: 'email', value: evidenceForm.instructorEmail,
-                        onChange: (e) => setEvidenceForm(prev => ({ ...prev, instructorEmail: e.target.value.toLowerCase() })),
-                        className: 'mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base',
-                        required: true, placeholder: 'email@itdurango.edu.mx'
-                    })
-                ),
-                React.createElement('div', null,
-                    React.createElement('fieldset', null,
-                        React.createElement('legend', { className: 'block text-sm font-medium text-gray-700 mb-4' }, 'Curso Impartido *'),
-                        courses.length === 0 ? React.createElement('p', { className: 'text-red-500 text-sm' }, 
-                            'No hay cursos disponibles.'
-                        ) : Object.entries(groupedCourses).map(([period, data]) =>
-                            React.createElement('div', { key: period, className: 'mb-6' },
-                                React.createElement('h4', { className: 'text-sm sm:text-md font-semibold text-gray-600 border-b pb-2 mb-4' },
-                                    data.dates ? `${period.replace(/_/g, ' ')} | ${data.dates}` : period.replace(/_/g, ' ')
-                                ),
-                                React.createElement('div', { className: 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3' },
-                                    data.courses.map(course => {
-                                        const isSelected = evidenceForm.courseName === course.name;
-                                        return React.createElement('div', { key: course.id, className: 'relative' },
-                                            React.createElement('input', {
-                                                type: 'radio',
-                                                id: `evidence-course-${course.id}`,
-                                                name: 'evidence-course-selection',
-                                                checked: isSelected,
-                                                onChange: () => setEvidenceForm(prev => ({ ...prev, courseName: course.name })),
-                                                className: 'sr-only peer'
-                                            }),
-                                            React.createElement('label', {
-                                                htmlFor: `evidence-course-${course.id}`,
-                                                className: `block p-3 rounded-lg border transition-all hover:shadow-md cursor-pointer ${
-                                                    course.period === 'PERIODO_1' ? 'border-teal-400 bg-teal-50' : 'border-indigo-400 bg-indigo-50'
-                                                } peer-checked:ring-2 peer-checked:ring-indigo-500`
-                                            },
-                                                React.createElement('h3', { className: 'font-bold text-xs sm:text-sm' }, course.name)
-                                            )
-                                        );
-                                    })
+                evidenceFiles.length > 0 && React.createElement('div', { 
+                    className: 'mt-4 bg-green-50 border border-green-300 rounded-lg p-4'
+                },
+                    React.createElement('p', { className: 'text-sm font-semibold text-green-800 mb-2' },
+                        `✅ ${evidenceFiles.length} archivo(s) seleccionado(s):`
+                    ),
+                    React.createElement('ul', { className: 'space-y-1' },
+                        evidenceFiles.map((file, index) =>
+                            React.createElement('li', { 
+                                key: index,
+                                className: 'text-xs text-green-700 flex items-center gap-2'
+                            },
+                                React.createElement('span', null, '📄'),
+                                React.createElement('span', { className: 'truncate' }, file.name),
+                                React.createElement('span', { className: 'text-gray-500' }, 
+                                    `(${(file.size / 1024).toFixed(1)} KB)`
                                 )
                             )
                         )
                     )
-                ),
-                React.createElement('div', null,
-                    React.createElement('input', {
-                        type: 'file', 
-                        multiple: true, 
-                        accept: 'application/pdf,image/*',
-                        onChange: (e) => { 
-                            if (e.target.files) {
-                                const filesArray = Array.from(e.target.files);
-                                if (filesArray.length > 6) {
-                                    setEvidenceError('No puede seleccionar más de 6 archivos');
-                                    setEvidenceFiles([]);
-                                    e.target.value = '';
-                                } else {
-                                    setEvidenceError(null);
-                                    setEvidenceFiles(filesArray);
-                                }
-                            }
-                        },
-                        className: 'block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100'
-                    }),
-                    evidenceFiles.length > 0 && React.createElement('p', { className: 'text-sm text-green-600 mt-2' },
-                        `${evidenceFiles.length} archivo(s) seleccionado(s)`
-                    )
                 )
-            ),
-            React.createElement('div', { className: 'mt-8 flex justify-end' },
-                React.createElement('button', {
-                    type: 'submit',
-                    disabled: evidenceStatus.isSubmitting,
-                    className: 'w-full sm:w-auto bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 disabled:opacity-50'
-                }, evidenceStatus.isSubmitting ? 'Enviando...' : 'Enviar Evidencia')
             )
-        );
-    };
+        ),
+        React.createElement('div', { className: 'mt-8 flex justify-end' },
+            React.createElement('button', {
+                type: 'submit',
+                disabled: evidenceStatus.isSubmitting || evidenceFiles.length === 0,
+                className: 'w-full sm:w-auto bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all'
+            },
+                evidenceStatus.isSubmitting && React.createElement('div', { 
+                    className: 'animate-spin rounded-full h-5 w-5 border-b-2 border-white' 
+                }),
+                evidenceStatus.isSubmitting ? 'Enviando archivos...' : `📤 Enviar ${evidenceFiles.length > 0 ? `(${evidenceFiles.length})` : ''} Evidencia${evidenceFiles.length !== 1 ? 's' : ''}`
+            )
+        )
+    );
+};
 
     if (showFinalScreen) {
         return React.createElement(FinalScreen, { onClose: handleCloseFinalScreen });
