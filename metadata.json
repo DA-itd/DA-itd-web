@@ -1,5 +1,5 @@
 {
-  "name": "Sistema de Inscripción a Cursos Docentes",
-  "description": "Una aplicación de una sola página para que los docentes se inscriban en cursos de desarrollo profesional. Carga datos de cursos, departamentos y docentes desde CSVs públicos, presenta un formulario de varios pasos y envía los datos de inscripción a un backend de Google Apps Script para su procesamiento y notificación por correo electrónico.",
+  "name": "Validador de Constancias ITD",
+  "description": "Una aplicación web para verificar la validez de las constancias y reconocimientos emitidos por el Instituto Tecnológico de Durango (ITD) buscando por folio en una base de datos.",
   "requestFramePermissions": []
 }
