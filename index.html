@@ -493,40 +493,56 @@
                         const fontSize = Math.sqrt((tx[2] * tx[2]) + (tx[3] * tx[3]));
                         const fontFamily = item.fontName || 'Arial';
                         
-                        // Crear input en lugar de div para mejor edición
+                        // Crear contenedor wrapper para manejar drag
+                        const wrapper = document.createElement('div');
+                        wrapper.style.position = 'absolute';
+                        wrapper.style.left = tx[4] + 'px';
+                        wrapper.style.top = (viewport.height - tx[5] - fontSize) + 'px';
+                        wrapper.style.cursor = 'move';
+                        wrapper.style.zIndex = '10';
+                        
+                        // Crear input de texto
                         const textField = document.createElement('input');
                         textField.type = 'text';
                         textField.className = 'text-field editable';
                         textField.value = item.str;
+                        textField.setAttribute('data-original', item.str);
                         
-                        textField.style.position = 'absolute';
-                        textField.style.left = tx[4] + 'px';
-                        textField.style.top = (viewport.height - tx[5] - fontSize) + 'px';
+                        textField.style.position = 'relative';
                         textField.style.fontSize = fontSize + 'px';
                         textField.style.fontFamily = fontFamily;
                         textField.style.border = '2px solid #8B1538';
                         textField.style.background = 'rgba(255, 255, 255, 0.95)';
                         textField.style.padding = '2px 4px';
+                        textField.style.cursor = 'text';
                         
                         // Calcular ancho aproximado
                         const width = item.width * currentScale;
                         textField.style.width = Math.max(width, 50) + 'px';
                         
-                        // Eventos para mejor UX
+                        // Evento para seleccionar todo al hacer clic
                         textField.addEventListener('focus', function() {
+                            this.select();
                             this.style.borderColor = '#10b981';
                             this.style.background = 'white';
-                            this.style.zIndex = '100';
+                            wrapper.style.zIndex = '100';
+                            wrapper.style.cursor = 'text';
                         });
                         
                         textField.addEventListener('blur', function() {
                             this.style.borderColor = '#8B1538';
                             this.style.background = 'rgba(255, 255, 255, 0.95)';
-                            this.style.zIndex = '10';
+                            wrapper.style.zIndex = '10';
+                            wrapper.style.cursor = 'move';
                         });
                         
-                        pageContainer.appendChild(textField);
-                        textFields.push({ element: textField, pageNum: pageNum });
+                        wrapper.appendChild(textField);
+                        pageContainer.appendChild(wrapper);
+                        
+                        // Hacer el wrapper draggable
+                        makeDraggable(wrapper, textField);
+                        
+                        textFields.push({ element: textField, wrapper: wrapper, pageNum: pageNum });
                     }
                 });
 
