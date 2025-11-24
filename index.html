@@ -8,6 +8,28 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
     <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --text-primary: #1a1a1a;
+            --text-secondary: #6c757d;
+            --accent-primary: #8B1538;
+            --accent-secondary: #667eea;
+            --border-color: #e0e0e0;
+            --shadow: rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --accent-primary: #d4224a;
+            --accent-secondary: #8b9eff;
+            --border-color: #404040;
+            --shadow: rgba(0, 0, 0, 0.5);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -15,8 +37,10 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background 0.3s ease, color 0.3s ease;
             min-height: 100vh;
         }
 
@@ -27,79 +51,169 @@
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            padding: 20px;
+            padding: 40px 20px;
             text-align: center;
-            color: white;
         }
 
-        .logo {
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 50px;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        .hero-title {
             font-size: 3.5rem;
-            font-weight: bold;
+            font-weight: 800;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        .hero-title .normal {
+            color: var(--text-primary);
+        }
+
+        .hero-title .gradient {
+            background: linear-gradient(135deg, #d946ef 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            margin-bottom: 60px;
+            max-width: 600px;
+        }
+
+        .upload-section {
+            background: var(--bg-secondary);
+            border: 2px dashed var(--border-color);
+            border-radius: 20px;
+            padding: 60px 80px;
+            margin-bottom: 60px;
+            transition: all 0.3s ease;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .upload-section:hover {
+            border-color: var(--accent-secondary);
+            box-shadow: 0 8px 30px var(--shadow);
+        }
+
+        .upload-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 2rem;
+        }
+
+        .upload-title {
+            font-size: 1.5rem;
+            font-weight: 600;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+            color: var(--text-primary);
         }
 
-        .subtitle {
-            font-size: 1.3rem;
-            margin-bottom: 50px;
-            opacity: 0.95;
+        .upload-desc {
+            color: var(--text-secondary);
+            margin-bottom: 25px;
         }
 
-        .features {
+        .upload-btn {
+            background: var(--accent-secondary);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .upload-formats {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 15px;
+        }
+
+        .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 30px;
             max-width: 1000px;
-            margin-bottom: 50px;
             width: 100%;
         }
 
         .feature-card {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            padding: 30px;
-            border-radius: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            background: var(--bg-secondary);
+            padding: 40px 30px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
         }
 
         .feature-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 30px var(--shadow);
         }
 
         .feature-icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 1.8rem;
+        }
+
+        .feature-card:nth-child(2) .feature-icon {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .feature-card:nth-child(3) .feature-icon {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
         }
 
         .feature-title {
-            font-size: 1.5rem;
-            font-weight: bold;
+            font-size: 1.3rem;
+            font-weight: 600;
             margin-bottom: 10px;
+            color: var(--text-primary);
         }
 
         .feature-desc {
-            font-size: 1rem;
-            opacity: 0.9;
-        }
-
-        .enter-btn {
-            background: linear-gradient(135deg, #8B1538 0%, #6B0F2A 100%);
-            color: white;
-            border: none;
-            padding: 20px 60px;
-            font-size: 1.5rem;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-            font-weight: bold;
-        }
-
-        .enter-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+            color: var(--text-secondary);
+            line-height: 1.6;
         }
 
         /* APLICACIÓN */
@@ -107,28 +221,30 @@
             display: none;
             min-height: 100vh;
             padding: 20px;
+            background: var(--bg-secondary);
         }
 
         .container {
             max-width: 1400px;
             margin: 0 auto;
-            background: white;
+            background: var(--bg-primary);
             border-radius: 20px;
             padding: 30px;
-            box-shadow: 0 10px 50px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 50px var(--shadow);
         }
 
         .header {
-            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 30px;
             padding-bottom: 20px;
-            border-bottom: 3px solid #8B1538;
+            border-bottom: 3px solid var(--accent-primary);
         }
 
         .header h1 {
-            color: #8B1538;
-            font-size: 2.5rem;
-            margin-bottom: 10px;
+            color: var(--accent-primary);
+            font-size: 2rem;
         }
 
         .toolbar {
@@ -136,18 +252,18 @@
             flex-wrap: wrap;
             gap: 10px;
             padding: 20px;
-            background: #f5f5f5;
+            background: var(--bg-secondary);
             border-radius: 10px;
             margin-bottom: 20px;
             align-items: center;
         }
 
         .btn {
-            padding: 12px 24px;
+            padding: 12px 20px;
             border: none;
             border-radius: 8px;
             cursor: pointer;
-            font-size: 1rem;
+            font-size: 0.95rem;
             font-weight: 600;
             transition: all 0.3s ease;
             display: flex;
@@ -156,22 +272,23 @@
         }
 
         .btn-primary {
-            background: #8B1538;
+            background: var(--accent-primary);
             color: white;
         }
 
         .btn-primary:hover {
-            background: #6B0F2A;
             transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 21, 56, 0.4);
         }
 
         .btn-secondary {
-            background: #667eea;
+            background: var(--accent-secondary);
             color: white;
         }
 
         .btn-secondary:hover {
-            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
         }
 
         .btn-success {
@@ -180,16 +297,8 @@
         }
 
         .btn-success:hover {
-            background: #059669;
-        }
-
-        .btn-warning {
-            background: #f59e0b;
-            color: white;
-        }
-
-        .btn-warning:hover {
-            background: #d97706;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
         }
 
         .file-input {
@@ -197,10 +306,10 @@
         }
 
         .editor-container {
-            border: 2px solid #ddd;
+            border: 2px solid var(--border-color);
             border-radius: 10px;
             min-height: 500px;
-            background: #fafafa;
+            background: var(--bg-secondary);
             position: relative;
             overflow: auto;
             padding: 20px;
@@ -210,7 +319,7 @@
             position: relative;
             margin: 20px auto;
             background: white;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px var(--shadow);
             display: inline-block;
         }
 
@@ -219,26 +328,19 @@
         }
 
         .text-field {
-            position: absolute;
-            border: 2px solid #8B1538;
+            border: 2px solid var(--accent-primary);
             background: rgba(255, 255, 255, 0.95);
             padding: 4px 8px;
-            cursor: text;
             font-family: Arial, sans-serif;
             min-width: 50px;
-            min-height: 20px;
-            transition: all 0.2s ease;
             outline: none;
-            overflow: visible;
-            white-space: pre-wrap;
-            word-wrap: break-word;
             z-index: 10;
+            font-size: 14px;
         }
 
         .text-field:hover {
-            border-color: #667eea;
+            border-color: var(--accent-secondary);
             box-shadow: 0 0 8px rgba(102, 126, 234, 0.3);
-            background: rgba(255, 255, 255, 0.98);
         }
 
         .text-field:focus {
@@ -246,30 +348,6 @@
             box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
             background: white;
             z-index: 100;
-        }
-
-        .text-field.editable {
-            background: rgba(255, 255, 255, 0.98);
-            cursor: text;
-            user-select: text;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 100px 20px;
-            color: #666;
-            font-size: 1.2rem;
-        }
-
-        .loading::after {
-            content: '...';
-            animation: dots 1.5s steps(4, end) infinite;
-        }
-
-        @keyframes dots {
-            0%, 20% { content: '.'; }
-            40% { content: '..'; }
-            60%, 100% { content: '...'; }
         }
 
         .status {
@@ -295,102 +373,102 @@
             color: #1e40af;
         }
 
-        .edit-mode-indicator {
-            display: inline-block;
-            padding: 8px 16px;
-            background: #10b981;
+        .info-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            font-weight: 600;
-        }
-
-        .controls-info {
-            background: #fef3c7;
             padding: 15px;
-            border-radius: 8px;
+            border-radius: 10px;
             margin-bottom: 20px;
-            border-left: 4px solid #f59e0b;
+            font-size: 0.95rem;
         }
 
-        .controls-info strong {
-            color: #92400e;
+        .loading {
+            text-align: center;
+            padding: 100px 20px;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
         }
 
         @media (max-width: 768px) {
-            .logo {
+            .hero-title {
                 font-size: 2.5rem;
             }
 
-            .subtitle {
-                font-size: 1.1rem;
+            .upload-section {
+                padding: 40px 30px;
             }
 
-            .features {
+            .features-grid {
                 grid-template-columns: 1fr;
-            }
-
-            .enter-btn {
-                padding: 15px 40px;
-                font-size: 1.2rem;
-            }
-
-            .header h1 {
-                font-size: 1.8rem;
             }
 
             .toolbar {
                 justify-content: center;
             }
 
-            .text-field {
-                font-size: 12px;
+            .header {
+                flex-direction: column;
+                gap: 15px;
             }
         }
     </style>
 </head>
 <body>
+    <!-- BOTÓN TEMA -->
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeToggle">🌙</button>
+
     <!-- PORTADA -->
     <div id="landing">
-        <div class="logo">📄 Mi Gran PDF</div>
-        <div class="subtitle">Editor Inteligente del Instituto Tecnológico de Durango</div>
+        <h1 class="hero-title">
+            <span class="normal">Tus documentos,</span><br>
+            <span class="gradient">ahora con superpoderes.</span>
+        </h1>
         
-        <div class="features">
-            <div class="feature-card">
-                <div class="feature-icon">📤</div>
-                <div class="feature-title">Sube tu Documento</div>
-                <div class="feature-desc">Compatible con PDF, TXT y DOCX. El texto se convierte automáticamente en campos editables.</div>
-            </div>
-            
-            <div class="feature-card">
-                <div class="feature-icon">✏️</div>
-                <div class="feature-title">Edita Cada Campo</div>
-                <div class="feature-desc">Haz clic en cualquier texto para modificarlo. Cambia contenido, posición y tamaño fácilmente.</div>
-            </div>
-            
-            <div class="feature-card">
-                <div class="feature-icon">💾</div>
-                <div class="feature-title">Guarda y Comparte</div>
-                <div class="feature-desc">Descarga, envía por correo o imprime tu documento editado en segundos.</div>
-            </div>
+        <p class="hero-subtitle">
+            Sube cualquier PDF, Word (imagen) o foto. Mi Gran PDF extraerá el texto mágicamente para que puedas editarlo, resumirlo o corregirlo al instante.
+        </p>
+
+        <div class="upload-section">
+            <div class="upload-icon">☁️</div>
+            <h2 class="upload-title">Sube tu documento</h2>
+            <p class="upload-desc">Arrastra y suelta tu archivo PDF o imagen aquí.</p>
+            <input type="file" id="landingFileInput" class="file-input" accept=".pdf,.txt,.docx" onchange="loadFromLanding(event)">
+            <button class="upload-btn" onclick="document.getElementById('landingFileInput').click()">
+                Seleccionar archivo
+            </button>
+            <p class="upload-formats">Soporta: PDF, PNG, JPG</p>
         </div>
 
-        <button class="enter-btn" onclick="showApp()">Entrar a la Aplicación →</button>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">📖</div>
+                <h3 class="feature-title">Lectura Universal</h3>
+                <p class="feature-desc">Acepta imágenes y PDFs. Si puedes verlo, podemos editarlo.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3 class="feature-title">Edición con IA</h3>
+                <p class="feature-desc">Corrige gramática, resume o expande textos con un clic.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">📥</div>
+                <h3 class="feature-title">Exporta a PDF</h3>
+                <p class="feature-desc">Guarda tu nuevo documento listo para compartir o imprimir.</p>
+            </div>
+        </div>
     </div>
 
     <!-- APLICACIÓN -->
     <div id="app">
         <div class="container">
             <div class="header">
-                <h1>📄 Mi Gran PDF</h1>
-                <p>Editor Profesional de Documentos</p>
+                <h1>📄 Mi Gran PDF - ITD</h1>
             </div>
 
-            <div class="controls-info">
-                <strong>💡 Instrucciones:</strong> 
-                <br>• <strong>Editar:</strong> Haz clic en un campo, el texto se seleccionará automáticamente para que escribas encima
-                <br>• <strong>Mover:</strong> Arrastra el campo desde el borde (cuando el cursor sea una mano)
-                <br>• <strong>Cambiar tamaño:</strong> Amplía el input escribiendo más texto
+            <div class="info-banner">
+                💡 <strong>Modo de edición activo:</strong> Haz clic en cualquier campo para editar (el texto se seleccionará automáticamente). Arrastra desde el borde para mover.
             </div>
 
             <div class="toolbar">
@@ -398,20 +476,16 @@
                 <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
                     📁 Subir Archivo
                 </button>
-                <div class="edit-mode-indicator">✓ Modo Edición Activo</div>
                 <button class="btn btn-secondary" onclick="addNewTextField()">➕ Agregar Campo</button>
-                <button class="btn btn-warning" onclick="zoomIn()">🔍+ Zoom</button>
-                <button class="btn btn-warning" onclick="zoomOut()">🔍- Alejar</button>
                 <button class="btn btn-success" onclick="downloadPDF()">💾 Descargar PDF</button>
-                <button class="btn btn-success" onclick="sendEmail()">📧 Enviar por Correo</button>
                 <button class="btn btn-success" onclick="printDocument()">🖨️ Imprimir</button>
                 <button class="btn btn-primary" onclick="showLanding()">🏠 Inicio</button>
             </div>
 
             <div class="editor-container" id="editorContainer">
-                <p style="text-align: center; padding: 100px 20px; color: #999;">
+                <p style="text-align: center; padding: 100px 20px; color: var(--text-secondary);">
                     Sube un archivo PDF para comenzar a editar<br>
-                    <small style="color: #aaa;">Cada texto del documento se convertirá en un campo editable</small>
+                    <small>Cada texto del documento se convertirá en un campo editable</small>
                 </p>
             </div>
 
@@ -426,19 +500,44 @@
         let textFields = [];
         let currentScale = 1.5;
 
+        // TEMA
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            document.getElementById('themeToggle').textContent = newTheme === 'dark' ? '☀️' : '🌙';
+            localStorage.setItem('theme', newTheme);
+        }
+
+        // Cargar tema guardado
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        document.getElementById('themeToggle').textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+
+        function showApp() {
+            document.getElementById('landing').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
+        }
+
+        function showLanding() {
+            document.getElementById('landing').style.display = 'flex';
+            document.getElementById('app').style.display = 'none';
+        }
+
+        function loadFromLanding(event) {
+            loadFile(event);
+            showApp();
+        }
+
         function makeDraggable(wrapper, inputElement) {
             let isDragging = false;
-            let currentX;
-            let currentY;
-            let initialX;
-            let initialY;
+            let currentX, currentY, initialX, initialY;
 
             wrapper.addEventListener('mousedown', function(e) {
-                // Solo permitir drag si NO estamos sobre el input o el input no tiene foco
                 if (e.target === inputElement && document.activeElement === inputElement) {
                     return;
                 }
-                
                 isDragging = true;
                 initialX = e.clientX - wrapper.offsetLeft;
                 initialY = e.clientY - wrapper.offsetTop;
@@ -463,22 +562,12 @@
             });
         }
 
-        function showApp() {
-            document.getElementById('landing').style.display = 'none';
-            document.getElementById('app').style.display = 'block';
-        }
-
-        function showLanding() {
-            document.getElementById('landing').style.display = 'flex';
-            document.getElementById('app').style.display = 'none';
-        }
-
         async function loadFile(event) {
             const file = event.target.files[0];
             if (!file) return;
 
             const container = document.getElementById('editorContainer');
-            container.innerHTML = '<div class="loading">Cargando y procesando documento</div>';
+            container.innerHTML = '<div class="loading">Cargando y procesando documento...</div>';
             textFields = [];
 
             try {
@@ -489,9 +578,9 @@
                 } else if (file.name.endsWith('.docx')) {
                     await loadDOCX(file);
                 }
-                showStatus('✓ Documento cargado. Todos los textos son editables. Haz clic en cualquier campo para modificarlo.', 'success');
+                showStatus('✓ Documento cargado. Haz clic en cualquier campo para editar.', 'success');
             } catch (error) {
-                showStatus('Error al cargar el archivo: ' + error.message, 'error');
+                showStatus('Error: ' + error.message, 'error');
             }
         }
 
@@ -507,13 +596,11 @@
                 const page = await pdf.getPage(pageNum);
                 const viewport = page.getViewport({ scale: currentScale });
                 
-                // Crear contenedor de página
                 const pageContainer = document.createElement('div');
                 pageContainer.className = 'page-container';
                 pageContainer.style.width = viewport.width + 'px';
                 pageContainer.style.height = viewport.height + 'px';
                 
-                // Renderizar canvas con el PDF
                 const canvas = document.createElement('canvas');
                 canvas.width = viewport.width;
                 canvas.height = viewport.height;
@@ -523,17 +610,13 @@
                 
                 pageContainer.appendChild(canvas);
 
-                // Extraer texto y crear campos editables
                 const textContent = await page.getTextContent();
                 
-                textContent.items.forEach((item, index) => {
+                textContent.items.forEach((item) => {
                     if (item.str.trim()) {
                         const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
-                        
                         const fontSize = Math.sqrt((tx[2] * tx[2]) + (tx[3] * tx[3]));
-                        const fontFamily = item.fontName || 'Arial';
                         
-                        // Crear contenedor wrapper para manejar drag
                         const wrapper = document.createElement('div');
                         wrapper.style.position = 'absolute';
                         wrapper.style.left = tx[4] + 'px';
@@ -541,72 +624,47 @@
                         wrapper.style.cursor = 'move';
                         wrapper.style.zIndex = '10';
                         
-                        // Crear input de texto
                         const textField = document.createElement('input');
                         textField.type = 'text';
-                        textField.className = 'text-field editable';
+                        textField.className = 'text-field';
                         textField.value = item.str;
-                        textField.setAttribute('data-original', item.str);
-                        
                         textField.style.position = 'relative';
                         textField.style.fontSize = fontSize + 'px';
-                        textField.style.fontFamily = fontFamily;
-                        textField.style.border = '2px solid #8B1538';
-                        textField.style.background = 'rgba(255, 255, 255, 0.95)';
-                        textField.style.padding = '2px 4px';
-                        textField.style.cursor = 'text';
+                        textField.style.width = Math.max(item.width * currentScale, 50) + 'px';
                         
-                        // Calcular ancho aproximado
-                        const width = item.width * currentScale;
-                        textField.style.width = Math.max(width, 50) + 'px';
-                        
-                        // Evento para seleccionar todo al hacer clic
                         textField.addEventListener('focus', function() {
                             this.select();
-                            this.style.borderColor = '#10b981';
-                            this.style.background = 'white';
                             wrapper.style.zIndex = '100';
-                            wrapper.style.cursor = 'text';
                         });
                         
                         textField.addEventListener('blur', function() {
-                            this.style.borderColor = '#8B1538';
-                            this.style.background = 'rgba(255, 255, 255, 0.95)';
                             wrapper.style.zIndex = '10';
-                            wrapper.style.cursor = 'move';
                         });
                         
                         wrapper.appendChild(textField);
                         pageContainer.appendChild(wrapper);
-                        
-                        // Hacer el wrapper draggable
                         makeDraggable(wrapper, textField);
-                        
-                        textFields.push({ element: textField, wrapper: wrapper, pageNum: pageNum });
+                        textFields.push({ element: textField, wrapper: wrapper });
                     }
                 });
 
                 container.appendChild(pageContainer);
             }
-
-            showStatus(`✓ PDF cargado con ${textFields.length} campos editables`, 'info');
         }
 
         async function loadTXT(file) {
             const text = await file.text();
             const container = document.getElementById('editorContainer');
-            
             const pageContainer = document.createElement('div');
             pageContainer.className = 'page-container';
             pageContainer.style.width = '800px';
-            pageContainer.style.minHeight = '1000px';
             pageContainer.style.padding = '40px';
             pageContainer.style.background = 'white';
             
             const lines = text.split('\n');
             let yPosition = 20;
             
-            lines.forEach((line, index) => {
+            lines.forEach((line) => {
                 if (line.trim()) {
                     const wrapper = document.createElement('div');
                     wrapper.style.position = 'absolute';
@@ -616,30 +674,16 @@
                     
                     const textField = document.createElement('input');
                     textField.type = 'text';
-                    textField.className = 'text-field editable';
+                    textField.className = 'text-field';
                     textField.value = line;
-                    textField.style.position = 'relative';
-                    textField.style.fontSize = '14px';
                     textField.style.width = '760px';
-                    textField.style.border = '2px solid #8B1538';
-                    textField.style.padding = '4px 8px';
-                    textField.style.cursor = 'text';
                     
-                    textField.addEventListener('focus', function() {
-                        this.select();
-                        this.style.borderColor = '#10b981';
-                        wrapper.style.cursor = 'text';
-                    });
-                    
-                    textField.addEventListener('blur', function() {
-                        this.style.borderColor = '#8B1538';
-                        wrapper.style.cursor = 'move';
-                    });
+                    textField.addEventListener('focus', function() { this.select(); });
                     
                     wrapper.appendChild(textField);
                     pageContainer.appendChild(wrapper);
                     makeDraggable(wrapper, textField);
-                    textFields.push({ element: textField, wrapper: wrapper, pageNum: 1 });
+                    textFields.push({ element: textField, wrapper: wrapper });
                 }
                 yPosition += 35;
             });
@@ -651,58 +695,10 @@
         async function loadDOCX(file) {
             const arrayBuffer = await file.arrayBuffer();
             const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+            const text = result.value;
             
-            const container = document.getElementById('editorContainer');
-            const pageContainer = document.createElement('div');
-            pageContainer.className = 'page-container';
-            pageContainer.style.width = '800px';
-            pageContainer.style.minHeight = '1000px';
-            pageContainer.style.padding = '40px';
-            pageContainer.style.background = 'white';
-            
-            const lines = result.value.split('\n');
-            let yPosition = 20;
-            
-            lines.forEach((line, index) => {
-                if (line.trim()) {
-                    const wrapper = document.createElement('div');
-                    wrapper.style.position = 'absolute';
-                    wrapper.style.left = '20px';
-                    wrapper.style.top = yPosition + 'px';
-                    wrapper.style.cursor = 'move';
-                    
-                    const textField = document.createElement('input');
-                    textField.type = 'text';
-                    textField.className = 'text-field editable';
-                    textField.value = line;
-                    textField.style.position = 'relative';
-                    textField.style.fontSize = '14px';
-                    textField.style.width = '760px';
-                    textField.style.border = '2px solid #8B1538';
-                    textField.style.padding = '4px 8px';
-                    textField.style.cursor = 'text';
-                    
-                    textField.addEventListener('focus', function() {
-                        this.select();
-                        this.style.borderColor = '#10b981';
-                        wrapper.style.cursor = 'text';
-                    });
-                    
-                    textField.addEventListener('blur', function() {
-                        this.style.borderColor = '#8B1538';
-                        wrapper.style.cursor = 'move';
-                    });
-                    
-                    wrapper.appendChild(textField);
-                    pageContainer.appendChild(wrapper);
-                    makeDraggable(wrapper, textField);
-                    textFields.push({ element: textField, wrapper: wrapper, pageNum: 1 });
-                }
-                yPosition += 35;
-            });
-            
-            container.innerHTML = '';
-            container.appendChild(pageContainer);
+            const fakeFile = new File([text], 'converted.txt', { type: 'text/plain' });
+            await loadTXT(fakeFile);
         }
 
         function addNewTextField() {
@@ -712,129 +708,70 @@
                 return;
             }
 
-            // Crear wrapper
             const wrapper = document.createElement('div');
             wrapper.style.position = 'absolute';
             wrapper.style.left = '100px';
             wrapper.style.top = '100px';
             wrapper.style.cursor = 'move';
-            wrapper.style.zIndex = '10';
 
-            // Crear input
             const textField = document.createElement('input');
             textField.type = 'text';
-            textField.className = 'text-field editable';
+            textField.className = 'text-field';
             textField.value = 'Nuevo texto...';
-            textField.placeholder = 'Escribe aquí...';
-            textField.style.position = 'relative';
-            textField.style.fontSize = '16px';
             textField.style.width = '200px';
-            textField.style.border = '2px solid #8B1538';
-            textField.style.background = 'white';
-            textField.style.padding = '4px 8px';
-            textField.style.cursor = 'text';
             
-            textField.addEventListener('focus', function() {
-                this.select();
-                this.style.borderColor = '#10b981';
-                wrapper.style.zIndex = '100';
-                wrapper.style.cursor = 'text';
-            });
-            
-            textField.addEventListener('blur', function() {
-                this.style.borderColor = '#8B1538';
-                wrapper.style.zIndex = '10';
-                wrapper.style.cursor = 'move';
-            });
+            textField.addEventListener('focus', function() { this.select(); });
             
             wrapper.appendChild(textField);
             container.appendChild(wrapper);
-            
             makeDraggable(wrapper, textField);
-            
-            textFields.push({ element: textField, wrapper: wrapper, pageNum: 1 });
+            textFields.push({ element: textField, wrapper: wrapper });
             textField.focus();
-            textField.select();
-            
-            showStatus('✓ Campo agregado. Escribe para editar o arrastra para mover.', 'success');
-        }
-
-        function zoomIn() {
-            currentScale += 0.2;
-            if (currentPdf && document.getElementById('fileInput').files[0]) {
-                loadFile({ target: { files: [document.getElementById('fileInput').files[0]] }});
-            }
-        }
-
-        function zoomOut() {
-            if (currentScale > 0.4) {
-                currentScale -= 0.2;
-                if (currentPdf && document.getElementById('fileInput').files[0]) {
-                    loadFile({ target: { files: [document.getElementById('fileInput').files[0]] }});
-                }
-            }
         }
 
         async function downloadPDF() {
             try {
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF();
-                
                 const pages = document.querySelectorAll('.page-container');
                 
                 for (let i = 0; i < pages.length; i++) {
                     if (i > 0) pdf.addPage();
-                    
                     const canvas = pages[i].querySelector('canvas');
                     if (canvas) {
                         const imgData = canvas.toDataURL('image/png');
                         pdf.addImage(imgData, 'PNG', 10, 10, 190, 277);
                     }
                     
-                    // Agregar campos de texto editados
                     const fields = pages[i].querySelectorAll('.text-field');
                     fields.forEach(field => {
                         const rect = field.getBoundingClientRect();
                         const pageRect = pages[i].getBoundingClientRect();
-                        
-                        const x = (rect.left - pageRect.left) * 0.264583; // px to mm
+                        const x = (rect.left - pageRect.left) * 0.264583;
                         const y = (rect.top - pageRect.top) * 0.264583;
-                        const fontSize = parseInt(field.style.fontSize) * 0.352778;
-                        
+                        const fontSize = parseInt(field.style.fontSize) * 0.35;
                         pdf.setFontSize(Math.max(fontSize, 8));
-                        // Usar .value para inputs en lugar de .textContent
-                        const text = field.value || field.textContent || '';
-                        pdf.text(text, x + 10, y + 15);
+                        pdf.text(field.value || '', x + 10, y + 15);
                     });
                 }
 
                 pdf.save('documento-editado-itd.pdf');
-                showStatus('✓ PDF descargado correctamente', 'success');
+                showStatus('✓ PDF descargado', 'success');
             } catch (error) {
-                showStatus('Error al descargar: ' + error.message, 'error');
+                showStatus('Error: ' + error.message, 'error');
             }
-        }
-
-        function sendEmail() {
-            const subject = 'Documento editado - Mi Gran PDF ITD';
-            const body = 'Adjunto mi documento editado desde la aplicación Mi Gran PDF del Instituto Tecnológico de Durango.';
-            window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-            showStatus('✓ Cliente de correo abierto', 'success');
         }
 
         function printDocument() {
             window.print();
-            showStatus('✓ Ventana de impresión abierta', 'success');
+            showStatus('✓ Impresión iniciada', 'success');
         }
 
         function showStatus(message, type) {
             const status = document.getElementById('status');
             status.className = 'status ' + type;
             status.textContent = message;
-            setTimeout(() => {
-                status.textContent = '';
-                status.className = 'status';
-            }, 5000);
+            setTimeout(() => status.className = 'status', 4000);
         }
     </script>
 </body>
