@@ -139,6 +139,7 @@
             background: #f5f5f5;
             border-radius: 10px;
             margin-bottom: 20px;
+            align-items: center;
         }
 
         .btn {
@@ -182,6 +183,15 @@
             background: #059669;
         }
 
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #d97706;
+        }
+
         .file-input {
             display: none;
         }
@@ -190,75 +200,71 @@
             border: 2px solid #ddd;
             border-radius: 10px;
             min-height: 500px;
-            background: white;
+            background: #fafafa;
             position: relative;
             overflow: auto;
+            padding: 20px;
         }
 
-        .canvas-container {
+        .page-container {
             position: relative;
+            margin: 20px auto;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             display: inline-block;
         }
 
         canvas {
-            border: 1px solid #ccc;
             display: block;
-            margin: 20px auto;
         }
 
-        .text-overlay {
+        .text-field {
             position: absolute;
-            cursor: move;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 5px;
-            border: 1px solid #8B1538;
-            border-radius: 3px;
-            min-width: 100px;
+            border: 2px solid #8B1538;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 4px 8px;
+            cursor: text;
+            font-family: Arial, sans-serif;
+            min-width: 50px;
+            min-height: 20px;
+            transition: all 0.2s ease;
+            outline: none;
+            resize: both;
+            overflow: auto;
+            white-space: pre-wrap;
         }
 
-        .text-overlay:focus {
-            outline: 2px solid #8B1538;
+        .text-field:hover {
+            border-color: #667eea;
+            box-shadow: 0 0 8px rgba(102, 126, 234, 0.3);
         }
 
-        .edit-panel {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+        .text-field:focus {
+            border-color: #10b981;
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
             background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 50px rgba(0,0,0,0.5);
-            z-index: 1000;
-            max-width: 500px;
-            width: 90%;
         }
 
-        .edit-panel h3 {
-            margin-bottom: 20px;
-            color: #8B1538;
+        .text-field.editable {
+            background: rgba(255, 255, 255, 0.98);
         }
 
-        .edit-panel input,
-        .edit-panel textarea {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-size: 1rem;
+        .loading {
+            text-align: center;
+            padding: 100px 20px;
+            color: #666;
+            font-size: 1.2rem;
         }
 
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.7);
-            z-index: 999;
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
         }
 
         .status {
@@ -277,6 +283,33 @@
         .status.error {
             background: #fee2e2;
             color: #991b1b;
+        }
+
+        .status.info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .edit-mode-indicator {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #10b981;
+            color: white;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .controls-info {
+            background: #fef3c7;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #f59e0b;
+        }
+
+        .controls-info strong {
+            color: #92400e;
         }
 
         @media (max-width: 768px) {
@@ -304,6 +337,10 @@
             .toolbar {
                 justify-content: center;
             }
+
+            .text-field {
+                font-size: 12px;
+            }
         }
     </style>
 </head>
@@ -317,19 +354,19 @@
             <div class="feature-card">
                 <div class="feature-icon">📤</div>
                 <div class="feature-title">Sube tu Documento</div>
-                <div class="feature-desc">Compatible con PDF, TXT y DOCX. Carga tu archivo en segundos.</div>
+                <div class="feature-desc">Compatible con PDF, TXT y DOCX. El texto se convierte automáticamente en campos editables.</div>
             </div>
             
             <div class="feature-card">
                 <div class="feature-icon">✏️</div>
-                <div class="feature-title">Edita Fácilmente</div>
-                <div class="feature-desc">Agrega texto, resalta, tacha y mueve elementos con facilidad.</div>
+                <div class="feature-title">Edita Cada Campo</div>
+                <div class="feature-desc">Haz clic en cualquier texto para modificarlo. Cambia contenido, posición y tamaño fácilmente.</div>
             </div>
             
             <div class="feature-card">
                 <div class="feature-icon">💾</div>
                 <div class="feature-title">Guarda y Comparte</div>
-                <div class="feature-desc">Descarga, envía por correo o imprime tu documento editado.</div>
+                <div class="feature-desc">Descarga, envía por correo o imprime tu documento editado en segundos.</div>
             </div>
         </div>
 
@@ -344,24 +381,29 @@
                 <p>Editor Profesional de Documentos</p>
             </div>
 
+            <div class="controls-info">
+                <strong>💡 Modo de edición activado:</strong> Haz clic en cualquier campo de texto para editarlo. Arrastra los bordes para cambiar el tamaño. Los cambios se guardan automáticamente.
+            </div>
+
             <div class="toolbar">
                 <input type="file" id="fileInput" class="file-input" accept=".pdf,.txt,.docx" onchange="loadFile(event)">
                 <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
                     📁 Subir Archivo
                 </button>
-                <button class="btn btn-secondary" onclick="addText()">➕ Agregar Texto</button>
-                <button class="btn btn-secondary" onclick="highlightMode()">🖍️ Resaltar</button>
-                <button class="btn btn-secondary" onclick="strikeMode()">✂️ Tachar</button>
+                <div class="edit-mode-indicator">✓ Modo Edición Activo</div>
+                <button class="btn btn-secondary" onclick="addNewTextField()">➕ Agregar Campo</button>
+                <button class="btn btn-warning" onclick="zoomIn()">🔍+ Zoom</button>
+                <button class="btn btn-warning" onclick="zoomOut()">🔍- Alejar</button>
                 <button class="btn btn-success" onclick="downloadPDF()">💾 Descargar PDF</button>
                 <button class="btn btn-success" onclick="sendEmail()">📧 Enviar por Correo</button>
                 <button class="btn btn-success" onclick="printDocument()">🖨️ Imprimir</button>
-                <button class="btn btn-success" onclick="saveLocal()">💿 Guardar Local</button>
                 <button class="btn btn-primary" onclick="showLanding()">🏠 Inicio</button>
             </div>
 
             <div class="editor-container" id="editorContainer">
                 <p style="text-align: center; padding: 100px 20px; color: #999;">
-                    Sube un archivo para comenzar a editar
+                    Sube un archivo PDF para comenzar a editar<br>
+                    <small style="color: #aaa;">Cada texto del documento se convertirá en un campo editable</small>
                 </p>
             </div>
 
@@ -369,28 +411,12 @@
         </div>
     </div>
 
-    <!-- MODAL OVERLAY -->
-    <div class="modal-overlay" id="modalOverlay" onclick="closeModal()"></div>
-    
-    <!-- PANEL DE EDICIÓN -->
-    <div class="edit-panel" id="editPanel">
-        <h3>Agregar Texto</h3>
-        <textarea id="newTextContent" rows="3" placeholder="Escribe el texto aquí..."></textarea>
-        <input type="number" id="textSize" value="16" min="8" max="72" placeholder="Tamaño (px)">
-        <input type="color" id="textColor" value="#000000">
-        <div style="display: flex; gap: 10px;">
-            <button class="btn btn-primary" onclick="confirmAddText()">Agregar</button>
-            <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
-        </div>
-    </div>
-
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-        let currentDoc = null;
-        let textElements = [];
-        let highlightMode = false;
-        let strikeMode = false;
+        let currentPdf = null;
+        let textFields = [];
+        let currentScale = 1.5;
 
         function showApp() {
             document.getElementById('landing').style.display = 'none';
@@ -407,7 +433,8 @@
             if (!file) return;
 
             const container = document.getElementById('editorContainer');
-            container.innerHTML = '<p style="text-align:center; padding: 50px;">Cargando archivo...</p>';
+            container.innerHTML = '<div class="loading">Cargando y procesando documento</div>';
+            textFields = [];
 
             try {
                 if (file.type === 'application/pdf') {
@@ -417,7 +444,7 @@
                 } else if (file.name.endsWith('.docx')) {
                     await loadDOCX(file);
                 }
-                showStatus('Archivo cargado correctamente', 'success');
+                showStatus('✓ Documento cargado. Todos los textos son editables. Haz clic en cualquier campo para modificarlo.', 'success');
             } catch (error) {
                 showStatus('Error al cargar el archivo: ' + error.message, 'error');
             }
@@ -426,104 +453,174 @@
         async function loadPDF(file) {
             const arrayBuffer = await file.arrayBuffer();
             const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
-            currentDoc = pdf;
+            currentPdf = pdf;
 
             const container = document.getElementById('editorContainer');
             container.innerHTML = '';
 
-            for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const viewport = page.getViewport({ scale: 1.5 });
+            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                const page = await pdf.getPage(pageNum);
+                const viewport = page.getViewport({ scale: currentScale });
                 
+                // Crear contenedor de página
+                const pageContainer = document.createElement('div');
+                pageContainer.className = 'page-container';
+                pageContainer.style.width = viewport.width + 'px';
+                pageContainer.style.height = viewport.height + 'px';
+                
+                // Renderizar canvas con el PDF
                 const canvas = document.createElement('canvas');
                 canvas.width = viewport.width;
                 canvas.height = viewport.height;
-                canvas.id = 'page-' + i;
                 
-                const canvasWrapper = document.createElement('div');
-                canvasWrapper.className = 'canvas-container';
-                canvasWrapper.appendChild(canvas);
-                container.appendChild(canvasWrapper);
-
                 const context = canvas.getContext('2d');
                 await page.render({ canvasContext: context, viewport: viewport }).promise;
+                
+                pageContainer.appendChild(canvas);
+
+                // Extraer texto y crear campos editables
+                const textContent = await page.getTextContent();
+                
+                textContent.items.forEach((item, index) => {
+                    if (item.str.trim()) {
+                        const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
+                        
+                        const fontSize = Math.sqrt((tx[2] * tx[2]) + (tx[3] * tx[3]));
+                        const fontFamily = item.fontName || 'Arial';
+                        
+                        const textField = document.createElement('div');
+                        textField.className = 'text-field editable';
+                        textField.contentEditable = true;
+                        textField.textContent = item.str;
+                        
+                        textField.style.left = tx[4] + 'px';
+                        textField.style.top = (viewport.height - tx[5]) + 'px';
+                        textField.style.fontSize = fontSize + 'px';
+                        textField.style.fontFamily = fontFamily;
+                        textField.style.transform = `scaleY(${item.height / fontSize})`;
+                        
+                        // Calcular ancho aproximado
+                        const width = item.width * currentScale;
+                        textField.style.width = width + 'px';
+                        
+                        pageContainer.appendChild(textField);
+                        textFields.push({ element: textField, pageNum: pageNum });
+                    }
+                });
+
+                container.appendChild(pageContainer);
             }
+
+            showStatus(`✓ PDF cargado con ${textFields.length} campos editables`, 'info');
         }
 
         async function loadTXT(file) {
             const text = await file.text();
             const container = document.getElementById('editorContainer');
-            container.innerHTML = `<div style="padding: 40px; white-space: pre-wrap; font-family: monospace;" contenteditable="true">${text}</div>`;
+            
+            const pageContainer = document.createElement('div');
+            pageContainer.className = 'page-container';
+            pageContainer.style.width = '800px';
+            pageContainer.style.minHeight = '1000px';
+            pageContainer.style.padding = '40px';
+            pageContainer.style.background = 'white';
+            
+            const lines = text.split('\n');
+            let yPosition = 20;
+            
+            lines.forEach((line, index) => {
+                if (line.trim()) {
+                    const textField = document.createElement('div');
+                    textField.className = 'text-field editable';
+                    textField.contentEditable = true;
+                    textField.textContent = line;
+                    textField.style.left = '20px';
+                    textField.style.top = yPosition + 'px';
+                    textField.style.fontSize = '14px';
+                    textField.style.width = '760px';
+                    
+                    pageContainer.appendChild(textField);
+                    textFields.push({ element: textField, pageNum: 1 });
+                }
+                yPosition += 25;
+            });
+            
+            container.innerHTML = '';
+            container.appendChild(pageContainer);
         }
 
         async function loadDOCX(file) {
             const arrayBuffer = await file.arrayBuffer();
-            const result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
+            const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+            
             const container = document.getElementById('editorContainer');
-            container.innerHTML = `<div style="padding: 40px;" contenteditable="true">${result.value}</div>`;
+            const pageContainer = document.createElement('div');
+            pageContainer.className = 'page-container';
+            pageContainer.style.width = '800px';
+            pageContainer.style.minHeight = '1000px';
+            pageContainer.style.padding = '40px';
+            pageContainer.style.background = 'white';
+            
+            const lines = result.value.split('\n');
+            let yPosition = 20;
+            
+            lines.forEach((line, index) => {
+                if (line.trim()) {
+                    const textField = document.createElement('div');
+                    textField.className = 'text-field editable';
+                    textField.contentEditable = true;
+                    textField.textContent = line;
+                    textField.style.left = '20px';
+                    textField.style.top = yPosition + 'px';
+                    textField.style.fontSize = '14px';
+                    textField.style.width = '760px';
+                    
+                    pageContainer.appendChild(textField);
+                    textFields.push({ element: textField, pageNum: 1 });
+                }
+                yPosition += 25;
+            });
+            
+            container.innerHTML = '';
+            container.appendChild(pageContainer);
         }
 
-        function addText() {
-            document.getElementById('modalOverlay').style.display = 'block';
-            document.getElementById('editPanel').style.display = 'block';
-        }
-
-        function closeModal() {
-            document.getElementById('modalOverlay').style.display = 'none';
-            document.getElementById('editPanel').style.display = 'none';
-        }
-
-        function confirmAddText() {
-            const content = document.getElementById('newTextContent').value;
-            const size = document.getElementById('textSize').value;
-            const color = document.getElementById('textColor').value;
-
-            if (!content.trim()) return;
-
-            const container = document.getElementById('editorContainer');
-            const textElement = document.createElement('div');
-            textElement.className = 'text-overlay';
-            textElement.contentEditable = true;
-            textElement.style.fontSize = size + 'px';
-            textElement.style.color = color;
-            textElement.innerText = content;
-            textElement.style.left = '50px';
-            textElement.style.top = '50px';
-
-            makeDraggable(textElement);
-            container.querySelector('.canvas-container').appendChild(textElement);
-            textElements.push(textElement);
-
-            document.getElementById('newTextContent').value = '';
-            closeModal();
-            showStatus('Texto agregado correctamente', 'success');
-        }
-
-        function makeDraggable(element) {
-            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-            element.onmousedown = dragMouseDown;
-
-            function dragMouseDown(e) {
-                e.preventDefault();
-                pos3 = e.clientX;
-                pos4 = e.clientY;
-                document.onmouseup = closeDragElement;
-                document.onmousemove = elementDrag;
+        function addNewTextField() {
+            const container = document.querySelector('.page-container');
+            if (!container) {
+                showStatus('Primero carga un documento', 'error');
+                return;
             }
 
-            function elementDrag(e) {
-                e.preventDefault();
-                pos1 = pos3 - e.clientX;
-                pos2 = pos4 - e.clientY;
-                pos3 = e.clientX;
-                pos4 = e.clientY;
-                element.style.top = (element.offsetTop - pos2) + "px";
-                element.style.left = (element.offsetLeft - pos1) + "px";
-            }
+            const textField = document.createElement('div');
+            textField.className = 'text-field editable';
+            textField.contentEditable = true;
+            textField.textContent = 'Nuevo texto...';
+            textField.style.left = '100px';
+            textField.style.top = '100px';
+            textField.style.fontSize = '16px';
+            textField.style.width = '200px';
+            
+            container.appendChild(textField);
+            textFields.push({ element: textField, pageNum: 1 });
+            textField.focus();
+            
+            showStatus('✓ Campo agregado. Haz clic para editar.', 'success');
+        }
 
-            function closeDragElement() {
-                document.onmouseup = null;
-                document.onmousemove = null;
+        function zoomIn() {
+            currentScale += 0.2;
+            if (currentPdf && document.getElementById('fileInput').files[0]) {
+                loadFile({ target: { files: [document.getElementById('fileInput').files[0]] }});
+            }
+        }
+
+        function zoomOut() {
+            if (currentScale > 0.4) {
+                currentScale -= 0.2;
+                if (currentPdf && document.getElementById('fileInput').files[0]) {
+                    loadFile({ target: { files: [document.getElementById('fileInput').files[0]] }});
+                }
             }
         }
 
@@ -532,40 +629,49 @@
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF();
                 
-                const canvases = document.querySelectorAll('canvas');
-                for (let i = 0; i < canvases.length; i++) {
+                const pages = document.querySelectorAll('.page-container');
+                
+                for (let i = 0; i < pages.length; i++) {
                     if (i > 0) pdf.addPage();
-                    const imgData = canvases[i].toDataURL('image/png');
-                    pdf.addImage(imgData, 'PNG', 10, 10, 190, 277);
+                    
+                    const canvas = pages[i].querySelector('canvas');
+                    if (canvas) {
+                        const imgData = canvas.toDataURL('image/png');
+                        pdf.addImage(imgData, 'PNG', 10, 10, 190, 277);
+                    }
+                    
+                    // Agregar campos de texto editados
+                    const fields = pages[i].querySelectorAll('.text-field');
+                    fields.forEach(field => {
+                        const rect = field.getBoundingClientRect();
+                        const pageRect = pages[i].getBoundingClientRect();
+                        
+                        const x = (rect.left - pageRect.left) * 0.264583; // px to mm
+                        const y = (rect.top - pageRect.top) * 0.264583;
+                        const fontSize = parseInt(field.style.fontSize) * 0.352778;
+                        
+                        pdf.setFontSize(fontSize);
+                        pdf.text(field.textContent, x + 10, y + 10);
+                    });
                 }
 
-                pdf.save('mi-documento-editado.pdf');
-                showStatus('PDF descargado correctamente', 'success');
+                pdf.save('documento-editado-itd.pdf');
+                showStatus('✓ PDF descargado correctamente', 'success');
             } catch (error) {
-                showStatus('Error al descargar PDF: ' + error.message, 'error');
+                showStatus('Error al descargar: ' + error.message, 'error');
             }
         }
 
         function sendEmail() {
-            const subject = 'Documento editado desde Mi Gran PDF';
-            const body = 'Adjunto mi documento editado del Instituto Tecnológico de Durango.';
+            const subject = 'Documento editado - Mi Gran PDF ITD';
+            const body = 'Adjunto mi documento editado desde la aplicación Mi Gran PDF del Instituto Tecnológico de Durango.';
             window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-            showStatus('Cliente de correo abierto', 'success');
+            showStatus('✓ Cliente de correo abierto', 'success');
         }
 
         function printDocument() {
             window.print();
-            showStatus('Ventana de impresión abierta', 'success');
-        }
-
-        function saveLocal() {
-            try {
-                const content = document.getElementById('editorContainer').innerHTML;
-                localStorage.setItem('miGranPDF_backup', content);
-                showStatus('Documento guardado en el navegador', 'success');
-            } catch (error) {
-                showStatus('Error al guardar localmente: ' + error.message, 'error');
-            }
+            showStatus('✓ Ventana de impresión abierta', 'success');
         }
 
         function showStatus(message, type) {
@@ -575,7 +681,7 @@
             setTimeout(() => {
                 status.textContent = '';
                 status.className = 'status';
-            }, 4000);
+            }, 5000);
         }
     </script>
 </body>
