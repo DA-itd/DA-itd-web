@@ -1,39 +1,582 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Validador de Constancias ITD</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Gran PDF - Editor Inteligente del ITD</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
     <style>
-        /* Simple fade-in animation used for results */
-        @keyframes fade-in {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        .animate-fade-in {
-            animation: fade-in 0.5s ease-out forwards;
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        /* PORTADA */
+        #landing {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            text-align: center;
+            color: white;
+        }
+
+        .logo {
+            font-size: 3.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.3rem;
+            margin-bottom: 50px;
+            opacity: 0.95;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            max-width: 1000px;
+            margin-bottom: 50px;
+            width: 100%;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .feature-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .feature-desc {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .enter-btn {
+            background: linear-gradient(135deg, #8B1538 0%, #6B0F2A 100%);
+            color: white;
+            border: none;
+            padding: 20px 60px;
+            font-size: 1.5rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            font-weight: bold;
+        }
+
+        .enter-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+        }
+
+        /* APLICACIÓN */
+        #app {
+            display: none;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #8B1538;
+        }
+
+        .header h1 {
+            color: #8B1538;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #8B1538;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #6B0F2A;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5568d3;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .editor-container {
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            min-height: 500px;
+            background: white;
+            position: relative;
+            overflow: auto;
+        }
+
+        .canvas-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        canvas {
+            border: 1px solid #ccc;
+            display: block;
+            margin: 20px auto;
+        }
+
+        .text-overlay {
+            position: absolute;
+            cursor: move;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 5px;
+            border: 1px solid #8B1538;
+            border-radius: 3px;
+            min-width: 100px;
+        }
+
+        .text-overlay:focus {
+            outline: 2px solid #8B1538;
+        }
+
+        .edit-panel {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.5);
+            z-index: 1000;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .edit-panel h3 {
+            margin-bottom: 20px;
+            color: #8B1538;
+        }
+
+        .edit-panel input,
+        .edit-panel textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 999;
+        }
+
+        .status {
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        @media (max-width: 768px) {
+            .logo {
+                font-size: 2.5rem;
+            }
+
+            .subtitle {
+                font-size: 1.1rem;
+            }
+
+            .features {
+                grid-template-columns: 1fr;
+            }
+
+            .enter-btn {
+                padding: 15px 40px;
+                font-size: 1.2rem;
+            }
+
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .toolbar {
+                justify-content: center;
+            }
         }
     </style>
-<link rel="stylesheet" href="/index.css">
 </head>
-<body class="bg-slate-100">
-    <div id="root"></div>
+<body>
+    <!-- PORTADA -->
+    <div id="landing">
+        <div class="logo">📄 Mi Gran PDF</div>
+        <div class="subtitle">Editor Inteligente del Instituto Tecnológico de Durango</div>
+        
+        <div class="features">
+            <div class="feature-card">
+                <div class="feature-icon">📤</div>
+                <div class="feature-title">Sube tu Documento</div>
+                <div class="feature-desc">Compatible con PDF, TXT y DOCX. Carga tu archivo en segundos.</div>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">✏️</div>
+                <div class="feature-title">Edita Fácilmente</div>
+                <div class="feature-desc">Agrega texto, resalta, tacha y mueve elementos con facilidad.</div>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">💾</div>
+                <div class="feature-title">Guarda y Comparte</div>
+                <div class="feature-desc">Descarga, envía por correo o imprime tu documento editado.</div>
+            </div>
+        </div>
 
-    <script type="importmap">
-    {
-      "imports": {
-        "react": "https://aistudiocdn.com/react@^19.2.0",
-        "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-        "react/": "https://aistudiocdn.com/react@^19.2.0/"
-      }
-    }
+        <button class="enter-btn" onclick="showApp()">Entrar a la Aplicación →</button>
+    </div>
+
+    <!-- APLICACIÓN -->
+    <div id="app">
+        <div class="container">
+            <div class="header">
+                <h1>📄 Mi Gran PDF</h1>
+                <p>Editor Profesional de Documentos</p>
+            </div>
+
+            <div class="toolbar">
+                <input type="file" id="fileInput" class="file-input" accept=".pdf,.txt,.docx" onchange="loadFile(event)">
+                <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                    📁 Subir Archivo
+                </button>
+                <button class="btn btn-secondary" onclick="addText()">➕ Agregar Texto</button>
+                <button class="btn btn-secondary" onclick="highlightMode()">🖍️ Resaltar</button>
+                <button class="btn btn-secondary" onclick="strikeMode()">✂️ Tachar</button>
+                <button class="btn btn-success" onclick="downloadPDF()">💾 Descargar PDF</button>
+                <button class="btn btn-success" onclick="sendEmail()">📧 Enviar por Correo</button>
+                <button class="btn btn-success" onclick="printDocument()">🖨️ Imprimir</button>
+                <button class="btn btn-success" onclick="saveLocal()">💿 Guardar Local</button>
+                <button class="btn btn-primary" onclick="showLanding()">🏠 Inicio</button>
+            </div>
+
+            <div class="editor-container" id="editorContainer">
+                <p style="text-align: center; padding: 100px 20px; color: #999;">
+                    Sube un archivo para comenzar a editar
+                </p>
+            </div>
+
+            <div id="status"></div>
+        </div>
+    </div>
+
+    <!-- MODAL OVERLAY -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal()"></div>
+    
+    <!-- PANEL DE EDICIÓN -->
+    <div class="edit-panel" id="editPanel">
+        <h3>Agregar Texto</h3>
+        <textarea id="newTextContent" rows="3" placeholder="Escribe el texto aquí..."></textarea>
+        <input type="number" id="textSize" value="16" min="8" max="72" placeholder="Tamaño (px)">
+        <input type="color" id="textColor" value="#000000">
+        <div style="display: flex; gap: 10px;">
+            <button class="btn btn-primary" onclick="confirmAddText()">Agregar</button>
+            <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+        </div>
+    </div>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        let currentDoc = null;
+        let textElements = [];
+        let highlightMode = false;
+        let strikeMode = false;
+
+        function showApp() {
+            document.getElementById('landing').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
+        }
+
+        function showLanding() {
+            document.getElementById('landing').style.display = 'flex';
+            document.getElementById('app').style.display = 'none';
+        }
+
+        async function loadFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const container = document.getElementById('editorContainer');
+            container.innerHTML = '<p style="text-align:center; padding: 50px;">Cargando archivo...</p>';
+
+            try {
+                if (file.type === 'application/pdf') {
+                    await loadPDF(file);
+                } else if (file.name.endsWith('.txt')) {
+                    await loadTXT(file);
+                } else if (file.name.endsWith('.docx')) {
+                    await loadDOCX(file);
+                }
+                showStatus('Archivo cargado correctamente', 'success');
+            } catch (error) {
+                showStatus('Error al cargar el archivo: ' + error.message, 'error');
+            }
+        }
+
+        async function loadPDF(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+            currentDoc = pdf;
+
+            const container = document.getElementById('editorContainer');
+            container.innerHTML = '';
+
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const viewport = page.getViewport({ scale: 1.5 });
+                
+                const canvas = document.createElement('canvas');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                canvas.id = 'page-' + i;
+                
+                const canvasWrapper = document.createElement('div');
+                canvasWrapper.className = 'canvas-container';
+                canvasWrapper.appendChild(canvas);
+                container.appendChild(canvasWrapper);
+
+                const context = canvas.getContext('2d');
+                await page.render({ canvasContext: context, viewport: viewport }).promise;
+            }
+        }
+
+        async function loadTXT(file) {
+            const text = await file.text();
+            const container = document.getElementById('editorContainer');
+            container.innerHTML = `<div style="padding: 40px; white-space: pre-wrap; font-family: monospace;" contenteditable="true">${text}</div>`;
+        }
+
+        async function loadDOCX(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
+            const container = document.getElementById('editorContainer');
+            container.innerHTML = `<div style="padding: 40px;" contenteditable="true">${result.value}</div>`;
+        }
+
+        function addText() {
+            document.getElementById('modalOverlay').style.display = 'block';
+            document.getElementById('editPanel').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').style.display = 'none';
+            document.getElementById('editPanel').style.display = 'none';
+        }
+
+        function confirmAddText() {
+            const content = document.getElementById('newTextContent').value;
+            const size = document.getElementById('textSize').value;
+            const color = document.getElementById('textColor').value;
+
+            if (!content.trim()) return;
+
+            const container = document.getElementById('editorContainer');
+            const textElement = document.createElement('div');
+            textElement.className = 'text-overlay';
+            textElement.contentEditable = true;
+            textElement.style.fontSize = size + 'px';
+            textElement.style.color = color;
+            textElement.innerText = content;
+            textElement.style.left = '50px';
+            textElement.style.top = '50px';
+
+            makeDraggable(textElement);
+            container.querySelector('.canvas-container').appendChild(textElement);
+            textElements.push(textElement);
+
+            document.getElementById('newTextContent').value = '';
+            closeModal();
+            showStatus('Texto agregado correctamente', 'success');
+        }
+
+        function makeDraggable(element) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            element.onmousedown = dragMouseDown;
+
+            function dragMouseDown(e) {
+                e.preventDefault();
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+
+            function elementDrag(e) {
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                element.style.top = (element.offsetTop - pos2) + "px";
+                element.style.left = (element.offsetLeft - pos1) + "px";
+            }
+
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        }
+
+        async function downloadPDF() {
+            try {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF();
+                
+                const canvases = document.querySelectorAll('canvas');
+                for (let i = 0; i < canvases.length; i++) {
+                    if (i > 0) pdf.addPage();
+                    const imgData = canvases[i].toDataURL('image/png');
+                    pdf.addImage(imgData, 'PNG', 10, 10, 190, 277);
+                }
+
+                pdf.save('mi-documento-editado.pdf');
+                showStatus('PDF descargado correctamente', 'success');
+            } catch (error) {
+                showStatus('Error al descargar PDF: ' + error.message, 'error');
+            }
+        }
+
+        function sendEmail() {
+            const subject = 'Documento editado desde Mi Gran PDF';
+            const body = 'Adjunto mi documento editado del Instituto Tecnológico de Durango.';
+            window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            showStatus('Cliente de correo abierto', 'success');
+        }
+
+        function printDocument() {
+            window.print();
+            showStatus('Ventana de impresión abierta', 'success');
+        }
+
+        function saveLocal() {
+            try {
+                const content = document.getElementById('editorContainer').innerHTML;
+                localStorage.setItem('miGranPDF_backup', content);
+                showStatus('Documento guardado en el navegador', 'success');
+            } catch (error) {
+                showStatus('Error al guardar localmente: ' + error.message, 'error');
+            }
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.className = 'status ' + type;
+            status.textContent = message;
+            setTimeout(() => {
+                status.textContent = '';
+                status.className = 'status';
+            }, 4000);
+        }
     </script>
-
-    <!-- Main entry point for the React application -->
-    <script type="module" src="./index.tsx?v=3.4"></script>
-<script type="module" src="/index.tsx"></script>
 </body>
 </html>
