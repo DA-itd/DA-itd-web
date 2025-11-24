@@ -387,7 +387,10 @@
             </div>
 
             <div class="controls-info">
-                <strong>💡 Modo de edición activado:</strong> Haz clic en cualquier campo de texto para editarlo. Arrastra los bordes para cambiar el tamaño. Los cambios se guardan automáticamente.
+                <strong>💡 Instrucciones:</strong> 
+                <br>• <strong>Editar:</strong> Haz clic en un campo, el texto se seleccionará automáticamente para que escribas encima
+                <br>• <strong>Mover:</strong> Arrastra el campo desde el borde (cuando el cursor sea una mano)
+                <br>• <strong>Cambiar tamaño:</strong> Amplía el input escribiendo más texto
             </div>
 
             <div class="toolbar">
@@ -422,6 +425,43 @@
         let currentPdf = null;
         let textFields = [];
         let currentScale = 1.5;
+
+        function makeDraggable(wrapper, inputElement) {
+            let isDragging = false;
+            let currentX;
+            let currentY;
+            let initialX;
+            let initialY;
+
+            wrapper.addEventListener('mousedown', function(e) {
+                // Solo permitir drag si NO estamos sobre el input o el input no tiene foco
+                if (e.target === inputElement && document.activeElement === inputElement) {
+                    return;
+                }
+                
+                isDragging = true;
+                initialX = e.clientX - wrapper.offsetLeft;
+                initialY = e.clientY - wrapper.offsetTop;
+                wrapper.style.cursor = 'grabbing';
+            });
+
+            document.addEventListener('mousemove', function(e) {
+                if (isDragging) {
+                    e.preventDefault();
+                    currentX = e.clientX - initialX;
+                    currentY = e.clientY - initialY;
+                    wrapper.style.left = currentX + 'px';
+                    wrapper.style.top = currentY + 'px';
+                }
+            });
+
+            document.addEventListener('mouseup', function() {
+                if (isDragging) {
+                    isDragging = false;
+                    wrapper.style.cursor = 'move';
+                }
+            });
+        }
 
         function showApp() {
             document.getElementById('landing').style.display = 'none';
@@ -568,20 +608,38 @@
             
             lines.forEach((line, index) => {
                 if (line.trim()) {
+                    const wrapper = document.createElement('div');
+                    wrapper.style.position = 'absolute';
+                    wrapper.style.left = '20px';
+                    wrapper.style.top = yPosition + 'px';
+                    wrapper.style.cursor = 'move';
+                    
                     const textField = document.createElement('input');
                     textField.type = 'text';
                     textField.className = 'text-field editable';
                     textField.value = line;
-                    textField.style.position = 'absolute';
-                    textField.style.left = '20px';
-                    textField.style.top = yPosition + 'px';
+                    textField.style.position = 'relative';
                     textField.style.fontSize = '14px';
                     textField.style.width = '760px';
                     textField.style.border = '2px solid #8B1538';
                     textField.style.padding = '4px 8px';
+                    textField.style.cursor = 'text';
                     
-                    pageContainer.appendChild(textField);
-                    textFields.push({ element: textField, pageNum: 1 });
+                    textField.addEventListener('focus', function() {
+                        this.select();
+                        this.style.borderColor = '#10b981';
+                        wrapper.style.cursor = 'text';
+                    });
+                    
+                    textField.addEventListener('blur', function() {
+                        this.style.borderColor = '#8B1538';
+                        wrapper.style.cursor = 'move';
+                    });
+                    
+                    wrapper.appendChild(textField);
+                    pageContainer.appendChild(wrapper);
+                    makeDraggable(wrapper, textField);
+                    textFields.push({ element: textField, wrapper: wrapper, pageNum: 1 });
                 }
                 yPosition += 35;
             });
@@ -607,20 +665,38 @@
             
             lines.forEach((line, index) => {
                 if (line.trim()) {
+                    const wrapper = document.createElement('div');
+                    wrapper.style.position = 'absolute';
+                    wrapper.style.left = '20px';
+                    wrapper.style.top = yPosition + 'px';
+                    wrapper.style.cursor = 'move';
+                    
                     const textField = document.createElement('input');
                     textField.type = 'text';
                     textField.className = 'text-field editable';
                     textField.value = line;
-                    textField.style.position = 'absolute';
-                    textField.style.left = '20px';
-                    textField.style.top = yPosition + 'px';
+                    textField.style.position = 'relative';
                     textField.style.fontSize = '14px';
                     textField.style.width = '760px';
                     textField.style.border = '2px solid #8B1538';
                     textField.style.padding = '4px 8px';
+                    textField.style.cursor = 'text';
                     
-                    pageContainer.appendChild(textField);
-                    textFields.push({ element: textField, pageNum: 1 });
+                    textField.addEventListener('focus', function() {
+                        this.select();
+                        this.style.borderColor = '#10b981';
+                        wrapper.style.cursor = 'text';
+                    });
+                    
+                    textField.addEventListener('blur', function() {
+                        this.style.borderColor = '#8B1538';
+                        wrapper.style.cursor = 'move';
+                    });
+                    
+                    wrapper.appendChild(textField);
+                    pageContainer.appendChild(wrapper);
+                    makeDraggable(wrapper, textField);
+                    textFields.push({ element: textField, wrapper: wrapper, pageNum: 1 });
                 }
                 yPosition += 35;
             });
@@ -636,36 +712,51 @@
                 return;
             }
 
+            // Crear wrapper
+            const wrapper = document.createElement('div');
+            wrapper.style.position = 'absolute';
+            wrapper.style.left = '100px';
+            wrapper.style.top = '100px';
+            wrapper.style.cursor = 'move';
+            wrapper.style.zIndex = '10';
+
+            // Crear input
             const textField = document.createElement('input');
             textField.type = 'text';
             textField.className = 'text-field editable';
             textField.value = 'Nuevo texto...';
             textField.placeholder = 'Escribe aquí...';
-            textField.style.position = 'absolute';
-            textField.style.left = '100px';
-            textField.style.top = '100px';
+            textField.style.position = 'relative';
             textField.style.fontSize = '16px';
             textField.style.width = '200px';
             textField.style.border = '2px solid #8B1538';
             textField.style.background = 'white';
             textField.style.padding = '4px 8px';
+            textField.style.cursor = 'text';
             
             textField.addEventListener('focus', function() {
+                this.select();
                 this.style.borderColor = '#10b981';
-                this.style.zIndex = '100';
+                wrapper.style.zIndex = '100';
+                wrapper.style.cursor = 'text';
             });
             
             textField.addEventListener('blur', function() {
                 this.style.borderColor = '#8B1538';
-                this.style.zIndex = '10';
+                wrapper.style.zIndex = '10';
+                wrapper.style.cursor = 'move';
             });
             
-            container.appendChild(textField);
-            textFields.push({ element: textField, pageNum: 1 });
+            wrapper.appendChild(textField);
+            container.appendChild(wrapper);
+            
+            makeDraggable(wrapper, textField);
+            
+            textFields.push({ element: textField, wrapper: wrapper, pageNum: 1 });
             textField.focus();
             textField.select();
             
-            showStatus('✓ Campo agregado. Escribe directamente.', 'success');
+            showStatus('✓ Campo agregado. Escribe para editar o arrastra para mover.', 'success');
         }
 
         function zoomIn() {
