@@ -229,24 +229,29 @@
             min-height: 20px;
             transition: all 0.2s ease;
             outline: none;
-            resize: both;
-            overflow: auto;
+            overflow: visible;
             white-space: pre-wrap;
+            word-wrap: break-word;
+            z-index: 10;
         }
 
         .text-field:hover {
             border-color: #667eea;
             box-shadow: 0 0 8px rgba(102, 126, 234, 0.3);
+            background: rgba(255, 255, 255, 0.98);
         }
 
         .text-field:focus {
             border-color: #10b981;
             box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
             background: white;
+            z-index: 100;
         }
 
         .text-field.editable {
             background: rgba(255, 255, 255, 0.98);
+            cursor: text;
+            user-select: text;
         }
 
         .loading {
@@ -488,20 +493,37 @@
                         const fontSize = Math.sqrt((tx[2] * tx[2]) + (tx[3] * tx[3]));
                         const fontFamily = item.fontName || 'Arial';
                         
-                        const textField = document.createElement('div');
+                        // Crear input en lugar de div para mejor edición
+                        const textField = document.createElement('input');
+                        textField.type = 'text';
                         textField.className = 'text-field editable';
-                        textField.contentEditable = true;
-                        textField.textContent = item.str;
+                        textField.value = item.str;
                         
+                        textField.style.position = 'absolute';
                         textField.style.left = tx[4] + 'px';
-                        textField.style.top = (viewport.height - tx[5]) + 'px';
+                        textField.style.top = (viewport.height - tx[5] - fontSize) + 'px';
                         textField.style.fontSize = fontSize + 'px';
                         textField.style.fontFamily = fontFamily;
-                        textField.style.transform = `scaleY(${item.height / fontSize})`;
+                        textField.style.border = '2px solid #8B1538';
+                        textField.style.background = 'rgba(255, 255, 255, 0.95)';
+                        textField.style.padding = '2px 4px';
                         
                         // Calcular ancho aproximado
                         const width = item.width * currentScale;
-                        textField.style.width = width + 'px';
+                        textField.style.width = Math.max(width, 50) + 'px';
+                        
+                        // Eventos para mejor UX
+                        textField.addEventListener('focus', function() {
+                            this.style.borderColor = '#10b981';
+                            this.style.background = 'white';
+                            this.style.zIndex = '100';
+                        });
+                        
+                        textField.addEventListener('blur', function() {
+                            this.style.borderColor = '#8B1538';
+                            this.style.background = 'rgba(255, 255, 255, 0.95)';
+                            this.style.zIndex = '10';
+                        });
                         
                         pageContainer.appendChild(textField);
                         textFields.push({ element: textField, pageNum: pageNum });
@@ -530,19 +552,22 @@
             
             lines.forEach((line, index) => {
                 if (line.trim()) {
-                    const textField = document.createElement('div');
+                    const textField = document.createElement('input');
+                    textField.type = 'text';
                     textField.className = 'text-field editable';
-                    textField.contentEditable = true;
-                    textField.textContent = line;
+                    textField.value = line;
+                    textField.style.position = 'absolute';
                     textField.style.left = '20px';
                     textField.style.top = yPosition + 'px';
                     textField.style.fontSize = '14px';
                     textField.style.width = '760px';
+                    textField.style.border = '2px solid #8B1538';
+                    textField.style.padding = '4px 8px';
                     
                     pageContainer.appendChild(textField);
                     textFields.push({ element: textField, pageNum: 1 });
                 }
-                yPosition += 25;
+                yPosition += 35;
             });
             
             container.innerHTML = '';
@@ -566,19 +591,22 @@
             
             lines.forEach((line, index) => {
                 if (line.trim()) {
-                    const textField = document.createElement('div');
+                    const textField = document.createElement('input');
+                    textField.type = 'text';
                     textField.className = 'text-field editable';
-                    textField.contentEditable = true;
-                    textField.textContent = line;
+                    textField.value = line;
+                    textField.style.position = 'absolute';
                     textField.style.left = '20px';
                     textField.style.top = yPosition + 'px';
                     textField.style.fontSize = '14px';
                     textField.style.width = '760px';
+                    textField.style.border = '2px solid #8B1538';
+                    textField.style.padding = '4px 8px';
                     
                     pageContainer.appendChild(textField);
                     textFields.push({ element: textField, pageNum: 1 });
                 }
-                yPosition += 25;
+                yPosition += 35;
             });
             
             container.innerHTML = '';
@@ -592,20 +620,36 @@
                 return;
             }
 
-            const textField = document.createElement('div');
+            const textField = document.createElement('input');
+            textField.type = 'text';
             textField.className = 'text-field editable';
-            textField.contentEditable = true;
-            textField.textContent = 'Nuevo texto...';
+            textField.value = 'Nuevo texto...';
+            textField.placeholder = 'Escribe aquí...';
+            textField.style.position = 'absolute';
             textField.style.left = '100px';
             textField.style.top = '100px';
             textField.style.fontSize = '16px';
             textField.style.width = '200px';
+            textField.style.border = '2px solid #8B1538';
+            textField.style.background = 'white';
+            textField.style.padding = '4px 8px';
+            
+            textField.addEventListener('focus', function() {
+                this.style.borderColor = '#10b981';
+                this.style.zIndex = '100';
+            });
+            
+            textField.addEventListener('blur', function() {
+                this.style.borderColor = '#8B1538';
+                this.style.zIndex = '10';
+            });
             
             container.appendChild(textField);
             textFields.push({ element: textField, pageNum: 1 });
             textField.focus();
+            textField.select();
             
-            showStatus('✓ Campo agregado. Haz clic para editar.', 'success');
+            showStatus('✓ Campo agregado. Escribe directamente.', 'success');
         }
 
         function zoomIn() {
@@ -650,8 +694,10 @@
                         const y = (rect.top - pageRect.top) * 0.264583;
                         const fontSize = parseInt(field.style.fontSize) * 0.352778;
                         
-                        pdf.setFontSize(fontSize);
-                        pdf.text(field.textContent, x + 10, y + 10);
+                        pdf.setFontSize(Math.max(fontSize, 8));
+                        // Usar .value para inputs en lugar de .textContent
+                        const text = field.value || field.textContent || '';
+                        pdf.text(text, x + 10, y + 15);
                     });
                 }
 
