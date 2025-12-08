@@ -16,7 +16,7 @@
         :root {
             --itd-blue: #1b396a;
             --itd-gold: #d4a017;
-            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --maroon: #8B1538;
             --card-shadow: 0 10px 30px rgba(0,0,0,0.1);
             --card-shadow-hover: 0 15px 40px rgba(0,0,0,0.2);
         }
@@ -28,17 +28,62 @@
             color: #333;
         }
 
-        /* Header Moderno */
+        /* Header con fondo blanco para logos */
         .header {
+            background: white;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .header-logos {
+            background: white;
+            padding: 1.5rem 1rem;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3rem;
+        }
+
+        .logos {
+            display: flex;
+            align-items: center;
+            gap: 3rem;
+        }
+
+        .logos img {
+            height: 90px;
+            width: auto;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.1));
+            transition: transform 0.3s ease;
+        }
+
+        .logos img:hover {
+            transform: scale(1.05);
+        }
+
+        /* Línea guinda después de logos */
+        .maroon-line {
+            width: 100%;
+            height: 6px;
+            background: var(--maroon);
+            box-shadow: 0 2px 8px rgba(139, 21, 56, 0.3);
+        }
+
+        /* Título sobre fondo azul ITD */
+        .header-title {
             background: var(--itd-blue);
             color: white;
             padding: 2rem 1rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
             position: relative;
             overflow: hidden;
         }
 
-        .header::before {
+        .header-title::before {
             content: '';
             position: absolute;
             top: 0;
@@ -49,50 +94,23 @@
             pointer-events: none;
         }
 
-        .header-content {
+        .header-text {
             max-width: 1200px;
             margin: 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 1.5rem;
+            text-align: center;
             position: relative;
             z-index: 1;
         }
 
-        .logos {
-            display: flex;
-            align-items: center;
-            gap: 2rem;
-        }
-
-        .logos img {
-            height: 80px;
-            width: auto;
-            object-fit: contain;
-            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.2));
-            transition: transform 0.3s ease;
-        }
-
-        .logos img:hover {
-            transform: scale(1.05);
-        }
-
-        .header-text {
-            flex: 1;
-            text-align: center;
-        }
-
         .header-text h1 {
-            font-size: 2rem;
+            font-size: 2.2rem;
             font-weight: 700;
             margin-bottom: 0.5rem;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
         }
 
         .header-text .subtitle {
-            font-size: 1rem;
+            font-size: 1.1rem;
             opacity: 0.95;
             font-weight: 300;
         }
@@ -149,7 +167,7 @@
             left: 0;
             right: 0;
             height: 5px;
-            background: linear-gradient(90deg, var(--itd-blue), var(--itd-gold));
+            background: linear-gradient(90deg, var(--maroon), var(--itd-blue));
             transform: scaleX(0);
             transition: transform 0.3s ease;
         }
@@ -176,19 +194,19 @@
             width: 70px;
             height: 70px;
             border-radius: 16px;
-            background: linear-gradient(135deg, var(--itd-blue), #2d5a9e);
+            background: linear-gradient(135deg, var(--maroon), var(--itd-blue));
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
             font-size: 2rem;
-            box-shadow: 0 8px 20px rgba(27, 57, 106, 0.3);
+            box-shadow: 0 8px 20px rgba(139, 21, 56, 0.3);
             transition: all 0.3s ease;
         }
 
         .card:hover .icon-box {
             transform: rotate(5deg) scale(1.1);
-            box-shadow: 0 12px 30px rgba(27, 57, 106, 0.4);
+            box-shadow: 0 12px 30px rgba(139, 21, 56, 0.4);
         }
 
         .card.inactive .icon-box {
@@ -247,14 +265,14 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--itd-blue), #2d5a9e);
+            background: linear-gradient(135deg, var(--maroon), var(--itd-blue));
             color: white;
-            box-shadow: 0 6px 20px rgba(27, 57, 106, 0.3);
+            box-shadow: 0 6px 20px rgba(139, 21, 56, 0.3);
         }
 
         .btn-primary:hover {
-            background: linear-gradient(135deg, #2d5a9e, var(--itd-blue));
-            box-shadow: 0 8px 25px rgba(27, 57, 106, 0.4);
+            background: linear-gradient(135deg, var(--itd-blue), var(--maroon));
+            box-shadow: 0 8px 25px rgba(139, 21, 56, 0.4);
             transform: translateY(-2px);
         }
 
@@ -277,6 +295,7 @@
             text-align: center;
             margin-top: 4rem;
             box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+            border-top: 4px solid var(--maroon);
         }
 
         .footer-content {
@@ -324,12 +343,12 @@
             }
 
             .logos {
-                justify-content: center;
-                width: 100%;
+                flex-direction: column;
+                gap: 1.5rem;
             }
 
             .logos img {
-                height: 60px;
+                height: 70px;
             }
 
             .section-title h2 {
@@ -370,13 +389,22 @@
 </head>
 
 <body>
-    <!-- Header -->
+    <!-- Header con fondo blanco para logos -->
     <header class="header">
-        <div class="header-content">
-            <div class="logos">
-                <img src="assets/img/logo_itd.png" alt="Instituto Tecnológico de Durango">
-                <img src="assets/img/tecnm1.jpg" alt="TecNM">
+        <div class="header-logos">
+            <div class="header-content">
+                <div class="logos">
+                    <img src="assets/img/logo_itd.png" alt="Instituto Tecnológico de Durango">
+                    <img src="assets/img/tecnm1.jpg" alt="TecNM">
+                </div>
             </div>
+        </div>
+        
+        <!-- Línea guinda -->
+        <div class="maroon-line"></div>
+        
+        <!-- Título con fondo azul ITD -->
+        <div class="header-title">
             <div class="header-text">
                 <h1>Portal de Herramientas Digitales</h1>
                 <p class="subtitle">Desarrollo Académico — Instituto Tecnológico de Durango</p>
