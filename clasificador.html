@@ -80,7 +80,7 @@
     .concept-card {
       padding: 1.2rem;
       border-radius: 10px;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
     }
 
     .concept-card.docente {
@@ -107,6 +107,16 @@
     .concept-card p {
       color: #555;
       line-height: 1.5;
+    }
+
+    .concept-card ul {
+      margin-top: 0.5rem;
+      padding-left: 1.2rem;
+      color: #555;
+    }
+
+    .concept-card li {
+      margin-bottom: 0.3rem;
     }
 
     /* Formulario */
@@ -315,23 +325,31 @@
       <p class="subtitle">Instituto Tecnológico de Durango — TecNM</p>
     </div>
 
-    <!-- Conceptos Oficiales -->
+    <!-- Conceptos Oficiales Actualizados -->
     <div class="concepts-grid">
       <div class="concept-card docente">
-        <h3><i class="fas fa-chalkboard-teacher"></i> Curso DOCENTE</h3>
-        <p>
-          Formación tecno-pedagógica, estrategias didácticas, diseño de cursos, 
-          planificación de enseñanza, plataformas virtuales, metodologías de aprendizaje activo.
-          Requisito para promoción docente.
-        </p>
+        <h3><i class="fas fa-chalkboard-teacher"></i> Actualización DOCENTE</h3>
+        <p><strong>Competencias pedagógicas:</strong></p>
+        <ul>
+          <li>Didáctica y metodologías de enseñanza</li>
+          <li>Evaluación del aprendizaje</li>
+          <li>Diseño instruccional de cursos</li>
+          <li>Uso educativo de tecnologías</li>
+          <li>Plataformas virtuales (Moodle, Classroom)</li>
+          <li>Estrategias de aprendizaje activo</li>
+        </ul>
       </div>
       <div class="concept-card profesional">
-        <h3><i class="fas fa-briefcase"></i> Curso PROFESIONAL</h3>
-        <p>
-          Actualización técnica, capacitación práctica, manejo de equipos, 
-          software especializado, habilidades laborales, certificaciones técnicas.
-          Enfocado en competencias del área profesional.
-        </p>
+        <h3><i class="fas fa-briefcase"></i> Actualización PROFESIONAL</h3>
+        <p><strong>Dominio disciplinar, técnico o administrativo:</strong></p>
+        <ul>
+          <li>Acreditación y procesos institucionales</li>
+          <li>Gestión académica y normatividad</li>
+          <li>Software y herramientas técnicas</li>
+          <li>Capacitación en equipos de laboratorio</li>
+          <li>Certificaciones y normas de calidad</li>
+          <li>Habilidades profesionales del docente</li>
+        </ul>
       </div>
     </div>
 
@@ -344,7 +362,7 @@
         <input 
           type="text" 
           id="nombreCurso" 
-          placeholder="Ej: Estrategias Didácticas para el Aprendizaje Activo"
+          placeholder="Ej: Respuesta metodológica para acreditación de carrera"
         >
       </div>
 
@@ -354,7 +372,7 @@
         </label>
         <textarea 
           id="objetivoCurso" 
-          placeholder="Ej: Desarrollar competencias didácticas para implementar metodologías de aprendizaje activo en el aula..."
+          placeholder="Ej: Realizar la respuesta metodológica del correcto llenado de cédulas de acreditación..."
         ></textarea>
       </div>
 
@@ -389,90 +407,170 @@
   </div>
 
   <script>
-    // Keywords basadas en el concepto oficial del TecNM
+    // =====================================================
+    // KEYWORDS BASADAS EN LINEAMIENTOS OFICIALES DEL TecNM
+    // =====================================================
+
     const KEYWORDS = {
+      // ─────────────────────────────────────────────────
+      // DOCENTE: Competencias pedagógicas para la enseñanza
+      // ─────────────────────────────────────────────────
       docente: [
-        // Formación pedagógica
+        // Pedagogía y didáctica
         'pedagogia', 'pedagogico', 'pedagogica',
         'didactica', 'didactico', 'didacticas',
         'ensenanza', 'enseñanza',
         'aprendizaje',
         'educativo', 'educativa', 'educacion',
+        
         // Diseño instruccional
+        'diseno instruccional', 'diseño instruccional',
         'diseno de cursos', 'diseño de cursos',
-        'planificacion', 'planificación',
-        'planeacion', 'planeación',
+        'planificacion didactica', 'planificación didáctica',
+        'planeacion didactica', 'planeación didáctica',
         'secuencia didactica', 'secuencias didacticas',
-        // Metodologías
-        'metodologia', 'metodologias',
+        
+        // Metodologías de enseñanza
+        'metodologia de ensenanza', 'metodología de enseñanza',
+        'metodologias activas', 'metodologías activas',
         'estrategia didactica', 'estrategias didacticas',
         'aprendizaje activo',
         'aprendizaje colaborativo',
-        'aprendizaje basado en',
+        'aprendizaje basado en proyectos',
+        'aprendizaje basado en problemas',
+        
+        // Evaluación educativa
+        'evaluacion del aprendizaje', 'evaluación del aprendizaje',
+        'evaluacion educativa', 'evaluación educativa',
+        'rubricas', 'rubrica', 'rúbrica', 'rúbricas',
+        'instrumentos de evaluacion',
+        
         // Tecnología educativa
         'plataforma virtual', 'plataformas virtuales',
-        'moodle', 'classroom',
-        'tecnologia educativa',
+        'moodle', 'classroom', 'google classroom',
+        'tecnologia educativa', 'tecnología educativa',
         'recursos digitales educativos',
-        'tic en educacion',
-        // Evaluación educativa
-        'evaluacion del aprendizaje',
-        'rubricas', 'rubrica',
+        'tic en educacion', 'tic en el aula',
+        'herramientas digitales para la ensenanza',
+        
+        // Formación docente
+        'formacion docente', 'formación docente',
+        'practica docente', 'práctica docente',
         'competencias docentes',
-        // Otros términos docentes
-        'formacion docente',
-        'practica docente',
-        'tutoria', 'tutorias',
-        'asesoria academica',
+        'tutoria', 'tutorias', 'tutoría', 'tutorías',
+        'asesoria academica', 'asesoría académica',
         'modelo educativo',
-        'tecnicas de ensenanza',
         'proceso formativo',
-        'comunidad de aprendizaje'
+        'comunidad de aprendizaje',
+        'aula invertida',
+        'gamificacion', 'gamificación'
       ],
+
+      // ─────────────────────────────────────────────────
+      // PROFESIONAL: Dominio disciplinar, técnico o administrativo
+      // ─────────────────────────────────────────────────
       profesional: [
-        // Actualización técnica
+        // *** ACREDITACIÓN Y PROCESOS INSTITUCIONALES ***
+        'acreditacion', 'acreditación',
+        'cedula', 'cedulas', 'cédula', 'cédulas',
+        'cacei', 'ciees', 'copaes', 'comeaa',
+        'organismo acreditador',
+        'proceso de acreditacion', 'proceso de acreditación',
+        'autoevaluacion', 'autoevaluación',
+        'indicador', 'indicadores',
+        'evidencia', 'evidencias',
+        'criterio', 'criterios',
+        'categoria', 'categorías',
+        
+        // *** GESTIÓN ACADÉMICA E INSTITUCIONAL ***
+        'gestion academica', 'gestión académica',
+        'gestion institucional', 'gestión institucional',
+        'gestion administrativa', 'gestión administrativa',
+        'normatividad', 'normas institucionales',
+        'reglamento', 'reglamentos',
+        'lineamiento', 'lineamientos',
+        'proceso institucional', 'procesos institucionales',
+        'tramite', 'trámite', 'tramites', 'trámites',
+        'documentacion', 'documentación',
+        'informe', 'informes',
+        'reporte', 'reportes',
+        'llenado', 'requisitar', 'llenar formatos',
+        
+        // *** METODOLOGÍA (contexto profesional/procedimental) ***
+        'respuesta metodologica', 'respuesta metodológica',
+        'metodologia de trabajo', 'metodología de trabajo',
+        'procedimiento', 'procedimientos',
+        'protocolo', 'protocolos',
+        'proceso', 'procesos',
+        'guia', 'guía', 'guias', 'guías',
+        'manual', 'manuales',
+        
+        // *** ACTUALIZACIÓN TÉCNICA ***
         'actualizacion', 'actualización',
         'capacitacion', 'capacitación',
         'capacitar',
         'adiestramiento', 'adiestrar',
-        // Práctica y aplicación
-        'practica', 'practico', 'práctico',
+        
+        // *** PRÁCTICA Y APLICACIÓN ***
+        'practica', 'practico', 'práctico', 'práctica',
         'aplicacion', 'aplicar', 'aplicado',
         'manejo', 'manejar',
         'operacion', 'operar', 'operador',
-        'uso de', 'utilizacion',
-        // Equipos y herramientas
+        'uso de', 'utilizacion', 'utilización',
+        
+        // *** EQUIPOS Y HERRAMIENTAS ***
         'equipo', 'equipos',
         'laboratorio',
         'instrumento', 'instrumentos',
-        'maquinaria', 'maquina',
+        'maquinaria', 'maquina', 'máquina',
         'herramienta', 'herramientas',
-        // Software y tecnología
+        
+        // *** SOFTWARE Y TECNOLOGÍA ***
         'software',
         'programa', 'programas',
         'sistema', 'sistemas',
         'excel', 'word', 'powerpoint',
         'autocad', 'solidworks', 'matlab',
-        'python', 'programacion',
-        // Certificaciones y normas
-        'certificacion', 'certificar',
-        'norma', 'normas', 'normatividad',
-        'iso', 'calidad',
-        // Habilidades técnicas
-        'tecnica', 'tecnico', 'tecnicas',
+        'python', 'programacion', 'programación',
+        'base de datos', 'bases de datos',
+        
+        // *** CERTIFICACIONES Y NORMAS ***
+        'certificacion', 'certificación', 'certificar',
+        'norma iso', 'iso 9001',
+        'calidad',
+        'auditoria', 'auditoría',
+        
+        // *** HABILIDADES TÉCNICAS Y PROFESIONALES ***
+        'tecnica', 'tecnico', 'tecnicas', 'técnica', 'técnico',
         'taller', 'talleres',
-        'habilidades',
-        // Seguridad y otros
+        'habilidades profesionales',
+        'competencias profesionales',
+        'dominio disciplinar',
+        
+        // *** SEGURIDAD Y OTROS ***
         'seguridad', 'higiene',
         'primeros auxilios',
-        'proteccion civil',
+        'proteccion civil', 'protección civil',
         'finanzas', 'financiero',
-        'administracion',
-        'gestion', 'gestión',
+        'administracion', 'administración',
         'liderazgo',
-        'trabajo en equipo'
+        'trabajo en equipo',
+        'comunicacion efectiva', 'comunicación efectiva',
+        'redaccion', 'redacción',
+        'ortografia', 'ortografía',
+        
+        // *** INVESTIGACIÓN (como función profesional) ***
+        'investigacion', 'investigación',
+        'proyecto de investigacion',
+        'metodologia de la investigacion', 'metodología de la investigación',
+        'publicacion', 'publicación',
+        'articulo cientifico', 'artículo científico'
       ]
     };
+
+    // =====================================================
+    // FUNCIONES
+    // =====================================================
 
     function normalizeText(text) {
       if (!text) return '';
@@ -502,7 +600,8 @@
 
       // Buscar keywords docentes
       KEYWORDS.docente.forEach(kw => {
-        if (textoCompleto.includes(normalizeText(kw))) {
+        const kwNorm = normalizeText(kw);
+        if (textoCompleto.includes(kwNorm)) {
           scoreDoc++;
           if (!matchesDoc.includes(kw)) matchesDoc.push(kw);
         }
@@ -510,7 +609,8 @@
 
       // Buscar keywords profesionales
       KEYWORDS.profesional.forEach(kw => {
-        if (textoCompleto.includes(normalizeText(kw))) {
+        const kwNorm = normalizeText(kw);
+        if (textoCompleto.includes(kwNorm)) {
           scoreProf++;
           if (!matchesProf.includes(kw)) matchesProf.push(kw);
         }
@@ -521,20 +621,20 @@
 
       if (scoreDoc === 0 && scoreProf === 0) {
         clasificacion = 'indefinido';
-        razon = 'No se encontraron palabras clave suficientes para clasificar.';
+        razon = 'No se encontraron palabras clave suficientes. Revisa el nombre u objetivo.';
         icon = '<i class="fas fa-question-circle"></i>';
       } else if (scoreDoc > scoreProf) {
         clasificacion = 'docente';
-        razon = 'El curso tiene mayor enfoque en formación pedagógica y didáctica.';
+        razon = 'Enfoque en competencias pedagógicas: didáctica, evaluación, metodologías de enseñanza.';
         icon = '<i class="fas fa-chalkboard-teacher"></i>';
       } else if (scoreProf > scoreDoc) {
         clasificacion = 'profesional';
-        razon = 'El curso tiene mayor enfoque en actualización técnica y práctica.';
+        razon = 'Enfoque en dominio disciplinar, técnico, administrativo o procesos institucionales.';
         icon = '<i class="fas fa-briefcase"></i>';
       } else {
-        // Empate - revisar contexto
+        // Empate
         clasificacion = 'profesional';
-        razon = 'Puntuación similar. Clasificado como Profesional por enfoque práctico.';
+        razon = 'Puntuación similar. Clasificado como Profesional por enfoque técnico/administrativo.';
         icon = '<i class="fas fa-briefcase"></i>';
       }
 
@@ -546,10 +646,8 @@
       const section = document.getElementById('resultSection');
       const card = document.getElementById('resultCard');
       
-      // Limpiar clases anteriores
       card.className = 'result-card ' + clasificacion;
       
-      // Actualizar contenido
       document.getElementById('resultIcon').innerHTML = icon;
       document.getElementById('resultTitle').textContent = clasificacion.toUpperCase();
       document.getElementById('resultReason').textContent = razon;
@@ -558,20 +656,18 @@
 
       // Mostrar keywords encontradas
       const keywordsContainer = document.getElementById('resultKeywords');
-      const matches = clasificacion === 'docente' ? matchesDoc : matchesProf;
+      const matches = clasificacion === 'docente' ? matchesDoc : 
+                      clasificacion === 'profesional' ? matchesProf : [];
       
       if (matches.length > 0) {
-        keywordsContainer.innerHTML = matches.slice(0, 6).map(kw => 
+        keywordsContainer.innerHTML = matches.slice(0, 8).map(kw => 
           `<span class="keyword-found">${kw}</span>`
         ).join('');
       } else {
         keywordsContainer.innerHTML = '<span style="color:#666;font-size:0.9rem;">Sin coincidencias específicas</span>';
       }
 
-      // Mostrar sección
       section.classList.add('show');
-      
-      // Scroll al resultado
       section.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
