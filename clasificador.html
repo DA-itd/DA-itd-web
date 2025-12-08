@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Clasificador de Cursos — Docente vs Profesional</title>
+  <title>Clasificador de Cursos ITD</title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -13,19 +13,19 @@
       --maroon: #8B1538;
       --itd-gold: #d4a017;
       --success: #10b981;
-      --info: #3b82f6;
+      --docente-color: #dc2626;
+      --profesional-color: #2563eb;
     }
 
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-      color: #111;
-      padding: 20px;
       min-height: 100vh;
+      padding: 20px;
     }
 
     .container {
-      max-width: 1400px;
+      max-width: 900px;
       margin: 0 auto;
       background: white;
       padding: 2rem;
@@ -33,7 +33,6 @@
       box-shadow: 0 10px 40px rgba(0,0,0,0.1);
     }
 
-    /* Botón de regreso */
     .back-button {
       display: inline-flex;
       align-items: center;
@@ -46,16 +45,13 @@
       font-weight: 600;
       margin-bottom: 1.5rem;
       transition: all 0.3s;
-      box-shadow: 0 2px 8px rgba(27, 57, 106, 0.3);
     }
 
     .back-button:hover {
       background: var(--maroon);
       transform: translateX(-5px);
-      box-shadow: 0 4px 12px rgba(139, 21, 56, 0.4);
     }
 
-    /* Header */
     .header {
       text-align: center;
       margin-bottom: 2rem;
@@ -64,652 +60,532 @@
     }
 
     .header h1 {
-      font-size: 2.2rem;
+      font-size: 2rem;
       color: var(--itd-blue);
       margin-bottom: 0.5rem;
-      font-weight: 700;
     }
 
     .header .subtitle {
-      font-size: 1rem;
       color: #666;
-      font-weight: 400;
     }
 
-    /* Explicación de criterios */
-    .criteria-box {
-      background: linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%);
-      border-left: 4px solid var(--info);
-      padding: 1.5rem;
-      border-radius: 8px;
-      margin-bottom: 2rem;
-    }
-
-    .criteria-box h3 {
-      color: var(--itd-blue);
-      margin-bottom: 1rem;
-      font-size: 1.2rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .criteria-grid {
+    /* Conceptos */
+    .concepts-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 1.5rem;
-      margin-top: 1rem;
-    }
-
-    .criteria-card {
-      background: white;
-      padding: 1.2rem;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-
-    .criteria-card h4 {
-      color: var(--maroon);
-      margin-bottom: 0.8rem;
-      font-size: 1.1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .criteria-card ul {
-      list-style: none;
-      padding-left: 0;
-    }
-
-    .criteria-card li {
-      padding: 0.4rem 0;
-      color: #555;
-      font-size: 0.9rem;
-      display: flex;
-      align-items: start;
-      gap: 0.5rem;
-    }
-
-    .criteria-card li::before {
-      content: "▸";
-      color: var(--info);
-      font-weight: bold;
-    }
-
-    .keywords {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-top: 0.5rem;
-    }
-
-    .keyword-tag {
-      background: #f1f5f9;
-      color: var(--itd-blue);
-      padding: 0.3rem 0.8rem;
-      border-radius: 12px;
-      font-size: 0.8rem;
-      font-weight: 600;
-    }
-
-    /* Grid principal */
-    .main-grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 2rem;
+      gap: 1rem;
       margin-bottom: 2rem;
     }
 
-    /* Panel de entrada */
-    .input-panel {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
+    .concept-card {
+      padding: 1.2rem;
+      border-radius: 10px;
+      font-size: 0.9rem;
     }
 
-    label {
-      font-weight: 600;
-      color: var(--itd-blue);
+    .concept-card.docente {
+      background: #fef2f2;
+      border-left: 4px solid var(--docente-color);
+    }
+
+    .concept-card.profesional {
+      background: #eff6ff;
+      border-left: 4px solid var(--profesional-color);
+    }
+
+    .concept-card h3 {
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
       display: flex;
       align-items: center;
       gap: 0.5rem;
+    }
+
+    .concept-card.docente h3 { color: var(--docente-color); }
+    .concept-card.profesional h3 { color: var(--profesional-color); }
+
+    .concept-card p {
+      color: #555;
+      line-height: 1.5;
+    }
+
+    /* Formulario */
+    .input-section {
+      background: #f8fafc;
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+    }
+
+    .input-group {
+      margin-bottom: 1.2rem;
+    }
+
+    .input-group label {
+      display: block;
+      font-weight: 600;
+      color: var(--itd-blue);
+      margin-bottom: 0.5rem;
       font-size: 0.95rem;
     }
 
-    textarea {
+    .input-group input,
+    .input-group textarea {
       width: 100%;
-      min-height: 200px;
-      font-family: 'Courier New', monospace;
-      padding: 1rem;
+      padding: 0.9rem 1rem;
       border: 2px solid #e2e8f0;
       border-radius: 8px;
-      font-size: 0.85rem;
-      resize: vertical;
+      font-size: 1rem;
+      font-family: inherit;
       transition: border-color 0.3s;
     }
 
-    textarea:focus {
+    .input-group input:focus,
+    .input-group textarea:focus {
       outline: none;
       border-color: var(--itd-blue);
     }
 
-    input[type="file"] {
-      padding: 0.8rem;
-      border: 2px dashed #cbd5e1;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.3s;
+    .input-group textarea {
+      min-height: 100px;
+      resize: vertical;
     }
 
-    input[type="file"]:hover {
-      border-color: var(--itd-blue);
-      background: #f8fafc;
-    }
-
-    /* Botones */
-    .controls {
-      display: flex;
-      gap: 0.8rem;
-      flex-wrap: wrap;
-    }
-
-    button {
-      padding: 0.9rem 1.5rem;
+    .btn-classify {
+      width: 100%;
+      padding: 1rem;
+      background: linear-gradient(135deg, var(--itd-blue), var(--maroon));
+      color: white;
       border: none;
-      border-radius: 8px;
-      cursor: pointer;
+      border-radius: 10px;
+      font-size: 1.1rem;
       font-weight: 600;
-      font-size: 0.9rem;
+      cursor: pointer;
       transition: all 0.3s;
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 0.5rem;
     }
 
-    button:hover {
+    .btn-classify:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      box-shadow: 0 6px 20px rgba(139, 21, 56, 0.3);
     }
 
-    .btn-primary {
-      background: linear-gradient(135deg, var(--itd-blue), var(--maroon));
-      color: white;
+    .btn-clear {
+      width: 100%;
+      padding: 0.8rem;
+      background: #e2e8f0;
+      color: #64748b;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 0.8rem;
+      transition: all 0.3s;
     }
 
-    .btn-secondary {
-      background: #64748b;
-      color: white;
+    .btn-clear:hover {
+      background: #cbd5e1;
     }
 
-    .btn-success {
-      background: var(--success);
-      color: white;
+    /* Resultado */
+    .result-section {
+      display: none;
+      margin-top: 1.5rem;
+      animation: fadeIn 0.4s ease;
     }
 
-    /* Panel de resumen */
-    .summary-panel {
-      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    .result-section.show {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-card {
       padding: 1.5rem;
       border-radius: 12px;
-      border: 1px solid #cbd5e1;
+      text-align: center;
     }
 
-    .summary-panel h3 {
-      color: var(--itd-blue);
-      margin-bottom: 1rem;
-      font-size: 1.1rem;
+    .result-card.docente {
+      background: linear-gradient(135deg, #fef2f2, #fee2e2);
+      border: 2px solid var(--docente-color);
     }
 
-    .stat-box {
-      background: white;
-      padding: 1rem;
-      border-radius: 8px;
-      margin-bottom: 0.8rem;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    .result-card.profesional {
+      background: linear-gradient(135deg, #eff6ff, #dbeafe);
+      border: 2px solid var(--profesional-color);
     }
 
-    .stat-label {
-      font-size: 0.85rem;
-      color: #64748b;
-      margin-bottom: 0.3rem;
+    .result-card.indefinido {
+      background: linear-gradient(135deg, #fefce8, #fef3c7);
+      border: 2px solid var(--itd-gold);
     }
 
-    .stat-value {
+    .result-icon {
+      font-size: 3rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .result-card.docente .result-icon { color: var(--docente-color); }
+    .result-card.profesional .result-icon { color: var(--profesional-color); }
+    .result-card.indefinido .result-icon { color: var(--itd-gold); }
+
+    .result-title {
       font-size: 1.8rem;
       font-weight: 700;
-      color: var(--itd-blue);
+      margin-bottom: 0.5rem;
     }
 
-    .distribution {
+    .result-card.docente .result-title { color: var(--docente-color); }
+    .result-card.profesional .result-title { color: var(--profesional-color); }
+    .result-card.indefinido .result-title { color: #92400e; }
+
+    .result-reason {
+      color: #555;
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+    }
+
+    .result-keywords {
       display: flex;
-      gap: 0.8rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 1rem;
     }
 
-    .dist-item {
-      flex: 1;
-      text-align: center;
-      padding: 0.8rem;
+    .keyword-found {
       background: white;
-      border-radius: 8px;
+      padding: 0.4rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
 
-    .dist-item.docente {
-      border-left: 4px solid #ef4444;
+    .result-card.docente .keyword-found { color: var(--docente-color); }
+    .result-card.profesional .keyword-found { color: var(--profesional-color); }
+
+    .result-scores {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px dashed rgba(0,0,0,0.1);
     }
 
-    .dist-item.profesional {
-      border-left: 4px solid #3b82f6;
+    .score-item {
+      text-align: center;
     }
 
-    .dist-value {
+    .score-value {
       font-size: 1.5rem;
       font-weight: 700;
-      margin-bottom: 0.3rem;
     }
 
-    .dist-label {
+    .score-label {
       font-size: 0.8rem;
-      color: #64748b;
-    }
-
-    /* Tabla de resultados */
-    .results-container {
-      margin-top: 2rem;
-      overflow-x: auto;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: white;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-
-    thead {
-      background: var(--itd-blue);
-      color: white;
-    }
-
-    th {
-      padding: 1rem;
-      text-align: left;
-      font-weight: 600;
-      font-size: 0.85rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    td {
-      padding: 1rem;
-      border-bottom: 1px solid #e2e8f0;
-      font-size: 0.9rem;
-      color: #334;
-    }
-
-    tbody tr {
-      transition: background 0.2s;
-      cursor: pointer;
-    }
-
-    tbody tr:hover {
-      background: #f8fafc;
-    }
-
-    .badge {
-      display: inline-block;
-      padding: 0.4rem 0.9rem;
-      border-radius: 16px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
-    }
-
-    .badge.docente {
-      background: #fee2e2;
-      color: #991b1b;
-    }
-
-    .badge.profesional {
-      background: #dbeafe;
-      color: #1e40af;
-    }
-
-    .reason-text {
-      font-size: 0.75rem;
-      color: #64748b;
-      font-style: italic;
-    }
-
-    .note-box {
-      background: #fef3c7;
-      border-left: 4px solid var(--itd-gold);
-      padding: 1rem;
-      border-radius: 8px;
-      margin-top: 1rem;
-      font-size: 0.9rem;
-      color: #78350f;
+      color: #666;
     }
 
     /* Responsive */
-    @media (max-width: 1024px) {
-      .main-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .criteria-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
     @media (max-width: 768px) {
-      .container {
-        padding: 1rem;
-      }
-
-      .header h1 {
-        font-size: 1.6rem;
-      }
-
-      table {
-        font-size: 0.8rem;
-      }
-
-      th, td {
-        padding: 0.5rem;
-      }
+      .container { padding: 1rem; }
+      .header h1 { font-size: 1.5rem; }
+      .concepts-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <!-- Botón de regreso -->
     <a href="index.html" class="back-button">
       <i class="fas fa-arrow-left"></i> Regresar al Portal
     </a>
 
-    <!-- Header -->
     <div class="header">
-      <h1><i class="fas fa-graduation-cap"></i> Clasificador de Cursos ITD</h1>
-      <p class="subtitle">Análisis automático: Docente vs Profesional</p>
+      <h1><i class="fas fa-graduation-cap"></i> Clasificador de Cursos</h1>
+      <p class="subtitle">Instituto Tecnológico de Durango — TecNM</p>
     </div>
 
-    <!-- Explicación de criterios -->
-    <div class="criteria-box">
-      <h3><i class="fas fa-info-circle"></i> Criterios de Clasificación</h3>
-      
-      <div class="criteria-grid">
-        <div class="criteria-card">
-          <h4><i class="fas fa-book"></i> Cursos DOCENTE (Formación Inicial)</h4>
-          <ul>
-            <li>Enfoque teórico-pedagógico</li>
-            <li>Estudiantes sin experiencia</li>
-            <li>Pedagogía, psicología, didáctica</li>
-          </ul>
-          <div class="keywords">
-            <span class="keyword-tag">pedagogía</span>
-            <span class="keyword-tag">didáctica</span>
-            <span class="keyword-tag">teoría</span>
-            <span class="keyword-tag">formación inicial</span>
-          </div>
-        </div>
-
-        <div class="criteria-card">
-          <h4><i class="fas fa-tools"></i> Cursos PROFESIONAL (Actualización)</h4>
-          <ul>
-            <li>Enfoque práctico aplicado</li>
-            <li>Docentes en ejercicio</li>
-            <li>Manejo, software, actualización</li>
-          </ul>
-          <div class="keywords">
-            <span class="keyword-tag">actualización</span>
-            <span class="keyword-tag">práctica</span>
-            <span class="keyword-tag">manejo</span>
-            <span class="keyword-tag">capacitar</span>
-          </div>
-        </div>
+    <!-- Conceptos Oficiales -->
+    <div class="concepts-grid">
+      <div class="concept-card docente">
+        <h3><i class="fas fa-chalkboard-teacher"></i> Curso DOCENTE</h3>
+        <p>
+          Formación tecno-pedagógica, estrategias didácticas, diseño de cursos, 
+          planificación de enseñanza, plataformas virtuales, metodologías de aprendizaje activo.
+          Requisito para promoción docente.
+        </p>
+      </div>
+      <div class="concept-card profesional">
+        <h3><i class="fas fa-briefcase"></i> Curso PROFESIONAL</h3>
+        <p>
+          Actualización técnica, capacitación práctica, manejo de equipos, 
+          software especializado, habilidades laborales, certificaciones técnicas.
+          Enfocado en competencias del área profesional.
+        </p>
       </div>
     </div>
 
-    <!-- Grid principal -->
-    <div class="main-grid">
-      <div class="input-panel">
-        <label>
-          <i class="fas fa-upload"></i> Pegar datos del curso
+    <!-- Formulario de entrada -->
+    <div class="input-section">
+      <div class="input-group">
+        <label for="nombreCurso">
+          <i class="fas fa-book"></i> Nombre del Curso
         </label>
-        <textarea id="inputData" placeholder="Pega aquí los datos copiados de Google Sheets. Ejemplo:
-
-Departamento Solicitante	Nombre del curso	Duración (horas)	Modalidad	Fecha inicio curso	Dirigido al personal docente de	Cuyo objetivo general es:
-Ciencias Básicas	Operación del Laboratorio de Física	30	Presencial	12/01/2026	Docentes que imparten física	Capacitar en el manejo de equipo de laboratorio"></textarea>
-
-        <label><i class="fas fa-file-upload"></i> O carga un archivo CSV</label>
-        <input type="file" id="fileInput" accept=".csv,.txt">
-
-        <div class="controls">
-          <button id="parseBtn" class="btn-primary">
-            <i class="fas fa-play"></i> Analizar Cursos
-          </button>
-          <button id="clearBtn" class="btn-secondary">
-            <i class="fas fa-eraser"></i> Limpiar
-          </button>
-          <button id="downloadBtn" class="btn-success">
-            <i class="fas fa-download"></i> Descargar CSV
-          </button>
-        </div>
-
-        <div class="note-box">
-          <strong><i class="fas fa-lightbulb"></i> Nota:</strong> 
-          Doble clic en cualquier clasificación para editarla manualmente.
-        </div>
+        <input 
+          type="text" 
+          id="nombreCurso" 
+          placeholder="Ej: Estrategias Didácticas para el Aprendizaje Activo"
+        >
       </div>
 
-      <!-- Panel de resumen -->
-      <div class="summary-panel">
-        <h3><i class="fas fa-chart-pie"></i> Resumen</h3>
-        
-        <div class="stat-box">
-          <div class="stat-label">Total procesados</div>
-          <div class="stat-value" id="totalCount">0</div>
-        </div>
-
-        <div class="distribution">
-          <div class="dist-item docente">
-            <div class="dist-value" id="countDocente" style="color: #dc2626;">0</div>
-            <div class="dist-label">Docente</div>
-          </div>
-          <div class="dist-item profesional">
-            <div class="dist-value" id="countProfesional" style="color: #2563eb;">0</div>
-            <div class="dist-label">Profesional</div>
-          </div>
-        </div>
+      <div class="input-group">
+        <label for="objetivoCurso">
+          <i class="fas fa-bullseye"></i> Objetivo del Curso
+        </label>
+        <textarea 
+          id="objetivoCurso" 
+          placeholder="Ej: Desarrollar competencias didácticas para implementar metodologías de aprendizaje activo en el aula..."
+        ></textarea>
       </div>
+
+      <button class="btn-classify" onclick="clasificar()">
+        <i class="fas fa-search"></i> Clasificar Curso
+      </button>
+
+      <button class="btn-clear" onclick="limpiar()">
+        <i class="fas fa-eraser"></i> Limpiar
+      </button>
     </div>
 
-    <!-- Tabla de resultados -->
-    <div class="results-container">
-      <div id="tableWrap"></div>
+    <!-- Resultado -->
+    <div class="result-section" id="resultSection">
+      <div class="result-card" id="resultCard">
+        <div class="result-icon" id="resultIcon"></div>
+        <div class="result-title" id="resultTitle"></div>
+        <div class="result-reason" id="resultReason"></div>
+        <div class="result-keywords" id="resultKeywords"></div>
+        <div class="result-scores">
+          <div class="score-item">
+            <div class="score-value" id="scoreDocente" style="color: var(--docente-color);">0</div>
+            <div class="score-label">Puntos Docente</div>
+          </div>
+          <div class="score-item">
+            <div class="score-value" id="scoreProfesional" style="color: var(--profesional-color);">0</div>
+            <div class="score-label">Puntos Profesional</div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
   <script>
-    // Parseo mejorado para Google Sheets (tabs o comas)
-    function parseData(text) {
-      text = text.trim();
-      if (!text) return [];
+    // Keywords basadas en el concepto oficial del TecNM
+    const KEYWORDS = {
+      docente: [
+        // Formación pedagógica
+        'pedagogia', 'pedagogico', 'pedagogica',
+        'didactica', 'didactico', 'didacticas',
+        'ensenanza', 'enseñanza',
+        'aprendizaje',
+        'educativo', 'educativa', 'educacion',
+        // Diseño instruccional
+        'diseno de cursos', 'diseño de cursos',
+        'planificacion', 'planificación',
+        'planeacion', 'planeación',
+        'secuencia didactica', 'secuencias didacticas',
+        // Metodologías
+        'metodologia', 'metodologias',
+        'estrategia didactica', 'estrategias didacticas',
+        'aprendizaje activo',
+        'aprendizaje colaborativo',
+        'aprendizaje basado en',
+        // Tecnología educativa
+        'plataforma virtual', 'plataformas virtuales',
+        'moodle', 'classroom',
+        'tecnologia educativa',
+        'recursos digitales educativos',
+        'tic en educacion',
+        // Evaluación educativa
+        'evaluacion del aprendizaje',
+        'rubricas', 'rubrica',
+        'competencias docentes',
+        // Otros términos docentes
+        'formacion docente',
+        'practica docente',
+        'tutoria', 'tutorias',
+        'asesoria academica',
+        'modelo educativo',
+        'tecnicas de ensenanza',
+        'proceso formativo',
+        'comunidad de aprendizaje'
+      ],
+      profesional: [
+        // Actualización técnica
+        'actualizacion', 'actualización',
+        'capacitacion', 'capacitación',
+        'capacitar',
+        'adiestramiento', 'adiestrar',
+        // Práctica y aplicación
+        'practica', 'practico', 'práctico',
+        'aplicacion', 'aplicar', 'aplicado',
+        'manejo', 'manejar',
+        'operacion', 'operar', 'operador',
+        'uso de', 'utilizacion',
+        // Equipos y herramientas
+        'equipo', 'equipos',
+        'laboratorio',
+        'instrumento', 'instrumentos',
+        'maquinaria', 'maquina',
+        'herramienta', 'herramientas',
+        // Software y tecnología
+        'software',
+        'programa', 'programas',
+        'sistema', 'sistemas',
+        'excel', 'word', 'powerpoint',
+        'autocad', 'solidworks', 'matlab',
+        'python', 'programacion',
+        // Certificaciones y normas
+        'certificacion', 'certificar',
+        'norma', 'normas', 'normatividad',
+        'iso', 'calidad',
+        // Habilidades técnicas
+        'tecnica', 'tecnico', 'tecnicas',
+        'taller', 'talleres',
+        'habilidades',
+        // Seguridad y otros
+        'seguridad', 'higiene',
+        'primeros auxilios',
+        'proteccion civil',
+        'finanzas', 'financiero',
+        'administracion',
+        'gestion', 'gestión',
+        'liderazgo',
+        'trabajo en equipo'
+      ]
+    };
 
-      const lines = text.split(/\r?\n/).filter(l => l.trim());
-      if (lines.length < 2) return [];
-
-      // Detectar separador (tab o coma)
-      const separator = lines[0].includes('\t') ? '\t' : ',';
-      
-      // Procesar encabezados
-      const headers = lines[0].split(separator).map(h => h.trim());
-      
-      // Procesar filas
-      const rows = [];
-      for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(separator).map(v => v.trim());
-        const row = {};
-        headers.forEach((header, idx) => {
-          row[header] = values[idx] || '';
-        });
-        rows.push(row);
-      }
-
-      return rows;
+    function normalizeText(text) {
+      if (!text) return '';
+      return text
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
     }
 
-    // Clasificación
-    function classifyCourse(row) {
-      const objetivo = (row['Cuyo objetivo general es:'] || '').toLowerCase();
-      const dirigido = (row['Dirigido al personal docente de'] || '').toLowerCase();
-      const nombre = (row['Nombre del curso'] || '').toLowerCase();
+    function clasificar() {
+      const nombre = document.getElementById('nombreCurso').value.trim();
+      const objetivo = document.getElementById('objetivoCurso').value.trim();
 
-      let scoreDoc = 0;
-      let scoreProf = 0;
-
-      // Keywords Docente
-      const kwDoc = ['pedagogía', 'pedagog', 'didáctica', 'didáct', 'psicología', 'teoría', 'teoria', 
-                     'formación inicial', 'estudiante', 'bases pedagógicas'];
-      // Keywords Profesional  
-      const kwProf = ['actualiz', 'práctica', 'practic', 'manejo', 'software', 'capacitar', 
-                      'adiestra', 'taller', 'ejercicio', 'aplicad', 'mejorar'];
-
-      const allText = `${nombre} ${dirigido} ${objetivo}`;
-
-      kwDoc.forEach(kw => { if (allText.includes(kw)) scoreDoc++; });
-      kwProf.forEach(kw => { if (allText.includes(kw)) scoreProf++; });
-
-      // Reglas especiales
-      if (dirigido.includes('imparta') || dirigido.includes('ejercicio')) scoreProf += 2;
-      if (dirigido.includes('estudiante') || dirigido.includes('inicial')) scoreDoc += 2;
-      if (objetivo.includes('capacita') || objetivo.includes('manejo') || objetivo.includes('adiestra')) scoreProf += 2;
-
-      const clasificacion = scoreProf > scoreDoc ? 'Profesional' : 'Docente';
-      const razon = `Doc:${scoreDoc} / Prof:${scoreProf}`;
-
-      return { clasificacion, razon };
-    }
-
-    // Renderizado
-    let currentRows = [];
-
-    function renderTable(rows) {
-      if (!rows || rows.length === 0) {
-        alert('No se pudieron procesar los datos');
+      if (!nombre && !objetivo) {
+        alert('Por favor ingresa al menos el nombre o el objetivo del curso.');
         return;
       }
 
-      currentRows = rows;
-      document.getElementById('totalCount').textContent = rows.length;
+      const textoCompleto = normalizeText(nombre + ' ' + objetivo);
 
-      let countDoc = 0, countProf = 0;
-      let html = `<table><thead><tr>
-        <th>Departamento</th>
-        <th>Curso</th>
-        <th>Horas</th>
-        <th>Modalidad</th>
-        <th>Dirigido a</th>
-        <th>Objetivo</th>
-        <th>Clasificación</th>
-      </tr></thead><tbody>`;
+      let scoreDoc = 0;
+      let scoreProf = 0;
+      const matchesDoc = [];
+      const matchesProf = [];
 
-      rows.forEach((r, i) => {
-        const { clasificacion, razon } = classifyCourse(r);
-        r._clasificacion = clasificacion;
-        r._razon = razon;
-
-        if (clasificacion === 'Docente') countDoc++;
-        else countProf++;
-
-        const obj = (r['Cuyo objetivo general es:'] || '').substring(0, 60);
-
-        html += `<tr data-idx="${i}">
-          <td>${r['Departamento Solicitante'] || ''}</td>
-          <td><strong>${r['Nombre del curso'] || ''}</strong></td>
-          <td>${r['Duración (horas)'] || ''}</td>
-          <td>${r['Modalidad'] || ''}</td>
-          <td>${r['Dirigido al personal docente de'] || ''}</td>
-          <td title="${r['Cuyo objetivo general es:'] || ''}">${obj}...</td>
-          <td><span class="badge ${clasificacion.toLowerCase()}">${clasificacion}</span><br><span class="reason-text">${razon}</span></td>
-        </tr>`;
+      // Buscar keywords docentes
+      KEYWORDS.docente.forEach(kw => {
+        if (textoCompleto.includes(normalizeText(kw))) {
+          scoreDoc++;
+          if (!matchesDoc.includes(kw)) matchesDoc.push(kw);
+        }
       });
 
-      html += '</tbody></table>';
-      document.getElementById('tableWrap').innerHTML = html;
-      document.getElementById('countDocente').textContent = countDoc;
-      document.getElementById('countProfesional').textContent = countProf;
-
-      // Edición
-      document.querySelectorAll('tbody tr').forEach(tr => {
-        tr.addEventListener('dblclick', () => {
-          const idx = tr.dataset.idx;
-          const r = currentRows[idx];
-          const nueva = prompt('Editar: D=Docente, P=Profesional', r._clasificacion);
-          if (nueva) {
-            r._clasificacion = nueva.toLowerCase().startsWith('d') ? 'Docente' : 'Profesional';
-            renderTable(currentRows);
-          }
-        });
+      // Buscar keywords profesionales
+      KEYWORDS.profesional.forEach(kw => {
+        if (textoCompleto.includes(normalizeText(kw))) {
+          scoreProf++;
+          if (!matchesProf.includes(kw)) matchesProf.push(kw);
+        }
       });
+
+      // Determinar clasificación
+      let clasificacion, razon, icon;
+
+      if (scoreDoc === 0 && scoreProf === 0) {
+        clasificacion = 'indefinido';
+        razon = 'No se encontraron palabras clave suficientes para clasificar.';
+        icon = '<i class="fas fa-question-circle"></i>';
+      } else if (scoreDoc > scoreProf) {
+        clasificacion = 'docente';
+        razon = 'El curso tiene mayor enfoque en formación pedagógica y didáctica.';
+        icon = '<i class="fas fa-chalkboard-teacher"></i>';
+      } else if (scoreProf > scoreDoc) {
+        clasificacion = 'profesional';
+        razon = 'El curso tiene mayor enfoque en actualización técnica y práctica.';
+        icon = '<i class="fas fa-briefcase"></i>';
+      } else {
+        // Empate - revisar contexto
+        clasificacion = 'profesional';
+        razon = 'Puntuación similar. Clasificado como Profesional por enfoque práctico.';
+        icon = '<i class="fas fa-briefcase"></i>';
+      }
+
+      // Mostrar resultado
+      mostrarResultado(clasificacion, razon, icon, matchesDoc, matchesProf, scoreDoc, scoreProf);
     }
 
-    // Descargar CSV
-    function downloadCSV() {
-      if (!currentRows.length) return alert('No hay datos');
+    function mostrarResultado(clasificacion, razon, icon, matchesDoc, matchesProf, scoreDoc, scoreProf) {
+      const section = document.getElementById('resultSection');
+      const card = document.getElementById('resultCard');
+      
+      // Limpiar clases anteriores
+      card.className = 'result-card ' + clasificacion;
+      
+      // Actualizar contenido
+      document.getElementById('resultIcon').innerHTML = icon;
+      document.getElementById('resultTitle').textContent = clasificacion.toUpperCase();
+      document.getElementById('resultReason').textContent = razon;
+      document.getElementById('scoreDocente').textContent = scoreDoc;
+      document.getElementById('scoreProfesional').textContent = scoreProf;
 
-      const header = Object.keys(currentRows[0]).filter(k => !k.startsWith('_'));
-      header.push('Clasificación', 'Análisis');
+      // Mostrar keywords encontradas
+      const keywordsContainer = document.getElementById('resultKeywords');
+      const matches = clasificacion === 'docente' ? matchesDoc : matchesProf;
+      
+      if (matches.length > 0) {
+        keywordsContainer.innerHTML = matches.slice(0, 6).map(kw => 
+          `<span class="keyword-found">${kw}</span>`
+        ).join('');
+      } else {
+        keywordsContainer.innerHTML = '<span style="color:#666;font-size:0.9rem;">Sin coincidencias específicas</span>';
+      }
 
-      let csv = header.join(',') + '\n';
-      currentRows.forEach(r => {
-        const values = header.map(h => {
-          if (h === 'Clasificación') return r._clasificacion || '';
-          if (h === 'Análisis') return r._razon || '';
-          return `"${(r[h] || '').replace(/"/g, '""')}"`;
-        });
-        csv += values.join(',') + '\n';
-      });
-
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'clasificacion_' + new Date().toISOString().slice(0,10) + '.csv';
-      a.click();
-      URL.revokeObjectURL(url);
+      // Mostrar sección
+      section.classList.add('show');
+      
+      // Scroll al resultado
+      section.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    // Event Listeners
-    document.getElementById('parseBtn').addEventListener('click', () => {
-      const text = document.getElementById('inputData').value;
-      const rows = parseData(text);
-      renderTable(rows);
-    });
+    function limpiar() {
+      document.getElementById('nombreCurso').value = '';
+      document.getElementById('objetivoCurso').value = '';
+      document.getElementById('resultSection').classList.remove('show');
+    }
 
-    document.getElementById('clearBtn').addEventListener('click', () => {
-      document.getElementById('inputData').value = '';
-      document.getElementById('tableWrap').innerHTML = '';
-      document.getElementById('totalCount').textContent = '0';
-      document.getElementById('countDocente').textContent = '0';
-      document.getElementById('countProfesional').textContent = '0';
-      currentRows = [];
-    });
-
-    document.getElementById('downloadBtn').addEventListener('click', downloadCSV);
-
-    document.getElementById('fileInput').addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        document.getElementById('inputData').value = reader.result;
-      };
-      reader.readAsText(file, 'utf-8');
+    // Enter para clasificar
+    document.getElementById('objetivoCurso').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.ctrlKey) {
+        clasificar();
+      }
     });
   </script>
 </body>
