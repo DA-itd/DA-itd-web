@@ -33,7 +33,6 @@
       box-shadow: 0 10px 40px rgba(0,0,0,0.1);
     }
 
-    /* Botón de regreso */
     .back-button {
       display: inline-flex;
       align-items: center;
@@ -52,10 +51,8 @@
     .back-button:hover {
       background: var(--maroon);
       transform: translateX(-5px);
-      box-shadow: 0 4px 12px rgba(139, 21, 56, 0.4);
     }
 
-    /* Header */
     .header {
       text-align: center;
       margin-bottom: 2rem;
@@ -73,10 +70,8 @@
     .header .subtitle {
       font-size: 1rem;
       color: #666;
-      font-weight: 400;
     }
 
-    /* Explicación de criterios */
     .criteria-box {
       background: linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%);
       border-left: 4px solid var(--info);
@@ -153,7 +148,6 @@
       font-weight: 600;
     }
 
-    /* Grid principal */
     .main-grid {
       display: grid;
       grid-template-columns: 2fr 1fr;
@@ -161,7 +155,6 @@
       margin-bottom: 2rem;
     }
 
-    /* Panel de entrada */
     .input-panel {
       display: flex;
       flex-direction: column;
@@ -207,7 +200,6 @@
       background: #f8fafc;
     }
 
-    /* Botones */
     .controls {
       display: flex;
       gap: 0.8rem;
@@ -247,7 +239,6 @@
       color: white;
     }
 
-    /* Panel de resumen */
     .summary-panel {
       background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
       padding: 1.5rem;
@@ -313,10 +304,38 @@
       color: #64748b;
     }
 
-    /* Tabla de resultados */
     .results-container {
       margin-top: 2rem;
       overflow-x: auto;
+    }
+
+    /* Debug panel */
+    .debug-panel {
+      background: #1e293b;
+      color: #22d3ee;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.8rem;
+      max-height: 150px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .debug-panel.show {
+      display: block;
+    }
+
+    .debug-toggle {
+      background: #475569;
+      color: white;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      margin-bottom: 1rem;
     }
 
     table {
@@ -378,6 +397,11 @@
       color: #1e40af;
     }
 
+    .badge.indefinido {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
     .reason-text {
       font-size: 0.75rem;
       color: #64748b;
@@ -394,50 +418,39 @@
       color: #78350f;
     }
 
-    /* Responsive */
-    @media (max-width: 1024px) {
-      .main-grid {
-        grid-template-columns: 1fr;
-      }
+    .error-box {
+      background: #fee2e2;
+      border-left: 4px solid #dc2626;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      color: #991b1b;
+    }
 
-      .criteria-grid {
-        grid-template-columns: 1fr;
-      }
+    @media (max-width: 1024px) {
+      .main-grid { grid-template-columns: 1fr; }
+      .criteria-grid { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 768px) {
-      .container {
-        padding: 1rem;
-      }
-
-      .header h1 {
-        font-size: 1.6rem;
-      }
-
-      table {
-        font-size: 0.8rem;
-      }
-
-      th, td {
-        padding: 0.5rem;
-      }
+      .container { padding: 1rem; }
+      .header h1 { font-size: 1.6rem; }
+      table { font-size: 0.8rem; }
+      th, td { padding: 0.5rem; }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <!-- Botón de regreso -->
     <a href="index.html" class="back-button">
       <i class="fas fa-arrow-left"></i> Regresar al Portal
     </a>
 
-    <!-- Header -->
     <div class="header">
       <h1><i class="fas fa-graduation-cap"></i> Clasificador de Cursos ITD</h1>
       <p class="subtitle">Análisis automático: Docente vs Profesional</p>
     </div>
 
-    <!-- Explicación de criterios -->
     <div class="criteria-box">
       <h3><i class="fas fa-info-circle"></i> Criterios de Clasificación</h3>
       
@@ -474,7 +487,6 @@
       </div>
     </div>
 
-    <!-- Grid principal -->
     <div class="main-grid">
       <div class="input-panel">
         <label>
@@ -500,13 +512,17 @@ Ciencias Básicas	Operación del Laboratorio de Física	30	Presencial	12/01/2026
           </button>
         </div>
 
+        <button class="debug-toggle" onclick="toggleDebug()">
+          <i class="fas fa-bug"></i> Mostrar/Ocultar Debug
+        </button>
+        <div id="debugPanel" class="debug-panel"></div>
+
         <div class="note-box">
           <strong><i class="fas fa-lightbulb"></i> Nota:</strong> 
           Doble clic en cualquier clasificación para editarla manualmente.
         </div>
       </div>
 
-      <!-- Panel de resumen -->
       <div class="summary-panel">
         <h3><i class="fas fa-chart-pie"></i> Resumen</h3>
         
@@ -528,87 +544,316 @@ Ciencias Básicas	Operación del Laboratorio de Física	30	Presencial	12/01/2026
       </div>
     </div>
 
-    <!-- Tabla de resultados -->
+    <div id="errorContainer"></div>
     <div class="results-container">
       <div id="tableWrap"></div>
     </div>
   </div>
 
   <script>
-    // Parseo mejorado para Google Sheets (tabs o comas)
+    // ========== UTILIDADES ==========
+    
+    // Normaliza texto: quita acentos, minúsculas, espacios extra
+    function normalizeText(text) {
+      if (!text) return '';
+      return text
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Quita acentos
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    // Log de debug
+    function debugLog(msg) {
+      const panel = document.getElementById('debugPanel');
+      const time = new Date().toLocaleTimeString();
+      panel.innerHTML += `[${time}] ${msg}<br>`;
+      panel.scrollTop = panel.scrollHeight;
+    }
+
+    function toggleDebug() {
+      document.getElementById('debugPanel').classList.toggle('show');
+    }
+
+    function showError(msg) {
+      document.getElementById('errorContainer').innerHTML = `
+        <div class="error-box">
+          <i class="fas fa-exclamation-triangle"></i> ${msg}
+        </div>`;
+    }
+
+    function clearError() {
+      document.getElementById('errorContainer').innerHTML = '';
+    }
+
+    // ========== PARSEO MEJORADO ==========
+    
+    // Parsea CSV correctamente (maneja comas dentro de comillas)
+    function parseCSVLine(line, separator) {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        
+        if (char === '"') {
+          if (inQuotes && line[i + 1] === '"') {
+            current += '"';
+            i++; // Salta la siguiente comilla
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (char === separator && !inQuotes) {
+          result.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      result.push(current.trim());
+      return result;
+    }
+
     function parseData(text) {
       text = text.trim();
-      if (!text) return [];
+      if (!text) {
+        debugLog('❌ Texto vacío');
+        return [];
+      }
 
       const lines = text.split(/\r?\n/).filter(l => l.trim());
-      if (lines.length < 2) return [];
+      debugLog(`📄 Líneas encontradas: ${lines.length}`);
+      
+      if (lines.length < 2) {
+        debugLog('❌ Se necesitan al menos 2 líneas (encabezado + datos)');
+        return [];
+      }
 
-      // Detectar separador (tab o coma)
-      const separator = lines[0].includes('\t') ? '\t' : ',';
-      
+      // Detectar separador
+      const tabCount = (lines[0].match(/\t/g) || []).length;
+      const commaCount = (lines[0].match(/,/g) || []).length;
+      const separator = tabCount >= commaCount ? '\t' : ',';
+      debugLog(`🔧 Separador detectado: ${separator === '\t' ? 'TAB' : 'COMA'}`);
+
       // Procesar encabezados
-      const headers = lines[0].split(separator).map(h => h.trim());
-      
+      const headers = parseCSVLine(lines[0], separator);
+      debugLog(`📋 Columnas encontradas: ${headers.length}`);
+      debugLog(`📋 Nombres: ${headers.join(' | ')}`);
+
+      // Mapear columnas flexiblemente
+      const columnMap = mapColumns(headers);
+      debugLog(`🗺️ Mapeo: ${JSON.stringify(columnMap)}`);
+
       // Procesar filas
       const rows = [];
       for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(separator).map(v => v.trim());
-        const row = {};
+        const values = parseCSVLine(lines[i], separator);
+        
+        if (values.length < 2 || values.every(v => !v)) continue; // Salta líneas vacías
+
+        const row = {
+          _original: {}
+        };
+
+        // Guardar valores originales y mapeados
         headers.forEach((header, idx) => {
-          row[header] = values[idx] || '';
+          row._original[header] = values[idx] || '';
         });
+
+        // Aplicar mapeo
+        row.departamento = values[columnMap.departamento] || '';
+        row.nombre = values[columnMap.nombre] || '';
+        row.duracion = values[columnMap.duracion] || '';
+        row.modalidad = values[columnMap.modalidad] || '';
+        row.dirigido = values[columnMap.dirigido] || '';
+        row.objetivo = values[columnMap.objetivo] || '';
+
         rows.push(row);
       }
 
+      debugLog(`✅ Filas procesadas: ${rows.length}`);
       return rows;
     }
 
-    // Clasificación
+    // Mapeo flexible de columnas
+    function mapColumns(headers) {
+      const map = {
+        departamento: -1,
+        nombre: -1,
+        duracion: -1,
+        modalidad: -1,
+        dirigido: -1,
+        objetivo: -1
+      };
+
+      headers.forEach((h, idx) => {
+        const normalized = normalizeText(h);
+        
+        // Departamento
+        if (normalized.includes('departamento') || normalized.includes('solicitante') || normalized.includes('area')) {
+          map.departamento = idx;
+        }
+        // Nombre del curso
+        else if (normalized.includes('nombre') && normalized.includes('curso')) {
+          map.nombre = idx;
+        }
+        else if (normalized === 'curso' || normalized === 'nombre') {
+          if (map.nombre === -1) map.nombre = idx;
+        }
+        // Duración
+        else if (normalized.includes('duracion') || normalized.includes('horas')) {
+          map.duracion = idx;
+        }
+        // Modalidad
+        else if (normalized.includes('modalidad') || normalized.includes('tipo')) {
+          map.modalidad = idx;
+        }
+        // Dirigido a
+        else if (normalized.includes('dirigido') || normalized.includes('personal') || normalized.includes('participantes')) {
+          map.dirigido = idx;
+        }
+        // Objetivo
+        else if (normalized.includes('objetivo') || normalized.includes('proposito') || normalized.includes('meta')) {
+          map.objetivo = idx;
+        }
+      });
+
+      // Fallbacks si no encuentra columnas específicas
+      if (map.nombre === -1 && headers.length > 1) map.nombre = 1;
+      if (map.departamento === -1 && headers.length > 0) map.departamento = 0;
+
+      return map;
+    }
+
+    // ========== CLASIFICACIÓN MEJORADA ==========
+    
     function classifyCourse(row) {
-      const objetivo = (row['Cuyo objetivo general es:'] || '').toLowerCase();
-      const dirigido = (row['Dirigido al personal docente de'] || '').toLowerCase();
-      const nombre = (row['Nombre del curso'] || '').toLowerCase();
+      const objetivo = normalizeText(row.objetivo);
+      const dirigido = normalizeText(row.dirigido);
+      const nombre = normalizeText(row.nombre);
 
       let scoreDoc = 0;
       let scoreProf = 0;
+      const matchesDoc = [];
+      const matchesProf = [];
 
-      // Keywords Docente
-      const kwDoc = ['pedagogía', 'pedagog', 'didáctica', 'didáct', 'psicología', 'teoría', 'teoria', 
-                     'formación inicial', 'estudiante', 'bases pedagógicas'];
-      // Keywords Profesional  
-      const kwProf = ['actualiz', 'práctica', 'practic', 'manejo', 'software', 'capacitar', 
-                      'adiestra', 'taller', 'ejercicio', 'aplicad', 'mejorar'];
+      // Keywords Docente (sin acentos para comparación)
+      const kwDoc = [
+        'pedagogia', 'pedagogico', 'pedagogica',
+        'didactica', 'didactico',
+        'psicologia', 'psicologico',
+        'teoria', 'teorico', 'teorica',
+        'formacion inicial',
+        'estudiante', 'estudiantes',
+        'bases pedagogicas',
+        'aprendizaje teorico',
+        'fundamentos',
+        'introduccion a la docencia',
+        'principios educativos'
+      ];
+
+      // Keywords Profesional (sin acentos para comparación)
+      const kwProf = [
+        'actualiz', 'actualizacion',
+        'practica', 'practico',
+        'manejo', 'manejar',
+        'software', 'programa', 'herramienta',
+        'capacitar', 'capacitacion',
+        'adiestrar', 'adiestramiento',
+        'taller', 'talleres',
+        'ejercicio profesional',
+        'aplicar', 'aplicacion', 'aplicado',
+        'mejorar', 'mejora',
+        'tecnica', 'tecnicas', 'tecnico',
+        'operacion', 'operar',
+        'laboratorio',
+        'equipo', 'equipos',
+        'uso de', 'utilizacion'
+      ];
 
       const allText = `${nombre} ${dirigido} ${objetivo}`;
 
-      kwDoc.forEach(kw => { if (allText.includes(kw)) scoreDoc++; });
-      kwProf.forEach(kw => { if (allText.includes(kw)) scoreProf++; });
+      // Contar coincidencias
+      kwDoc.forEach(kw => {
+        if (allText.includes(kw)) {
+          scoreDoc++;
+          matchesDoc.push(kw);
+        }
+      });
 
-      // Reglas especiales
-      if (dirigido.includes('imparta') || dirigido.includes('ejercicio')) scoreProf += 2;
-      if (dirigido.includes('estudiante') || dirigido.includes('inicial')) scoreDoc += 2;
-      if (objetivo.includes('capacita') || objetivo.includes('manejo') || objetivo.includes('adiestra')) scoreProf += 2;
+      kwProf.forEach(kw => {
+        if (allText.includes(kw)) {
+          scoreProf++;
+          matchesProf.push(kw);
+        }
+      });
 
-      const clasificacion = scoreProf > scoreDoc ? 'Profesional' : 'Docente';
-      const razon = `Doc:${scoreDoc} / Prof:${scoreProf}`;
+      // Reglas contextuales especiales
+      if (dirigido.includes('imparte') || dirigido.includes('imparten') || dirigido.includes('ejercicio')) {
+        scoreProf += 2;
+        matchesProf.push('→docente en ejercicio');
+      }
+      
+      if (dirigido.includes('nuevo ingreso') || dirigido.includes('inicial') || dirigido.includes('aspirante')) {
+        scoreDoc += 2;
+        matchesDoc.push('→nuevo/inicial');
+      }
 
-      return { clasificacion, razon };
+      if (objetivo.includes('capacitar en') || objetivo.includes('manejo de') || objetivo.includes('operar')) {
+        scoreProf += 2;
+        matchesProf.push('→capacitación práctica');
+      }
+
+      if (objetivo.includes('conocer los fundamentos') || objetivo.includes('comprender la teoria')) {
+        scoreDoc += 2;
+        matchesDoc.push('→fundamentos teóricos');
+      }
+
+      // Determinar clasificación
+      let clasificacion;
+      let razon;
+
+      if (scoreDoc === 0 && scoreProf === 0) {
+        clasificacion = 'Indefinido';
+        razon = 'Sin coincidencias claras';
+      } else if (scoreProf > scoreDoc) {
+        clasificacion = 'Profesional';
+        razon = `Prof(${scoreProf}): ${matchesProf.slice(0, 3).join(', ')}`;
+      } else if (scoreDoc > scoreProf) {
+        clasificacion = 'Docente';
+        razon = `Doc(${scoreDoc}): ${matchesDoc.slice(0, 3).join(', ')}`;
+      } else {
+        // Empate: usar heurística adicional
+        clasificacion = 'Profesional'; // Por defecto si hay empate con puntos
+        razon = `Empate (${scoreDoc}/${scoreProf}) → Prof`;
+      }
+
+      debugLog(`📊 "${row.nombre.substring(0, 30)}..." → ${clasificacion} (D:${scoreDoc}/P:${scoreProf})`);
+
+      return { clasificacion, razon, scoreDoc, scoreProf };
     }
 
-    // Renderizado
+    // ========== RENDERIZADO ==========
+    
     let currentRows = [];
 
     function renderTable(rows) {
+      clearError();
+      
       if (!rows || rows.length === 0) {
-        alert('No se pudieron procesar los datos');
+        showError('No se pudieron procesar los datos. Verifica el formato.');
         return;
       }
 
       currentRows = rows;
       document.getElementById('totalCount').textContent = rows.length;
 
-      let countDoc = 0, countProf = 0;
+      let countDoc = 0, countProf = 0, countIndef = 0;
+      
       let html = `<table><thead><tr>
+        <th>#</th>
         <th>Departamento</th>
         <th>Curso</th>
         <th>Horas</th>
@@ -624,18 +869,24 @@ Ciencias Básicas	Operación del Laboratorio de Física	30	Presencial	12/01/2026
         r._razon = razon;
 
         if (clasificacion === 'Docente') countDoc++;
-        else countProf++;
+        else if (clasificacion === 'Profesional') countProf++;
+        else countIndef++;
 
-        const obj = (r['Cuyo objetivo general es:'] || '').substring(0, 60);
+        const objTruncado = (r.objetivo || '').substring(0, 50);
+        const dirigidoTruncado = (r.dirigido || '').substring(0, 40);
 
         html += `<tr data-idx="${i}">
-          <td>${r['Departamento Solicitante'] || ''}</td>
-          <td><strong>${r['Nombre del curso'] || ''}</strong></td>
-          <td>${r['Duración (horas)'] || ''}</td>
-          <td>${r['Modalidad'] || ''}</td>
-          <td>${r['Dirigido al personal docente de'] || ''}</td>
-          <td title="${r['Cuyo objetivo general es:'] || ''}">${obj}...</td>
-          <td><span class="badge ${clasificacion.toLowerCase()}">${clasificacion}</span><br><span class="reason-text">${razon}</span></td>
+          <td>${i + 1}</td>
+          <td>${r.departamento || '-'}</td>
+          <td><strong>${r.nombre || '-'}</strong></td>
+          <td>${r.duracion || '-'}</td>
+          <td>${r.modalidad || '-'}</td>
+          <td title="${r.dirigido || ''}">${dirigidoTruncado}${r.dirigido?.length > 40 ? '...' : ''}</td>
+          <td title="${r.objetivo || ''}">${objTruncado}${r.objetivo?.length > 50 ? '...' : ''}</td>
+          <td>
+            <span class="badge ${clasificacion.toLowerCase()}">${clasificacion}</span>
+            <br><span class="reason-text">${razon}</span>
+          </td>
         </tr>`;
       });
 
@@ -644,48 +895,87 @@ Ciencias Básicas	Operación del Laboratorio de Física	30	Presencial	12/01/2026
       document.getElementById('countDocente').textContent = countDoc;
       document.getElementById('countProfesional').textContent = countProf;
 
-      // Edición
+      // Agregar edición por doble clic
       document.querySelectorAll('tbody tr').forEach(tr => {
         tr.addEventListener('dblclick', () => {
-          const idx = tr.dataset.idx;
+          const idx = parseInt(tr.dataset.idx);
           const r = currentRows[idx];
-          const nueva = prompt('Editar: D=Docente, P=Profesional', r._clasificacion);
-          if (nueva) {
-            r._clasificacion = nueva.toLowerCase().startsWith('d') ? 'Docente' : 'Profesional';
+          const nueva = prompt(
+            `Editar clasificación:\n- D o Docente\n- P o Profesional\n\nActual: ${r._clasificacion}`,
+            r._clasificacion
+          );
+          if (nueva && nueva.trim()) {
+            const input = nueva.trim().toLowerCase();
+            if (input === 'd' || input.startsWith('doc')) {
+              r._clasificacion = 'Docente';
+              r._razon = 'Editado manualmente';
+            } else if (input === 'p' || input.startsWith('prof')) {
+              r._clasificacion = 'Profesional';
+              r._razon = 'Editado manualmente';
+            }
             renderTable(currentRows);
           }
         });
       });
+
+      debugLog(`✅ Tabla renderizada: ${countDoc} Docente, ${countProf} Profesional, ${countIndef} Indefinido`);
     }
 
-    // Descargar CSV
+    // ========== DESCARGA CSV ==========
+    
     function downloadCSV() {
-      if (!currentRows.length) return alert('No hay datos');
+      if (!currentRows.length) {
+        alert('No hay datos para descargar');
+        return;
+      }
 
-      const header = Object.keys(currentRows[0]).filter(k => !k.startsWith('_'));
-      header.push('Clasificación', 'Análisis');
+      // Construir CSV con escape correcto
+      const headers = ['Departamento', 'Nombre del Curso', 'Duración', 'Modalidad', 'Dirigido a', 'Objetivo', 'Clasificación', 'Análisis'];
+      
+      const escapeCSV = (val) => {
+        if (val === null || val === undefined) return '""';
+        const str = String(val);
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
 
-      let csv = header.join(',') + '\n';
+      let csv = headers.join(',') + '\n';
+      
       currentRows.forEach(r => {
-        const values = header.map(h => {
-          if (h === 'Clasificación') return r._clasificacion || '';
-          if (h === 'Análisis') return r._razon || '';
-          return `"${(r[h] || '').replace(/"/g, '""')}"`;
-        });
-        csv += values.join(',') + '\n';
+        const row = [
+          escapeCSV(r.departamento),
+          escapeCSV(r.nombre),
+          escapeCSV(r.duracion),
+          escapeCSV(r.modalidad),
+          escapeCSV(r.dirigido),
+          escapeCSV(r.objetivo),
+          escapeCSV(r._clasificacion),
+          escapeCSV(r._razon)
+        ];
+        csv += row.join(',') + '\n';
       });
 
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      // Agregar BOM para Excel
+      const BOM = '\uFEFF';
+      const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'clasificacion_' + new Date().toISOString().slice(0,10) + '.csv';
+      a.download = `clasificacion_cursos_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      
+      debugLog('📥 CSV descargado');
     }
 
-    // Event Listeners
+    // ========== EVENT LISTENERS ==========
+    
     document.getElementById('parseBtn').addEventListener('click', () => {
+      debugLog('🚀 Iniciando análisis...');
       const text = document.getElementById('inputData').value;
       const rows = parseData(text);
       renderTable(rows);
@@ -697,7 +987,10 @@ Ciencias Básicas	Operación del Laboratorio de Física	30	Presencial	12/01/2026
       document.getElementById('totalCount').textContent = '0';
       document.getElementById('countDocente').textContent = '0';
       document.getElementById('countProfesional').textContent = '0';
+      document.getElementById('debugPanel').innerHTML = '';
+      clearError();
       currentRows = [];
+      debugLog('🧹 Limpiado');
     });
 
     document.getElementById('downloadBtn').addEventListener('click', downloadCSV);
@@ -705,12 +998,23 @@ Ciencias Básicas	Operación del Laboratorio de Física	30	Presencial	12/01/2026
     document.getElementById('fileInput').addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
+      
+      debugLog(`📁 Archivo cargado: ${file.name}`);
+      
       const reader = new FileReader();
       reader.onload = () => {
         document.getElementById('inputData').value = reader.result;
+        debugLog('📄 Contenido cargado en textarea');
+      };
+      reader.onerror = () => {
+        showError('Error al leer el archivo');
+        debugLog('❌ Error leyendo archivo');
       };
       reader.readAsText(file, 'utf-8');
     });
+
+    // Mensaje inicial
+    debugLog('🎓 Clasificador listo. Pega datos o carga un archivo CSV.');
   </script>
 </body>
 </html>
