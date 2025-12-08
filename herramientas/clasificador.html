@@ -309,7 +309,7 @@
       overflow-x: auto;
     }
 
-    /* Debug panel */
+    /* Debug panel - SIEMPRE VISIBLE para diagnóstico */
     .debug-panel {
       background: #1e293b;
       color: #22d3ee;
@@ -318,24 +318,21 @@
       margin-bottom: 1rem;
       font-family: 'Courier New', monospace;
       font-size: 0.8rem;
-      max-height: 150px;
+      max-height: 200px;
       overflow-y: auto;
-      display: none;
+      border: 2px solid #22d3ee;
     }
 
-    .debug-panel.show {
-      display: block;
+    .debug-panel .error {
+      color: #f87171;
     }
 
-    .debug-toggle {
-      background: #475569;
-      color: white;
-      padding: 0.5rem 1rem;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 0.8rem;
-      margin-bottom: 1rem;
+    .debug-panel .success {
+      color: #4ade80;
+    }
+
+    .debug-panel .warning {
+      color: #fbbf24;
     }
 
     table {
@@ -427,6 +424,15 @@
       color: #991b1b;
     }
 
+    .success-box {
+      background: #dcfce7;
+      border-left: 4px solid #16a34a;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      color: #166534;
+    }
+
     @media (max-width: 1024px) {
       .main-grid { grid-template-columns: 1fr; }
       .criteria-grid { grid-template-columns: 1fr; }
@@ -490,19 +496,25 @@
     <div class="main-grid">
       <div class="input-panel">
         <label>
-          <i class="fas fa-upload"></i> Pegar datos del curso
+          <i class="fas fa-upload"></i> Pegar datos del curso (desde Google Sheets)
         </label>
-        <textarea id="inputData" placeholder="Pega aquí los datos copiados de Google Sheets. Ejemplo:
+        <textarea id="inputData" placeholder="Pega aquí los datos copiados de Google Sheets.
 
-Departamento Solicitante	Nombre del curso	Duración (horas)	Modalidad	Fecha inicio curso	Dirigido al personal docente de	Cuyo objetivo general es:
-Ciencias Básicas	Operación del Laboratorio de Física	30	Presencial	12/01/2026	Docentes que imparten física	Capacitar en el manejo de equipo de laboratorio"></textarea>
+IMPORTANTE: Debe incluir la fila de encabezados + al menos 1 fila de datos.
 
-        <label><i class="fas fa-file-upload"></i> O carga un archivo CSV</label>
+Ejemplo (copia desde la línea siguiente):
+Departamento	Nombre del curso	Horas	Dirigido a	Objetivo
+Ciencias Básicas	Laboratorio de Física	30	Docentes que imparten física	Capacitar en el manejo de equipo"></textarea>
+
+        <label><i class="fas fa-file-upload"></i> O carga un archivo CSV/TXT</label>
         <input type="file" id="fileInput" accept=".csv,.txt">
 
         <div class="controls">
           <button id="parseBtn" class="btn-primary">
             <i class="fas fa-play"></i> Analizar Cursos
+          </button>
+          <button id="testBtn" class="btn-secondary">
+            <i class="fas fa-vial"></i> Probar con Ejemplo
           </button>
           <button id="clearBtn" class="btn-secondary">
             <i class="fas fa-eraser"></i> Limpiar
@@ -512,14 +524,15 @@ Ciencias Básicas	Operación del Laboratorio de Física	30	Presencial	12/01/2026
           </button>
         </div>
 
-        <button class="debug-toggle" onclick="toggleDebug()">
-          <i class="fas fa-bug"></i> Mostrar/Ocultar Debug
-        </button>
-        <div id="debugPanel" class="debug-panel"></div>
+        <!-- Panel de Debug SIEMPRE VISIBLE -->
+        <label><i class="fas fa-bug"></i> Consola de Diagnóstico:</label>
+        <div id="debugPanel" class="debug-panel">
+          <span class="success">✅ Sistema listo. Pega datos y presiona "Analizar Cursos".</span>
+        </div>
 
         <div class="note-box">
-          <strong><i class="fas fa-lightbulb"></i> Nota:</strong> 
-          Doble clic en cualquier clasificación para editarla manualmente.
+          <strong><i class="fas fa-lightbulb"></i> Tip:</strong> 
+          Usa el botón "Probar con Ejemplo" para verificar que funciona correctamente.
         </div>
       </div>
 
@@ -544,238 +557,201 @@ Ciencias Básicas	Operación del Laboratorio de Física	30	Presencial	12/01/2026
       </div>
     </div>
 
-    <div id="errorContainer"></div>
+    <div id="messageContainer"></div>
     <div class="results-container">
       <div id="tableWrap"></div>
     </div>
   </div>
 
   <script>
+    // ========== VARIABLES GLOBALES ==========
+    let currentRows = [];
+    const debugPanel = document.getElementById('debugPanel');
+
     // ========== UTILIDADES ==========
     
-    // Normaliza texto: quita acentos, minúsculas, espacios extra
+    function debugLog(msg, type = 'info') {
+      const time = new Date().toLocaleTimeString();
+      let className = '';
+      if (type === 'error') className = 'error';
+      else if (type === 'success') className = 'success';
+      else if (type === 'warning') className = 'warning';
+      
+      debugPanel.innerHTML += `<div class="${className}">[${time}] ${msg}</div>`;
+      debugPanel.scrollTop = debugPanel.scrollHeight;
+    }
+
+    function clearDebug() {
+      debugPanel.innerHTML = '';
+    }
+
+    function showMessage(msg, type = 'error') {
+      const className = type === 'error' ? 'error-box' : 'success-box';
+      document.getElementById('messageContainer').innerHTML = `
+        <div class="${className}">
+          <i class="fas fa-${type === 'error' ? 'exclamation-triangle' : 'check-circle'}"></i> ${msg}
+        </div>`;
+    }
+
+    function clearMessage() {
+      document.getElementById('messageContainer').innerHTML = '';
+    }
+
     function normalizeText(text) {
       if (!text) return '';
       return text
         .toLowerCase()
         .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '') // Quita acentos
+        .replace(/[\u0300-\u036f]/g, '')
         .replace(/\s+/g, ' ')
         .trim();
     }
 
-    // Log de debug
-    function debugLog(msg) {
-      const panel = document.getElementById('debugPanel');
-      const time = new Date().toLocaleTimeString();
-      panel.innerHTML += `[${time}] ${msg}<br>`;
-      panel.scrollTop = panel.scrollHeight;
-    }
-
-    function toggleDebug() {
-      document.getElementById('debugPanel').classList.toggle('show');
-    }
-
-    function showError(msg) {
-      document.getElementById('errorContainer').innerHTML = `
-        <div class="error-box">
-          <i class="fas fa-exclamation-triangle"></i> ${msg}
-        </div>`;
-    }
-
-    function clearError() {
-      document.getElementById('errorContainer').innerHTML = '';
-    }
-
-    // ========== PARSEO MEJORADO ==========
+    // ========== PARSEO ==========
     
-    // Parsea CSV correctamente (maneja comas dentro de comillas)
-    function parseCSVLine(line, separator) {
-      const result = [];
-      let current = '';
-      let inQuotes = false;
-      
-      for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-        
-        if (char === '"') {
-          if (inQuotes && line[i + 1] === '"') {
-            current += '"';
-            i++; // Salta la siguiente comilla
-          } else {
-            inQuotes = !inQuotes;
-          }
-        } else if (char === separator && !inQuotes) {
-          result.push(current.trim());
-          current = '';
-        } else {
-          current += char;
-        }
-      }
-      result.push(current.trim());
-      return result;
-    }
-
     function parseData(text) {
-      text = text.trim();
-      if (!text) {
-        debugLog('❌ Texto vacío');
+      clearDebug();
+      debugLog('🚀 Iniciando análisis de datos...');
+      
+      // Verificar que hay texto
+      if (!text || !text.trim()) {
+        debugLog('❌ ERROR: El campo de texto está vacío', 'error');
         return [];
       }
 
-      const lines = text.split(/\r?\n/).filter(l => l.trim());
-      debugLog(`📄 Líneas encontradas: ${lines.length}`);
+      text = text.trim();
+      debugLog(`📊 Caracteres recibidos: ${text.length}`);
       
-      if (lines.length < 2) {
-        debugLog('❌ Se necesitan al menos 2 líneas (encabezado + datos)');
+      // Mostrar primeros caracteres para diagnóstico
+      const preview = text.substring(0, 100).replace(/\n/g, '↵').replace(/\t/g, '→');
+      debugLog(`📝 Vista previa: "${preview}..."`);
+
+      // Separar en líneas
+      const lines = text.split(/\r?\n/);
+      debugLog(`📄 Líneas totales (incluyendo vacías): ${lines.length}`);
+      
+      // Filtrar líneas vacías
+      const nonEmptyLines = lines.filter(l => l.trim().length > 0);
+      debugLog(`📄 Líneas con contenido: ${nonEmptyLines.length}`);
+
+      if (nonEmptyLines.length === 0) {
+        debugLog('❌ ERROR: No hay líneas con contenido', 'error');
+        return [];
+      }
+
+      if (nonEmptyLines.length === 1) {
+        debugLog('❌ ERROR: Solo hay 1 línea (se necesita encabezado + datos)', 'error');
+        debugLog('💡 Asegúrate de copiar la fila de encabezados Y las filas de datos', 'warning');
         return [];
       }
 
       // Detectar separador
-      const tabCount = (lines[0].match(/\t/g) || []).length;
-      const commaCount = (lines[0].match(/,/g) || []).length;
-      const separator = tabCount >= commaCount ? '\t' : ',';
-      debugLog(`🔧 Separador detectado: ${separator === '\t' ? 'TAB' : 'COMA'}`);
+      const firstLine = nonEmptyLines[0];
+      const tabCount = (firstLine.match(/\t/g) || []).length;
+      const commaCount = (firstLine.match(/,/g) || []).length;
+      const semicolonCount = (firstLine.match(/;/g) || []).length;
+      
+      debugLog(`🔍 Detectando separador: TABs=${tabCount}, Comas=${commaCount}, PuntoComa=${semicolonCount}`);
+      
+      let separator;
+      if (tabCount >= commaCount && tabCount >= semicolonCount) {
+        separator = '\t';
+        debugLog('✅ Separador: TAB (típico de Google Sheets)', 'success');
+      } else if (semicolonCount > commaCount) {
+        separator = ';';
+        debugLog('✅ Separador: Punto y coma', 'success');
+      } else {
+        separator = ',';
+        debugLog('✅ Separador: Coma', 'success');
+      }
 
       // Procesar encabezados
-      const headers = parseCSVLine(lines[0], separator);
+      const headers = firstLine.split(separator).map(h => h.trim().replace(/^"|"$/g, ''));
       debugLog(`📋 Columnas encontradas: ${headers.length}`);
-      debugLog(`📋 Nombres: ${headers.join(' | ')}`);
+      debugLog(`📋 Encabezados: [${headers.join(', ')}]`);
 
-      // Mapear columnas flexiblemente
-      const columnMap = mapColumns(headers);
-      debugLog(`🗺️ Mapeo: ${JSON.stringify(columnMap)}`);
+      if (headers.length < 2) {
+        debugLog('❌ ERROR: Se detectó solo 1 columna. Verifica el formato.', 'error');
+        debugLog('💡 Al copiar de Google Sheets, selecciona múltiples columnas', 'warning');
+        return [];
+      }
 
-      // Procesar filas
+      // Procesar filas de datos
       const rows = [];
-      for (let i = 1; i < lines.length; i++) {
-        const values = parseCSVLine(lines[i], separator);
+      
+      for (let i = 1; i < nonEmptyLines.length; i++) {
+        const line = nonEmptyLines[i];
+        const values = line.split(separator).map(v => v.trim().replace(/^"|"$/g, ''));
         
-        if (values.length < 2 || values.every(v => !v)) continue; // Salta líneas vacías
-
-        const row = {
-          _original: {}
-        };
-
-        // Guardar valores originales y mapeados
+        debugLog(`  Fila ${i}: ${values.length} valores`);
+        
+        // Crear objeto con datos
+        const row = {};
         headers.forEach((header, idx) => {
-          row._original[header] = values[idx] || '';
+          row[header] = values[idx] || '';
         });
-
-        // Aplicar mapeo
-        row.departamento = values[columnMap.departamento] || '';
-        row.nombre = values[columnMap.nombre] || '';
-        row.duracion = values[columnMap.duracion] || '';
-        row.modalidad = values[columnMap.modalidad] || '';
-        row.dirigido = values[columnMap.dirigido] || '';
-        row.objetivo = values[columnMap.objetivo] || '';
-
+        
+        // Mapear a campos estándar
+        row._nombre = findValue(row, ['nombre', 'curso', 'title', 'nombre del curso']);
+        row._departamento = findValue(row, ['departamento', 'depto', 'area', 'solicitante']);
+        row._duracion = findValue(row, ['duracion', 'horas', 'hours', 'duración']);
+        row._modalidad = findValue(row, ['modalidad', 'tipo', 'mode']);
+        row._dirigido = findValue(row, ['dirigido', 'personal', 'participantes', 'para']);
+        row._objetivo = findValue(row, ['objetivo', 'proposito', 'meta', 'goal', 'cuyo objetivo']);
+        
         rows.push(row);
       }
 
-      debugLog(`✅ Filas procesadas: ${rows.length}`);
+      debugLog(`✅ Filas procesadas exitosamente: ${rows.length}`, 'success');
+      
+      if (rows.length === 0) {
+        debugLog('❌ ERROR: No se pudieron procesar filas de datos', 'error');
+      }
+
       return rows;
     }
 
-    // Mapeo flexible de columnas
-    function mapColumns(headers) {
-      const map = {
-        departamento: -1,
-        nombre: -1,
-        duracion: -1,
-        modalidad: -1,
-        dirigido: -1,
-        objetivo: -1
-      };
-
-      headers.forEach((h, idx) => {
-        const normalized = normalizeText(h);
-        
-        // Departamento
-        if (normalized.includes('departamento') || normalized.includes('solicitante') || normalized.includes('area')) {
-          map.departamento = idx;
+    // Busca un valor en el objeto usando múltiples posibles nombres de columna
+    function findValue(row, possibleNames) {
+      for (const key of Object.keys(row)) {
+        const normalizedKey = normalizeText(key);
+        for (const name of possibleNames) {
+          if (normalizedKey.includes(normalizeText(name))) {
+            return row[key];
+          }
         }
-        // Nombre del curso
-        else if (normalized.includes('nombre') && normalized.includes('curso')) {
-          map.nombre = idx;
-        }
-        else if (normalized === 'curso' || normalized === 'nombre') {
-          if (map.nombre === -1) map.nombre = idx;
-        }
-        // Duración
-        else if (normalized.includes('duracion') || normalized.includes('horas')) {
-          map.duracion = idx;
-        }
-        // Modalidad
-        else if (normalized.includes('modalidad') || normalized.includes('tipo')) {
-          map.modalidad = idx;
-        }
-        // Dirigido a
-        else if (normalized.includes('dirigido') || normalized.includes('personal') || normalized.includes('participantes')) {
-          map.dirigido = idx;
-        }
-        // Objetivo
-        else if (normalized.includes('objetivo') || normalized.includes('proposito') || normalized.includes('meta')) {
-          map.objetivo = idx;
-        }
-      });
-
-      // Fallbacks si no encuentra columnas específicas
-      if (map.nombre === -1 && headers.length > 1) map.nombre = 1;
-      if (map.departamento === -1 && headers.length > 0) map.departamento = 0;
-
-      return map;
+      }
+      return '';
     }
 
-    // ========== CLASIFICACIÓN MEJORADA ==========
+    // ========== CLASIFICACIÓN ==========
     
     function classifyCourse(row) {
-      const objetivo = normalizeText(row.objetivo);
-      const dirigido = normalizeText(row.dirigido);
-      const nombre = normalizeText(row.nombre);
+      const objetivo = normalizeText(row._objetivo);
+      const dirigido = normalizeText(row._dirigido);
+      const nombre = normalizeText(row._nombre);
+      const allText = `${nombre} ${dirigido} ${objetivo}`;
 
       let scoreDoc = 0;
       let scoreProf = 0;
       const matchesDoc = [];
       const matchesProf = [];
 
-      // Keywords Docente (sin acentos para comparación)
+      // Keywords Docente
       const kwDoc = [
-        'pedagogia', 'pedagogico', 'pedagogica',
-        'didactica', 'didactico',
-        'psicologia', 'psicologico',
-        'teoria', 'teorico', 'teorica',
-        'formacion inicial',
-        'estudiante', 'estudiantes',
-        'bases pedagogicas',
-        'aprendizaje teorico',
-        'fundamentos',
-        'introduccion a la docencia',
-        'principios educativos'
+        'pedagogia', 'pedagogico', 'pedagogica', 'didactica', 'didactico',
+        'psicologia', 'teoria', 'teorico', 'formacion inicial',
+        'estudiante', 'fundamentos', 'principios educativos', 'bases pedagogicas'
       ];
 
-      // Keywords Profesional (sin acentos para comparación)
+      // Keywords Profesional
       const kwProf = [
-        'actualiz', 'actualizacion',
-        'practica', 'practico',
-        'manejo', 'manejar',
-        'software', 'programa', 'herramienta',
-        'capacitar', 'capacitacion',
-        'adiestrar', 'adiestramiento',
-        'taller', 'talleres',
-        'ejercicio profesional',
-        'aplicar', 'aplicacion', 'aplicado',
-        'mejorar', 'mejora',
-        'tecnica', 'tecnicas', 'tecnico',
-        'operacion', 'operar',
-        'laboratorio',
-        'equipo', 'equipos',
-        'uso de', 'utilizacion'
+        'actualiz', 'practica', 'practico', 'manejo', 'software',
+        'capacitar', 'capacitacion', 'adiestrar', 'taller',
+        'aplicar', 'aplicacion', 'mejorar', 'tecnica', 'tecnico',
+        'operacion', 'operar', 'laboratorio', 'equipo', 'uso de'
       ];
 
-      const allText = `${nombre} ${dirigido} ${objetivo}`;
-
-      // Contar coincidencias
       kwDoc.forEach(kw => {
         if (allText.includes(kw)) {
           scoreDoc++;
@@ -790,74 +766,60 @@ Ciencias Básicas	Operación del Laboratorio de Física	30	Presencial	12/01/2026
         }
       });
 
-      // Reglas contextuales especiales
-      if (dirigido.includes('imparte') || dirigido.includes('imparten') || dirigido.includes('ejercicio')) {
+      // Reglas contextuales
+      if (dirigido.includes('imparte') || dirigido.includes('ejercicio')) {
         scoreProf += 2;
-        matchesProf.push('→docente en ejercicio');
+        matchesProf.push('docente-en-ejercicio');
       }
-      
-      if (dirigido.includes('nuevo ingreso') || dirigido.includes('inicial') || dirigido.includes('aspirante')) {
+      if (dirigido.includes('nuevo ingreso') || dirigido.includes('inicial')) {
         scoreDoc += 2;
-        matchesDoc.push('→nuevo/inicial');
+        matchesDoc.push('nuevo-ingreso');
       }
-
-      if (objetivo.includes('capacitar en') || objetivo.includes('manejo de') || objetivo.includes('operar')) {
+      if (objetivo.includes('capacitar') || objetivo.includes('manejo')) {
         scoreProf += 2;
-        matchesProf.push('→capacitación práctica');
-      }
-
-      if (objetivo.includes('conocer los fundamentos') || objetivo.includes('comprender la teoria')) {
-        scoreDoc += 2;
-        matchesDoc.push('→fundamentos teóricos');
+        matchesProf.push('capacitacion');
       }
 
       // Determinar clasificación
-      let clasificacion;
-      let razon;
-
+      let clasificacion, razon;
+      
       if (scoreDoc === 0 && scoreProf === 0) {
         clasificacion = 'Indefinido';
-        razon = 'Sin coincidencias claras';
+        razon = 'Sin keywords detectadas';
       } else if (scoreProf > scoreDoc) {
         clasificacion = 'Profesional';
-        razon = `Prof(${scoreProf}): ${matchesProf.slice(0, 3).join(', ')}`;
+        razon = `P:${scoreProf} > D:${scoreDoc}`;
       } else if (scoreDoc > scoreProf) {
         clasificacion = 'Docente';
-        razon = `Doc(${scoreDoc}): ${matchesDoc.slice(0, 3).join(', ')}`;
+        razon = `D:${scoreDoc} > P:${scoreProf}`;
       } else {
-        // Empate: usar heurística adicional
-        clasificacion = 'Profesional'; // Por defecto si hay empate con puntos
-        razon = `Empate (${scoreDoc}/${scoreProf}) → Prof`;
+        clasificacion = 'Profesional';
+        razon = `Empate ${scoreDoc}=${scoreProf} → Prof`;
       }
-
-      debugLog(`📊 "${row.nombre.substring(0, 30)}..." → ${clasificacion} (D:${scoreDoc}/P:${scoreProf})`);
 
       return { clasificacion, razon, scoreDoc, scoreProf };
     }
 
     // ========== RENDERIZADO ==========
     
-    let currentRows = [];
-
     function renderTable(rows) {
-      clearError();
+      clearMessage();
       
       if (!rows || rows.length === 0) {
-        showError('No se pudieron procesar los datos. Verifica el formato.');
+        showMessage('No se pudieron procesar los datos. Revisa la consola de diagnóstico arriba.', 'error');
         return;
       }
 
       currentRows = rows;
       document.getElementById('totalCount').textContent = rows.length;
+      showMessage(`✅ Se procesaron ${rows.length} cursos correctamente.`, 'success');
 
-      let countDoc = 0, countProf = 0, countIndef = 0;
+      let countDoc = 0, countProf = 0;
       
       let html = `<table><thead><tr>
         <th>#</th>
+        <th>Nombre del Curso</th>
         <th>Departamento</th>
-        <th>Curso</th>
-        <th>Horas</th>
-        <th>Modalidad</th>
         <th>Dirigido a</th>
         <th>Objetivo</th>
         <th>Clasificación</th>
@@ -870,19 +832,18 @@ Ciencias Básicas	Operación del Laboratorio de Física	30	Presencial	12/01/2026
 
         if (clasificacion === 'Docente') countDoc++;
         else if (clasificacion === 'Profesional') countProf++;
-        else countIndef++;
 
-        const objTruncado = (r.objetivo || '').substring(0, 50);
-        const dirigidoTruncado = (r.dirigido || '').substring(0, 40);
+        const nombre = r._nombre || Object.values(r).find(v => v && !v.startsWith('_')) || '-';
+        const depto = r._departamento || '-';
+        const dirigido = (r._dirigido || '').substring(0, 40);
+        const objetivo = (r._objetivo || '').substring(0, 50);
 
         html += `<tr data-idx="${i}">
           <td>${i + 1}</td>
-          <td>${r.departamento || '-'}</td>
-          <td><strong>${r.nombre || '-'}</strong></td>
-          <td>${r.duracion || '-'}</td>
-          <td>${r.modalidad || '-'}</td>
-          <td title="${r.dirigido || ''}">${dirigidoTruncado}${r.dirigido?.length > 40 ? '...' : ''}</td>
-          <td title="${r.objetivo || ''}">${objTruncado}${r.objetivo?.length > 50 ? '...' : ''}</td>
+          <td><strong>${nombre}</strong></td>
+          <td>${depto}</td>
+          <td title="${r._dirigido || ''}">${dirigido}${dirigido.length >= 40 ? '...' : ''}</td>
+          <td title="${r._objetivo || ''}">${objetivo}${objetivo.length >= 50 ? '...' : ''}</td>
           <td>
             <span class="badge ${clasificacion.toLowerCase()}">${clasificacion}</span>
             <br><span class="reason-text">${razon}</span>
@@ -895,30 +856,22 @@ Ciencias Básicas	Operación del Laboratorio de Física	30	Presencial	12/01/2026
       document.getElementById('countDocente').textContent = countDoc;
       document.getElementById('countProfesional').textContent = countProf;
 
-      // Agregar edición por doble clic
+      debugLog(`📊 Resultados: ${countDoc} Docente, ${countProf} Profesional`, 'success');
+
+      // Edición por doble clic
       document.querySelectorAll('tbody tr').forEach(tr => {
         tr.addEventListener('dblclick', () => {
           const idx = parseInt(tr.dataset.idx);
           const r = currentRows[idx];
-          const nueva = prompt(
-            `Editar clasificación:\n- D o Docente\n- P o Profesional\n\nActual: ${r._clasificacion}`,
-            r._clasificacion
-          );
+          const nueva = prompt(`Editar clasificación:\n- D = Docente\n- P = Profesional\n\nActual: ${r._clasificacion}`, r._clasificacion);
           if (nueva && nueva.trim()) {
             const input = nueva.trim().toLowerCase();
-            if (input === 'd' || input.startsWith('doc')) {
-              r._clasificacion = 'Docente';
-              r._razon = 'Editado manualmente';
-            } else if (input === 'p' || input.startsWith('prof')) {
-              r._clasificacion = 'Profesional';
-              r._razon = 'Editado manualmente';
-            }
+            r._clasificacion = (input === 'd' || input.startsWith('doc')) ? 'Docente' : 'Profesional';
+            r._razon = 'Manual';
             renderTable(currentRows);
           }
         });
       });
-
-      debugLog(`✅ Tabla renderizada: ${countDoc} Docente, ${countProf} Profesional, ${countIndef} Indefinido`);
     }
 
     // ========== DESCARGA CSV ==========
@@ -929,57 +882,57 @@ Ciencias Básicas	Operación del Laboratorio de Física	30	Presencial	12/01/2026
         return;
       }
 
-      // Construir CSV con escape correcto
-      const headers = ['Departamento', 'Nombre del Curso', 'Duración', 'Modalidad', 'Dirigido a', 'Objetivo', 'Clasificación', 'Análisis'];
-      
       const escapeCSV = (val) => {
-        if (val === null || val === undefined) return '""';
+        if (!val) return '""';
         const str = String(val);
-        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-          return `"${str.replace(/"/g, '""')}"`;
-        }
-        return str;
+        return `"${str.replace(/"/g, '""')}"`;
       };
 
+      const headers = ['Nombre', 'Departamento', 'Dirigido a', 'Objetivo', 'Clasificación', 'Análisis'];
       let csv = headers.join(',') + '\n';
       
       currentRows.forEach(r => {
-        const row = [
-          escapeCSV(r.departamento),
-          escapeCSV(r.nombre),
-          escapeCSV(r.duracion),
-          escapeCSV(r.modalidad),
-          escapeCSV(r.dirigido),
-          escapeCSV(r.objetivo),
+        csv += [
+          escapeCSV(r._nombre),
+          escapeCSV(r._departamento),
+          escapeCSV(r._dirigido),
+          escapeCSV(r._objetivo),
           escapeCSV(r._clasificacion),
           escapeCSV(r._razon)
-        ];
-        csv += row.join(',') + '\n';
+        ].join(',') + '\n';
       });
 
-      // Agregar BOM para Excel
-      const BOM = '\uFEFF';
-      const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
       const a = document.createElement('a');
-      a.href = url;
-      a.download = `clasificacion_cursos_${new Date().toISOString().slice(0, 10)}.csv`;
-      document.body.appendChild(a);
+      a.href = URL.createObjectURL(blob);
+      a.download = `clasificacion_${new Date().toISOString().slice(0,10)}.csv`;
       a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      debugLog('📥 CSV descargado');
+      debugLog('📥 CSV descargado', 'success');
+    }
+
+    // ========== DATOS DE EJEMPLO ==========
+    
+    function loadTestData() {
+      const testData = `Departamento	Nombre del curso	Horas	Dirigido a	Objetivo
+Ciencias Básicas	Operación del Laboratorio de Física	30	Docentes que imparten física	Capacitar en el manejo de equipo de laboratorio
+Desarrollo Académico	Fundamentos de Pedagogía	40	Estudiantes de nuevo ingreso	Conocer las bases pedagógicas y teorías del aprendizaje
+Sistemas	Actualización en Python	20	Docentes en ejercicio	Mejorar habilidades prácticas de programación
+Química	Didáctica de las Ciencias	25	Estudiantes de formación inicial	Comprender la teoría didáctica para enseñanza
+Eléctrica	Manejo de Osciloscopio	15	Docentes que imparten electrónica	Adiestrar en el uso del equipo de medición`;
+
+      document.getElementById('inputData').value = testData;
+      debugLog('📋 Datos de ejemplo cargados. Presiona "Analizar Cursos".', 'success');
     }
 
     // ========== EVENT LISTENERS ==========
     
     document.getElementById('parseBtn').addEventListener('click', () => {
-      debugLog('🚀 Iniciando análisis...');
       const text = document.getElementById('inputData').value;
       const rows = parseData(text);
       renderTable(rows);
     });
+
+    document.getElementById('testBtn').addEventListener('click', loadTestData);
 
     document.getElementById('clearBtn').addEventListener('click', () => {
       document.getElementById('inputData').value = '';
@@ -987,10 +940,10 @@ Ciencias Básicas	Operación del Laboratorio de Física	30	Presencial	12/01/2026
       document.getElementById('totalCount').textContent = '0';
       document.getElementById('countDocente').textContent = '0';
       document.getElementById('countProfesional').textContent = '0';
-      document.getElementById('debugPanel').innerHTML = '';
-      clearError();
+      clearMessage();
+      clearDebug();
+      debugLog('🧹 Todo limpiado', 'success');
       currentRows = [];
-      debugLog('🧹 Limpiado');
     });
 
     document.getElementById('downloadBtn').addEventListener('click', downloadCSV);
@@ -998,23 +951,15 @@ Ciencias Básicas	Operación del Laboratorio de Física	30	Presencial	12/01/2026
     document.getElementById('fileInput').addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      
-      debugLog(`📁 Archivo cargado: ${file.name}`);
-      
+      debugLog(`📁 Cargando archivo: ${file.name}...`);
       const reader = new FileReader();
       reader.onload = () => {
         document.getElementById('inputData').value = reader.result;
-        debugLog('📄 Contenido cargado en textarea');
+        debugLog('✅ Archivo cargado correctamente', 'success');
       };
-      reader.onerror = () => {
-        showError('Error al leer el archivo');
-        debugLog('❌ Error leyendo archivo');
-      };
+      reader.onerror = () => debugLog('❌ Error al leer archivo', 'error');
       reader.readAsText(file, 'utf-8');
     });
-
-    // Mensaje inicial
-    debugLog('🎓 Clasificador listo. Pega datos o carga un archivo CSV.');
   </script>
 </body>
 </html>
