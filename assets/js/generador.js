@@ -1,1 +1,1 @@
-// generador js
+// full JS implement

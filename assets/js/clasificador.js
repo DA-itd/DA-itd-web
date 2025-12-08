@@ -1,1 +1,1 @@
-// clasificador js
+// full JS implement
