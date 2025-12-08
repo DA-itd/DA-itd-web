@@ -36,37 +36,42 @@
 
         .header-logos {
             background: white;
-            padding: 1.5rem 1rem;
+            padding: 2rem 2rem 1.5rem 2rem;
         }
 
         .header-content {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 3rem;
+            justify-content: space-between;
+            position: relative;
         }
 
-        .logos {
-            display: flex;
-            align-items: center;
-            gap: 3rem;
+        /* Logos en extremos */
+        .logo-left, .logo-right {
+            flex-shrink: 0;
         }
 
-        .logos img {
-            height: 90px;
+        .logo-left img, .logo-right img {
+            height: 100px;
             width: auto;
             object-fit: contain;
-            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.1));
+            filter: drop-shadow(0 3px 10px rgba(0,0,0,0.12));
             transition: transform 0.3s ease;
         }
 
-        .logos img:hover {
-            transform: scale(1.05);
+        .logo-left img:hover, .logo-right img:hover {
+            transform: scale(1.08);
         }
 
-        /* Línea guinda después de logos */
+        /* Espacio entre logos */
+        .center-spacer {
+            flex: 1;
+            min-width: 100px;
+        }
+
+        /* Línea guinda */
         .maroon-line {
             width: 100%;
             height: 6px;
@@ -139,7 +144,7 @@
             font-size: 1.1rem;
         }
 
-        /* Grid de Cards Mejorado */
+        /* Grid de Cards */
         .cards-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -246,7 +251,7 @@
             flex-grow: 1;
         }
 
-        /* Botones Mejorados */
+        /* Botones */
         .btn {
             display: inline-flex;
             align-items: center;
@@ -287,7 +292,7 @@
             font-size: 1.1rem;
         }
 
-        /* Footer Mejorado */
+        /* Footer */
         .footer {
             background: var(--itd-blue);
             color: white;
@@ -334,21 +339,25 @@
 
         /* Responsive */
         @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+
+            .logo-left img, .logo-right img {
+                height: 70px;
+            }
+
+            .center-spacer {
+                display: none;
+            }
+
             .header-text h1 {
                 font-size: 1.5rem;
             }
 
             .header-text .subtitle {
                 font-size: 0.9rem;
-            }
-
-            .logos {
-                flex-direction: column;
-                gap: 1.5rem;
-            }
-
-            .logos img {
-                height: 70px;
             }
 
             .section-title h2 {
@@ -366,7 +375,7 @@
             }
         }
 
-        /* Animaciones de entrada */
+        /* Animaciones */
         @keyframes fadeInUp {
             from {
                 opacity: 0;
@@ -389,13 +398,21 @@
 </head>
 
 <body>
-    <!-- Header con fondo blanco para logos -->
+    <!-- Header con logos en extremos -->
     <header class="header">
         <div class="header-logos">
             <div class="header-content">
-                <div class="logos">
-                    <img src="assets/img/logo_itd.png" alt="Instituto Tecnológico de Durango">
+                <!-- Logo TecNM a la IZQUIERDA -->
+                <div class="logo-left">
                     <img src="assets/img/tecnm1.jpg" alt="TecNM">
+                </div>
+                
+                <!-- Espacio central -->
+                <div class="center-spacer"></div>
+                
+                <!-- Logo ITD a la DERECHA -->
+                <div class="logo-right">
+                    <img src="assets/img/logo_itd.png" alt="Instituto Tecnológico de Durango">
                 </div>
             </div>
         </div>
