@@ -3,831 +3,870 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editor de Imágenes con IA - ITD</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>Estudio de Diseño AI - ITD</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Import Map para Google GenAI -->
+    <script type="importmap">
+      {
+        "imports": {
+          "@google/genai": "https://esm.run/@google/genai"
+        }
+      }
+    </script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         :root {
-            --itd-blue: #1b396a;
-            --itd-gold: #d4a017;
+            --primary: #1b396a;
+            --accent: #d4a017;
             --maroon: #8B1538;
-            --success: #10b981;
+            --bg-dark: #1e1e1e;
+            --panel-bg: #2d2d2d;
+            --text-light: #f5f5f5;
+            --border: #444;
         }
 
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            min-height: 100vh;
-            color: #333;
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
 
+        /* HEADER */
         .header {
-            background: white;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            margin-bottom: 2rem;
-        }
-
-        .header-content {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 1.5rem 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .logo {
-            height: 60px;
-        }
-
-        .header-title {
-            text-align: center;
-            flex-grow: 1;
-        }
-
-        .header-title h1 {
-            color: var(--itd-blue);
-            font-size: 1.8rem;
-            margin-bottom: 0.3rem;
-        }
-
-        .header-title p {
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        .btn-back {
-            background: var(--maroon);
-            color: white;
-            padding: 0.7rem 1.5rem;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .btn-back:hover {
-            background: var(--itd-blue);
-            transform: translateY(-2px);
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 2rem 2rem 2rem;
-        }
-
-        .editor-grid {
-            display: grid;
-            grid-template-columns: 350px 1fr;
-            gap: 2rem;
-            margin-top: 2rem;
-        }
-
-        .panel {
-            background: white;
-            border-radius: 16px;
-            padding: 2rem;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            max-height: fit-content;
-        }
-
-        .panel-title {
-            color: var(--itd-blue);
-            font-size: 1.3rem;
-            font-weight: 700;
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .upload-zone {
-            border: 3px dashed var(--maroon);
-            border-radius: 12px;
-            padding: 2rem 1rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background: #f8f9fa;
-        }
-
-        .upload-zone:hover {
-            border-color: var(--itd-blue);
-            background: #fff;
-            transform: translateY(-2px);
-        }
-
-        .upload-zone.dragover {
-            border-color: var(--itd-gold);
-            background: #fffbf0;
-        }
-
-        .upload-icon {
-            font-size: 2.5rem;
-            color: var(--maroon);
-            margin-bottom: 1rem;
-        }
-
-        .upload-text {
-            font-size: 1rem;
-            color: #666;
-            margin-bottom: 0.5rem;
-        }
-
-        input[type="file"] { display: none; }
-
-        .control-group { margin-bottom: 1.5rem; }
-
-        .control-label {
-            display: block;
-            font-weight: 600;
-            color: var(--itd-blue);
-            margin-bottom: 0.7rem;
-            font-size: 0.95rem;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 0.8rem;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--maroon), var(--itd-blue));
-            color: white;
-            box-shadow: 0 4px 15px rgba(139, 21, 56, 0.2);
-        }
-
-        .btn-primary:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(139, 21, 56, 0.3);
-        }
-
-        .btn-secondary {
-            background: white;
-            color: var(--itd-blue);
-            border: 1px solid #c3cfe2;
-        }
-
-        .btn-secondary:hover:not(:disabled) {
-            background: #f1f5f9;
-            border-color: var(--itd-blue);
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            background: #e2e8f0;
-            color: #94a3b8;
-            border-color: transparent;
-            box-shadow: none;
-        }
-
-        .color-picker-wrapper {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }
-
-        input[type="color"] {
-            width: 50px;
             height: 50px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            padding: 0;
-            overflow: hidden;
-        }
-
-        .color-value {
-            font-family: monospace;
-            font-size: 0.9rem;
-            color: #666;
-            padding: 0.5rem;
-            background: #f8f9fa;
-            border-radius: 6px;
-            flex-grow: 1;
-            text-align: center;
-            border: 1px solid #e2e8f0;
-        }
-
-        .canvas-container {
-            position: relative;
+            background: var(--primary);
             display: flex;
-            justify-content: center;
             align-items: center;
-            min-height: 500px;
-            background: 
-                linear-gradient(45deg, #e0e0e0 25%, transparent 25%),
-                linear-gradient(-45deg, #e0e0e0 25%, transparent 25%),
-                linear-gradient(45deg, transparent 75%, #e0e0e0 75%),
-                linear-gradient(-45deg, transparent 75%, #e0e0e0 75%);
+            padding: 0 20px;
+            justify-content: space-between;
+            border-bottom: 1px solid #000;
+        }
+        
+        .header h1 { font-size: 1.1rem; display: flex; align-items: center; gap: 10px; }
+        .back-link { color: white; text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; gap: 5px; }
+        .back-link:hover { color: var(--accent); }
+
+        /* MAIN LAYOUT */
+        .workspace {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 50px);
+        }
+
+        /* TOOLBAR (LEFT) */
+        .toolbar {
+            width: 60px;
+            background: var(--panel-bg);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 10px;
+            gap: 15px;
+            z-index: 10;
+        }
+
+        .tool-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            color: #aaa;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .tool-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+        .tool-btn.active { background: var(--accent); color: var(--primary); }
+        .tool-btn[data-tooltip]:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            left: 50px;
+            background: #000;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            white-space: nowrap;
+            z-index: 20;
+        }
+
+        /* CANVAS AREA (CENTER) */
+        .canvas-area {
+            flex: 1;
+            background: #111;
+            background-image: radial-gradient(#333 1px, transparent 1px);
             background-size: 20px 20px;
-            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
             overflow: hidden;
-            border: 1px solid #ddd;
         }
 
         canvas {
-            max-width: 100%;
-            max-height: 600px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-        }
-
-        .placeholder {
-            text-align: center;
-            color: #999;
-        }
-
-        .placeholder i {
-            font-size: 4rem;
-            color: #ddd;
-            margin-bottom: 1rem;
-        }
-
-        .effects-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.5rem;
-        }
-        
-        .download-group {
-            display: flex;
-            gap: 0.5rem;
-        }
-        
-        .format-select {
-            padding: 0.5rem;
-            border-radius: 8px;
-            border: 1px solid #c3cfe2;
             background: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            cursor: default;
+        }
+
+        /* PROPERTIES & LAYERS (RIGHT) */
+        .sidebar {
+            width: 300px;
+            background: var(--panel-bg);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-section {
+            padding: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: #888;
+            margin-bottom: 10px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* CONTROLS */
+        .control-group { margin-bottom: 10px; }
+        .control-group label { display: block; font-size: 0.8rem; margin-bottom: 5px; color: #ccc; }
+        
+        input[type="text"], input[type="number"], select, textarea {
+            width: 100%;
+            background: #222;
+            border: 1px solid #555;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
             font-family: inherit;
-            color: var(--itd-blue);
-            font-weight: 600;
+        }
+
+        input[type="color"] {
+            width: 100%;
+            height: 35px;
+            border: none;
+            background: none;
             cursor: pointer;
         }
 
-        .alert {
-            padding: 0.8rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
+        .btn-action {
+            width: 100%;
+            padding: 10px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 5px;
             display: flex;
-            align-items: center;
-            gap: 0.7rem;
-            font-size: 0.85rem;
-            display: none; /* Oculto por defecto */
-            animation: slideIn 0.3s ease;
-        }
-        
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .alert-show { display: flex; }
-
-        .alert-info { background: #e3f2fd; color: #1565c0; border-left: 4px solid #1565c0; }
-        .alert-warning { background: #fff3cd; color: #856404; border-left: 4px solid #ffc107; }
-        .alert-error { background: #fee2e2; color: #991b1b; border-left: 4px solid #dc2626; }
-
-        .loading {
-            display: none;
-            position: absolute;
-            background: rgba(255,255,255,0.9);
-            top: 0; left: 0; right: 0; bottom: 0;
-            z-index: 10;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
+            gap: 8px;
+            transition: 0.2s;
         }
 
-        .loading.active { display: flex; }
+        .btn-action:hover { filter: brightness(1.2); }
+        .btn-action.secondary { background: #444; }
+        .btn-action.ai { background: linear-gradient(135deg, var(--maroon), var(--primary)); }
 
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid var(--maroon);
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin-bottom: 1rem;
+        /* LAYER LIST */
+        .layer-list {
+            flex: 1;
+            overflow-y: auto;
+            max-height: 300px;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .history-controls {
+        .layer-item {
             display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
+            align-items: center;
+            padding: 8px 15px;
+            background: #333;
+            margin-bottom: 2px;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+        }
+
+        .layer-item.selected {
+            background: #444;
+            border-left-color: var(--accent);
+        }
+
+        .layer-item i { margin-right: 10px; width: 15px; text-align: center; }
+        .layer-name { flex: 1; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .layer-actions i { cursor: pointer; color: #666; font-size: 0.8rem; margin-left: 5px; }
+        .layer-actions i:hover { color: #fff; }
+
+        /* LOADING */
+        .loader {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .loader.active { display: flex; }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 4px solid #fff;
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* MODAL */
+        .modal {
+            display: none;
+            position: fixed; z-index: 200;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            align-items: center; justify-content: center;
+        }
+        .modal.show { display: flex; }
+        .modal-content {
+            background: var(--panel-bg);
+            padding: 20px;
+            border-radius: 8px;
+            width: 400px;
+            border: 1px solid var(--border);
         }
         
-        .history-controls .btn { padding: 0.6rem; font-size: 0.8rem; }
+        .api-key-banner {
+            background: #333; 
+            padding: 10px; 
+            font-size: 0.8rem; 
+            text-align: center; 
+            border-bottom: 1px solid #444;
+        }
 
-        @media (max-width: 1024px) {
-            .editor-grid { grid-template-columns: 1fr; }
-            .header-content { flex-direction: column; gap: 1rem; }
+        /* RESIZE HANDLES */
+        .resize-handle {
+            position: absolute;
+            width: 10px; height: 10px;
+            background: white;
+            border: 1px solid var(--primary);
+            border-radius: 50%;
+            pointer-events: none; /* Handle via logic */
         }
     </style>
 </head>
 <body>
-    <header class="header">
-        <div class="header-content">
-            <img src="https://raw.githubusercontent.com/DA-itd/web/main/logo_itdurango.png" alt="ITD" class="logo">
-            <div class="header-title">
-                <h1><i class="fas fa-magic"></i> Editor de Imágenes con IA</h1>
-                <p>Quitafondos, efectos y edición profesional</p>
-            </div>
-            <a href="index.html" class="btn-back">
-                <i class="fas fa-arrow-left"></i> Volver
-            </a>
+
+    <div class="header">
+        <h1><i class="fas fa-layer-group"></i> Estudio de Diseño AI <span style="font-size: 0.7rem; background: var(--accent); color: black; padding: 2px 6px; border-radius: 4px;">BETA</span></h1>
+        <a href="index.html" class="back-link"><i class="fas fa-arrow-left"></i> Volver al Portal</a>
+    </div>
+
+    <!-- API KEY Warning (Simulated for this environment) -->
+    <div class="api-key-banner" id="apiKeyBanner">
+        Nota: Las funciones IA requieren configurar tu API Key de Google Gemini.
+        <button onclick="showApiKeyModal()" style="background:none; border:none; color: var(--accent); text-decoration: underline; cursor:pointer;">Configurar</button>
+    </div>
+
+    <div class="workspace">
+        <!-- TOOLBAR -->
+        <div class="toolbar">
+            <button class="tool-btn" onclick="document.getElementById('fileInput').click()" data-tooltip="Subir Imagen"><i class="fas fa-upload"></i></button>
+            <button class="tool-btn" onclick="addTextLayer()" data-tooltip="Añadir Texto"><i class="fas fa-font"></i></button>
+            <button class="tool-btn" onclick="addShape('rect')" data-tooltip="Rectángulo"><i class="fas fa-vector-square"></i></button>
+            <button class="tool-btn" onclick="addShape('circle')" data-tooltip="Círculo"><i class="fas fa-circle"></i></button>
+            <div style="width: 30px; height: 1px; background: #555; margin: 5px 0;"></div>
+            <button class="tool-btn active" id="toolSelect" onclick="setTool('select')" data-tooltip="Mover/Seleccionar"><i class="fas fa-mouse-pointer"></i></button>
+            <button class="tool-btn" id="toolEraser" onclick="removeBackgroundOfSelected()" data-tooltip="IA: Quitar Fondo"><i class="fas fa-eraser" style="color: var(--accent);"></i></button>
         </div>
-    </header>
 
-    <div class="container">
-        <!-- Alertas globales -->
-        <div id="globalAlert" class="alert"></div>
+        <!-- CANVAS -->
+        <div class="canvas-area" id="canvasContainer">
+            <canvas id="mainCanvas"></canvas>
+            <div class="loader" id="loader">
+                <div class="spinner"></div>
+                <p id="loaderText" style="margin-top: 15px;">Procesando con IA...</p>
+            </div>
+        </div>
 
-        <div class="editor-grid">
-            <!-- Panel de Controles -->
-            <div class="panel">
-                <h2 class="panel-title">
-                    <i class="fas fa-sliders-h"></i> Herramientas
-                </h2>
-
-                <!-- Historial -->
-                <div class="control-group">
-                    <div class="history-controls">
-                        <button class="btn btn-secondary" id="undoBtn" disabled title="Deshacer (Ctrl+Z)">
-                            <i class="fas fa-undo"></i>
-                        </button>
-                        <button class="btn btn-secondary" id="redoBtn" disabled title="Rehacer (Ctrl+Y)">
-                            <i class="fas fa-redo"></i>
-                        </button>
-                        <button class="btn btn-secondary" id="resetBtn" disabled title="Restaurar Original" style="color: var(--maroon); border-color: var(--maroon);">
-                            <i class="fas fa-trash-restore"></i> Restaurar
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Cargar Imagen -->
-                <div class="control-group">
-                    <div class="upload-zone" id="uploadZone">
-                        <i class="fas fa-cloud-upload-alt upload-icon"></i>
-                        <p class="upload-text">Subir imagen</p>
-                        <input type="file" id="fileInput" accept="image/*">
-                    </div>
-                </div>
-
-                <!-- IA Tools -->
-                <div class="control-group">
-                    <label class="control-label"><i class="fas fa-robot"></i> Inteligencia Artificial</label>
-                    <button class="btn btn-primary" id="removeBackground" disabled>
-                        <i class="fas fa-eraser"></i> Quitar Fondo
-                    </button>
-                    <small style="color:#666; display:block; margin-top:5px; font-size:0.8rem;">*Requerido para poner fondo de color</small>
-                </div>
-
-                <!-- Color de Fondo -->
-                <div class="control-group">
-                    <label class="control-label"><i class="fas fa-fill-drip"></i> Color de Fondo</label>
-                    <div class="color-picker-wrapper">
-                        <input type="color" id="bgColor" value="#ffffff" disabled>
-                        <span class="color-value" id="colorValue">#FFFFFF</span>
-                    </div>
-                    <button class="btn btn-secondary" id="applyBgColor" disabled style="margin-top: 0.7rem;">
-                        Aplicar Detrás
-                    </button>
-                </div>
-
-                <!-- Efectos -->
-                <div class="control-group">
-                    <label class="control-label"><i class="fas fa-palette"></i> Filtros y Efectos</label>
-                    <div class="effects-grid">
-                        <button class="btn btn-secondary" id="btnBlur" disabled title="Desenfocar"><i class="fas fa-tint"></i> Blur</button>
-                        <button class="btn btn-secondary" id="btnVignette" disabled title="Viñeta"><i class="fas fa-circle-notch"></i> Viñeta</button>
-                        <button class="btn btn-secondary" id="btnGrayscale" disabled title="Blanco y Negro"><i class="fas fa-moon"></i> B/N</button>
-                        <button class="btn btn-secondary" id="btnSepia" disabled title="Sepia"><i class="fas fa-coffee"></i> Sepia</button>
-                        <button class="btn btn-secondary" id="btnInvert" disabled title="Invertir"><i class="fas fa-adjust"></i> Invertir</button>
-                        <button class="btn btn-secondary" id="btnPixelate" disabled title="Pixelar"><i class="fas fa-th"></i> Pixel</button>
-                        <button class="btn btn-secondary" id="btnWarm" disabled title="Cálido"><i class="fas fa-sun"></i> Cálido</button>
-                        <button class="btn btn-secondary" id="btnCool" disabled title="Frío"><i class="fas fa-snowflake"></i> Frío</button>
-                    </div>
-                </div>
-
-                <!-- Descargar -->
-                <div class="control-group">
-                    <label class="control-label"><i class="fas fa-download"></i> Guardar Imagen</label>
-                    <div class="download-group">
-                        <select id="downloadFormat" class="format-select" disabled>
-                            <option value="image/png">PNG (Transparente)</option>
-                            <option value="image/jpeg">JPG (Fondo Blanco)</option>
-                            <option value="image/webp">WebP (Optimizado)</option>
-                        </select>
-                        <button class="btn btn-primary" id="download" disabled>
-                            <i class="fas fa-save"></i> Descargar
-                        </button>
-                    </div>
+        <!-- SIDEBAR -->
+        <div class="sidebar">
+            <!-- PROPIEDADES -->
+            <div class="panel-section">
+                <div class="panel-title">Propiedades</div>
+                <div id="propertiesPanel">
+                    <p style="color: #666; font-size: 0.8rem; text-align: center;">Selecciona un elemento</p>
                 </div>
             </div>
 
-            <!-- Canvas -->
-            <div class="panel" style="position: relative; display: flex; flex-direction: column;">
-                <h2 class="panel-title">
-                    <i class="fas fa-image"></i> Vista Previa
-                </h2>
-
-                <div class="canvas-container" id="canvasContainer">
-                    <div class="loading" id="loading">
-                        <div class="spinner"></div>
-                        <p>Procesando imagen...</p>
+            <!-- CAPAS -->
+            <div class="panel-section" style="flex: 1; display: flex; flex-direction: column;">
+                <div class="panel-title">
+                    Capas
+                    <div>
+                        <i class="fas fa-arrow-up" style="cursor: pointer; margin-right: 5px;" onclick="moveLayer(-1)" title="Subir"></i>
+                        <i class="fas fa-arrow-down" style="cursor: pointer;" onclick="moveLayer(1)" title="Bajar"></i>
                     </div>
-                    
-                    <div class="placeholder" id="placeholder">
-                        <i class="fas fa-image"></i>
-                        <p>No hay imagen seleccionada</p>
-                    </div>
-                    <canvas id="canvas" style="display: none;"></canvas>
                 </div>
+                <div class="layer-list" id="layerList">
+                    <!-- Layer items injected here -->
+                </div>
+            </div>
+
+            <!-- IA TOOLS -->
+            <div class="panel-section">
+                <div class="panel-title"><i class="fas fa-sparkles" style="color: var(--accent);"></i> Generador IA</div>
+                <div class="control-group">
+                    <textarea id="aiPrompt" placeholder="Ej: Un paisaje futurista de neón..." rows="2" style="margin-bottom: 5px;"></textarea>
+                    <button class="btn-action ai" onclick="generateBackgroundAI()">Generar Fondo</button>
+                </div>
+                <button class="btn-action secondary" onclick="suggestCaptionAI()"><i class="fas fa-lightbulb"></i> Sugerir Frase</button>
+            </div>
+
+            <!-- EXPORT -->
+            <div class="panel-section">
+                <button class="btn-action" onclick="downloadDesign()"><i class="fas fa-download"></i> Descargar Diseño</button>
             </div>
         </div>
     </div>
 
-    <script>
-        // DOM Elements
-        const fileInput = document.getElementById('fileInput');
-        const uploadZone = document.getElementById('uploadZone');
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        const placeholder = document.getElementById('placeholder');
-        const loading = document.getElementById('loading');
-        const bgColorInput = document.getElementById('bgColor');
-        const colorValue = document.getElementById('colorValue');
-        const globalAlert = document.getElementById('globalAlert');
-        const formatSelect = document.getElementById('downloadFormat');
+    <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleImageUpload(this)">
 
-        // Variables de Estado
-        let history = [];
-        let historyStep = -1;
-        const MAX_HISTORY = 15;
-        let originalImage = null;
+    <!-- API KEY MODAL -->
+    <div class="modal" id="apiKeyModal">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 15px;">Configurar Gemini API</h3>
+            <p style="font-size: 0.9rem; margin-bottom: 15px; color: #ccc;">Ingresa tu API Key para usar las funciones de generación de imágenes y texto.</p>
+            <input type="password" id="userApiKey" placeholder="Pegar API Key aquí...">
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button class="btn-action secondary" onclick="document.getElementById('apiKeyModal').classList.remove('show')">Cancelar</button>
+                <button class="btn-action" onclick="saveApiKey()">Guardar</button>
+            </div>
+            <p style="font-size: 0.75rem; margin-top: 10px; color: #666;">La clave se guarda solo en tu navegador.</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { GoogleGenAI } from "@google/genai";
 
         // ==========================================
-        // SISTEMA DE ALERTAS
+        // ENGINE STATE
         // ==========================================
-        function showAlert(msg, type = 'info') {
-            globalAlert.textContent = msg;
-            globalAlert.className = `alert alert-${type} alert-show`;
-            setTimeout(() => {
-                globalAlert.classList.remove('alert-show');
-            }, 4000);
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvasContainer');
+        
+        // Initial Canvas Size
+        canvas.width = 800;
+        canvas.height = 600;
+
+        let layers = []; // { id, type, x, y, width, height, content, color, font, rotation, visible }
+        let selectedLayerId = null;
+        let isDragging = false;
+        let dragStart = { x: 0, y: 0 };
+        let apiKey = localStorage.getItem('GEMINI_API_KEY') || '';
+
+        // ==========================================
+        // CORE RENDER LOOP
+        // ==========================================
+        function render() {
+            // 1. Clear Canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#ffffff'; // Default white canvas background if no bg layer
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 2. Draw Layers
+            layers.forEach(layer => {
+                if (!layer.visible) return;
+                
+                ctx.save();
+                
+                // Position & Rotation
+                const cx = layer.x + layer.width / 2;
+                const cy = layer.y + layer.height / 2;
+                ctx.translate(cx, cy);
+                ctx.rotate(layer.rotation * Math.PI / 180);
+                ctx.translate(-cx, -cy);
+
+                if (layer.type === 'image') {
+                    if (layer.imgElement) {
+                        ctx.drawImage(layer.imgElement, layer.x, layer.y, layer.width, layer.height);
+                    }
+                } else if (layer.type === 'shape') {
+                    ctx.fillStyle = layer.color;
+                    if (layer.shapeType === 'rect') {
+                        ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
+                    } else if (layer.shapeType === 'circle') {
+                        ctx.beginPath();
+                        ctx.ellipse(cx, cy, layer.width/2, layer.height/2, 0, 0, 2 * Math.PI);
+                        ctx.fill();
+                    }
+                } else if (layer.type === 'text') {
+                    ctx.font = `${layer.fontSize}px ${layer.fontFamily}`;
+                    ctx.fillStyle = layer.color;
+                    ctx.textBaseline = 'top';
+                    ctx.fillText(layer.content, layer.x, layer.y);
+                    // Approximate width/height for selection hit test
+                    const metrics = ctx.measureText(layer.content);
+                    layer.width = metrics.width;
+                    layer.height = layer.fontSize; // Rough approximation
+                }
+
+                // Selection Box
+                if (layer.id === selectedLayerId) {
+                    ctx.strokeStyle = '#d4a017';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(layer.x - 2, layer.y - 2, layer.width + 4, layer.height + 4);
+                    
+                    // Resize Handle (Bottom Right)
+                    ctx.fillStyle = '#d4a017';
+                    ctx.fillRect(layer.x + layer.width - 5, layer.y + layer.height - 5, 10, 10);
+                }
+
+                ctx.restore();
+            });
         }
 
         // ==========================================
-        // CARGA DE IMAGEN
+        // LAYER MANAGEMENT
         // ==========================================
-        uploadZone.addEventListener('click', () => fileInput.click());
-        uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
-        uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
-        uploadZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadZone.classList.remove('dragover');
-            if (e.dataTransfer.files[0]) loadImage(e.dataTransfer.files[0]);
-        });
-        fileInput.addEventListener('change', (e) => { if (e.target.files[0]) loadImage(e.target.files[0]); });
+        function createId() { return Math.random().toString(36).substr(2, 9); }
 
-        function loadImage(file) {
-            if (!file.type.startsWith('image/')) {
-                showAlert('Por favor sube un archivo de imagen válido (JPG, PNG).', 'error');
+        window.addLayer = (layerData) => {
+            const newLayer = {
+                id: createId(),
+                x: 50, y: 50,
+                width: 100, height: 100,
+                rotation: 0,
+                visible: true,
+                ...layerData
+            };
+            layers.push(newLayer);
+            selectedLayerId = newLayer.id;
+            updateUI();
+            render();
+        };
+
+        window.addTextLayer = (content = 'Texto Nuevo') => {
+            window.addLayer({
+                type: 'text',
+                content: content,
+                fontSize: 40,
+                fontFamily: 'Arial',
+                color: '#000000',
+                width: 100, height: 40
+            });
+        };
+
+        window.addShape = (shapeType) => {
+            window.addLayer({
+                type: 'shape',
+                shapeType: shapeType,
+                color: '#1b396a',
+                width: 150, height: 150
+            });
+        };
+
+        window.handleImageUpload = (input) => {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        // Fit to canvas if too big
+                        let w = img.width;
+                        let h = img.height;
+                        if (w > 600) {
+                            const ratio = 600 / w;
+                            w = 600; h = h * ratio;
+                        }
+                        
+                        window.addLayer({
+                            type: 'image',
+                            imgElement: img,
+                            width: w,
+                            height: h,
+                            x: (canvas.width - w) / 2,
+                            y: (canvas.height - h) / 2,
+                            originalData: img.src // Store for AI processing
+                        });
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        };
+
+        window.removeLayer = (id) => {
+            layers = layers.filter(l => l.id !== id);
+            if (selectedLayerId === id) selectedLayerId = null;
+            updateUI();
+            render();
+        };
+
+        window.moveLayer = (dir) => {
+            if (!selectedLayerId) return;
+            const idx = layers.findIndex(l => l.id === selectedLayerId);
+            if (idx === -1) return;
+            
+            const newIdx = idx + dir;
+            if (newIdx >= 0 && newIdx < layers.length) {
+                [layers[idx], layers[newIdx]] = [layers[newIdx], layers[idx]];
+                updateUI();
+                render();
+            }
+        };
+
+        window.selectLayer = (id) => {
+            selectedLayerId = id;
+            updateUI();
+            render();
+        };
+
+        // ==========================================
+        // UI UPDATES
+        // ==========================================
+        function updateUI() {
+            // Update Layer List
+            const list = document.getElementById('layerList');
+            list.innerHTML = '';
+            // Render in reverse order (top layer first in list)
+            [...layers].reverse().forEach(layer => {
+                const div = document.createElement('div');
+                div.className = `layer-item ${layer.id === selectedLayerId ? 'selected' : ''}`;
+                div.onclick = () => window.selectLayer(layer.id);
+                
+                let icon = 'fa-layer-group';
+                let name = 'Capa';
+                if (layer.type === 'text') { icon = 'fa-font'; name = layer.content; }
+                if (layer.type === 'image') { icon = 'fa-image'; name = 'Imagen'; }
+                if (layer.type === 'shape') { icon = 'fa-shapes'; name = 'Forma'; }
+
+                div.innerHTML = `
+                    <i class="fas ${icon}"></i>
+                    <span class="layer-name">${name}</span>
+                    <div class="layer-actions">
+                        <i class="fas fa-eye${layer.visible ? '' : '-slash'}" onclick="event.stopPropagation(); toggleVis('${layer.id}')"></i>
+                        <i class="fas fa-trash" onclick="event.stopPropagation(); removeLayer('${layer.id}')"></i>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+
+            // Update Properties Panel
+            const propsPanel = document.getElementById('propertiesPanel');
+            const selLayer = layers.find(l => l.id === selectedLayerId);
+            
+            if (!selLayer) {
+                propsPanel.innerHTML = '<p style="color: #666; font-size: 0.8rem; text-align: center;">Selecciona un elemento</p>';
                 return;
             }
 
-            loading.classList.add('active');
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new Image();
-                img.onload = () => {
-                    // Resize inteligente para performance
-                    const maxWidth = 1200;
-                    const maxHeight = 1200;
-                    let width = img.width;
-                    let height = img.height;
+            let html = '';
+            
+            // Common Props
+            html += `
+                <div class="control-group">
+                    <label>Opacidad</label>
+                    <input type="range" min="0" max="1" step="0.1" value="${selLayer.opacity || 1}" oninput="updateProp('opacity', this.value)">
+                </div>
+            `;
 
-                    if (width > maxWidth || height > maxHeight) {
-                        const ratio = Math.min(maxWidth / width, maxHeight / height);
-                        width *= ratio;
-                        height *= ratio;
-                    }
-
-                    canvas.width = width;
-                    canvas.height = height;
-                    ctx.drawImage(img, 0, 0, width, height);
-                    
-                    originalImage = img; // Guardar referencia
-                    
-                    placeholder.style.display = 'none';
-                    canvas.style.display = 'block';
-                    loading.classList.remove('active');
-                    
-                    enableControls();
-                    resetHistory();
-                    saveState();
-                    showAlert('Imagen cargada correctamente.', 'info');
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function enableControls() {
-            const btns = document.querySelectorAll('button:disabled, select:disabled, input:disabled');
-            btns.forEach(el => el.disabled = false);
-            updateHistoryUI(); // Ajustar estado de undo/redo
-        }
-
-        // ==========================================
-        // HISTORIAL (UNDO/REDO)
-        // ==========================================
-        function saveState() {
-            if (historyStep < history.length - 1) {
-                history = history.slice(0, historyStep + 1);
+            if (selLayer.type === 'text') {
+                html += `
+                    <div class="control-group"><label>Texto</label><input type="text" value="${selLayer.content}" oninput="updateProp('content', this.value)"></div>
+                    <div class="control-group"><label>Tamaño</label><input type="number" value="${selLayer.fontSize}" oninput="updateProp('fontSize', this.value)"></div>
+                    <div class="control-group"><label>Color</label><input type="color" value="${selLayer.color}" oninput="updateProp('color', this.value)"></div>
+                    <div class="control-group"><label>Fuente</label>
+                        <select onchange="updateProp('fontFamily', this.value)">
+                            <option value="Arial" ${selLayer.fontFamily === 'Arial' ? 'selected' : ''}>Arial</option>
+                            <option value="Georgia" ${selLayer.fontFamily === 'Georgia' ? 'selected' : ''}>Georgia</option>
+                            <option value="Courier New" ${selLayer.fontFamily === 'Courier New' ? 'selected' : ''}>Courier</option>
+                            <option value="Verdana" ${selLayer.fontFamily === 'Verdana' ? 'selected' : ''}>Verdana</option>
+                        </select>
+                    </div>
+                `;
+            } else if (selLayer.type === 'shape') {
+                html += `
+                    <div class="control-group"><label>Color</label><input type="color" value="${selLayer.color}" oninput="updateProp('color', this.value)"></div>
+                    <div class="control-group"><label>Ancho</label><input type="number" value="${selLayer.width}" oninput="updateProp('width', this.value)"></div>
+                    <div class="control-group"><label>Alto</label><input type="number" value="${selLayer.height}" oninput="updateProp('height', this.value)"></div>
+                `;
+            } else if (selLayer.type === 'image') {
+                 html += `
+                    <div class="control-group"><label>Ancho</label><input type="number" value="${parseInt(selLayer.width)}" oninput="updateProp('width', this.value)"></div>
+                    <div class="control-group"><label>Alto</label><input type="number" value="${parseInt(selLayer.height)}" oninput="updateProp('height', this.value)"></div>
+                `;
             }
-            history.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
-            if (history.length > MAX_HISTORY) history.shift();
-            else historyStep++;
-            updateHistoryUI();
+
+            propsPanel.innerHTML = html;
         }
 
-        function restoreState(imageData) {
-            ctx.putImageData(imageData, 0, 0);
-        }
+        window.updateProp = (key, value) => {
+            const layer = layers.find(l => l.id === selectedLayerId);
+            if (layer) {
+                if (key === 'width' || key === 'height' || key === 'fontSize') value = parseInt(value);
+                layer[key] = value;
+                render();
+            }
+        };
 
-        function updateHistoryUI() {
-            document.getElementById('undoBtn').disabled = historyStep <= 0;
-            document.getElementById('redoBtn').disabled = historyStep >= history.length - 1;
-        }
+        window.toggleVis = (id) => {
+            const layer = layers.find(l => l.id === id);
+            if (layer) {
+                layer.visible = !layer.visible;
+                updateUI();
+                render();
+            }
+        };
 
-        function resetHistory() {
-            history = [];
-            historyStep = -1;
-        }
+        // ==========================================
+        // MOUSE EVENTS (Interaction)
+        // ==========================================
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
 
-        document.getElementById('undoBtn').addEventListener('click', () => {
-            if (historyStep > 0) { historyStep--; restoreState(history[historyStep]); updateHistoryUI(); }
-        });
-        document.getElementById('redoBtn').addEventListener('click', () => {
-            if (historyStep < history.length - 1) { historyStep++; restoreState(history[historyStep]); updateHistoryUI(); }
-        });
-        document.getElementById('resetBtn').addEventListener('click', () => {
-            if (history.length > 0) {
-                historyStep = 0;
-                restoreState(history[0]);
-                history = [history[0]]; // Limpiar historial futuro
-                historyStep = 0;
-                updateHistoryUI();
-                showAlert('Imagen restaurada al original.', 'warning');
+            // Check hit test (reverse to check top layers first)
+            let hit = false;
+            for (let i = layers.length - 1; i >= 0; i--) {
+                const l = layers[i];
+                if (!l.visible) continue;
+                if (mouseX >= l.x && mouseX <= l.x + l.width && mouseY >= l.y && mouseY <= l.y + l.height) {
+                    selectedLayerId = l.id;
+                    isDragging = true;
+                    dragStart = { x: mouseX - l.x, y: mouseY - l.y };
+                    hit = true;
+                    updateUI();
+                    render();
+                    break;
+                }
+            }
+            if (!hit) {
+                selectedLayerId = null;
+                updateUI();
+                render();
             }
         });
 
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDragging && selectedLayerId) {
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                
+                const layer = layers.find(l => l.id === selectedLayerId);
+                if (layer) {
+                    layer.x = mouseX - dragStart.x;
+                    layer.y = mouseY - dragStart.y;
+                    render();
+                }
+            }
+        });
+
+        window.addEventListener('mouseup', () => { isDragging = false; });
+
         // ==========================================
-        // HERRAMIENTAS PRINCIPALES
+        // AI FEATURES (Gemini)
         // ==========================================
+        window.showApiKeyModal = () => document.getElementById('apiKeyModal').classList.add('show');
         
-        // 1. ELIMINAR FONDO (Algoritmo Básico Cliente)
-        document.getElementById('removeBackground').addEventListener('click', () => {
-            loading.classList.add('active');
+        window.saveApiKey = () => {
+            apiKey = document.getElementById('userApiKey').value;
+            localStorage.setItem('GEMINI_API_KEY', apiKey);
+            document.getElementById('apiKeyModal').classList.remove('show');
+            alert('API Key guardada.');
+        };
+
+        function getAIClient() {
+            if (!apiKey) {
+                showApiKeyModal();
+                return null;
+            }
+            return new GoogleGenAI({ apiKey: apiKey });
+        }
+
+        // 1. Remove Background (Pixel Algorithm from previous version, wrapped)
+        window.removeBackgroundOfSelected = () => {
+            const layer = layers.find(l => l.id === selectedLayerId);
+            if (!layer || layer.type !== 'image' || !layer.imgElement) {
+                alert('Selecciona una capa de imagen primero.');
+                return;
+            }
+
+            document.getElementById('loader').classList.add('active');
+            document.getElementById('loaderText').innerText = 'Eliminando fondo (Algoritmo local)...';
+
             setTimeout(() => {
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                // Draw image to temp canvas
+                const tempC = document.createElement('canvas');
+                tempC.width = layer.width;
+                tempC.height = layer.height;
+                const tempCtx = tempC.getContext('2d');
+                tempCtx.drawImage(layer.imgElement, 0, 0, layer.width, layer.height);
+                
+                const imageData = tempCtx.getImageData(0, 0, layer.width, layer.height);
                 const data = imageData.data;
                 
-                // Muestrear esquinas para detectar color de fondo
+                // Sample corners for background color
                 const samples = [];
-                const corners = [0, canvas.width-1, canvas.width * (canvas.height-1), canvas.width * canvas.height - 1];
-                
+                const corners = [0, layer.width-1, layer.width*(layer.height-1), layer.width*layer.height-1];
                 corners.forEach(idx => {
                     const i = idx * 4;
                     samples.push({ r: data[i], g: data[i+1], b: data[i+2] });
                 });
-
-                // Promedio del color de fondo
+                
                 const bg = samples.reduce((acc, c) => ({ r: acc.r + c.r, g: acc.g + c.g, b: acc.b + c.b }), {r:0, g:0, b:0});
                 bg.r /= samples.length; bg.g /= samples.length; bg.b /= samples.length;
 
-                const tolerance = 40; // Tolerancia de color
-
+                const tolerance = 40;
                 for (let i = 0; i < data.length; i += 4) {
                     const r = data[i], g = data[i+1], b = data[i+2];
                     const diff = Math.sqrt(Math.pow(r - bg.r, 2) + Math.pow(g - bg.g, 2) + Math.pow(b - bg.b, 2));
-                    
-                    if (diff < tolerance) {
-                        data[i+3] = 0; // Transparencia total
-                    }
+                    if (diff < tolerance) data[i+3] = 0;
                 }
                 
-                ctx.putImageData(imageData, 0, 0);
-                saveState();
-                loading.classList.remove('active');
-                showAlert('Fondo eliminado (Aproximación por color).', 'success');
+                tempCtx.putImageData(imageData, 0, 0);
+                
+                // Replace image source
+                const newImg = new Image();
+                newImg.onload = () => {
+                    layer.imgElement = newImg;
+                    document.getElementById('loader').classList.remove('active');
+                    render();
+                };
+                newImg.src = tempC.toDataURL();
             }, 100);
-        });
+        };
 
-        // 2. APLICAR COLOR DE FONDO (CORREGIDO)
-        bgColorInput.addEventListener('input', (e) => colorValue.textContent = e.target.value.toUpperCase());
-        
-        document.getElementById('applyBgColor').addEventListener('click', () => {
-            // Verificar si hay transparencia
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            let hasTransparency = false;
-            // Verificar una muestra de píxeles para rendimiento
-            for (let i = 3; i < imageData.data.length; i += 400) { 
-                if (imageData.data[i] < 255) { hasTransparency = true; break; }
+        // 2. Generate Background (Gemini/Imagen)
+        window.generateBackgroundAI = async () => {
+            const ai = getAIClient();
+            if (!ai) return;
+
+            const prompt = document.getElementById('aiPrompt').value;
+            if (!prompt) { alert('Escribe una descripción para el fondo.'); return; }
+
+            const loader = document.getElementById('loader');
+            loader.classList.add('active');
+            document.getElementById('loaderText').innerText = 'Generando Fondo con IA...';
+
+            try {
+                // Use generateContent with gemini-2.5-flash-image for generation (Simulating Imagen behavior via instructions)
+                // Instructions say: "General Image Generation...: 'gemini-2.5-flash-image'"
+                const response = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash-image',
+                    contents: {
+                        parts: [{ text: prompt }]
+                    },
+                    config: {
+                        imageConfig: { aspectRatio: "4:3" }
+                    }
+                });
+
+                // Extract image
+                let base64Image = null;
+                if(response.candidates?.[0]?.content?.parts) {
+                    for (const part of response.candidates[0].content.parts) {
+                        if (part.inlineData) {
+                            base64Image = part.inlineData.data;
+                            break;
+                        }
+                    }
+                }
+
+                if (base64Image) {
+                    const img = new Image();
+                    img.onload = () => {
+                        // Add as bottom layer
+                        const newLayer = {
+                            id: createId(),
+                            type: 'image',
+                            imgElement: img,
+                            x: 0, y: 0,
+                            width: canvas.width,
+                            height: canvas.height,
+                            visible: true,
+                            rotation: 0
+                        };
+                        layers.unshift(newLayer); // Add to beginning (bottom)
+                        updateUI();
+                        render();
+                        loader.classList.remove('active');
+                    };
+                    img.src = `data:image/png;base64,${base64Image}`;
+                } else {
+                    throw new Error('No image returned');
+                }
+
+            } catch (error) {
+                console.error(error);
+                alert('Error generando imagen: ' + error.message);
+                loader.classList.remove('active');
             }
+        };
 
-            if (!hasTransparency) {
-                showAlert('¡La imagen no tiene fondo transparente! Usa "Quitar Fondo" primero.', 'warning');
-                return;
+        // 3. Suggest Caption (Gemini Text)
+        window.suggestCaptionAI = async () => {
+            const ai = getAIClient();
+            if (!ai) return;
+
+            const loader = document.getElementById('loader');
+            loader.classList.add('active');
+            document.getElementById('loaderText').innerText = 'Analizando diseño...';
+
+            try {
+                // Get current canvas state as base64
+                const currentDesign = canvas.toDataURL('image/jpeg').split(',')[1];
+
+                const response = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash',
+                    contents: {
+                        parts: [
+                            { inlineData: { mimeType: 'image/jpeg', data: currentDesign } },
+                            { text: "Suggest a short, catchy, professional title (max 5 words) for this design in Spanish. Just the text." }
+                        ]
+                    }
+                });
+
+                const text = response.text.trim().replace(/"/g, '');
+                window.addTextLayer(text);
+                loader.classList.remove('active');
+
+            } catch (error) {
+                console.error(error);
+                alert('Error: ' + error.message);
+                loader.classList.remove('active');
             }
+        };
 
-            const color = bgColorInput.value;
-            
-            // Usar composición para pintar DETRÁS de la imagen existente
-            ctx.globalCompositeOperation = 'destination-over';
-            ctx.fillStyle = color;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Restaurar modo normal
-            ctx.globalCompositeOperation = 'source-over';
-            
-            saveState();
-            showAlert(`Fondo aplicado: ${color}`, 'success');
-        });
+        window.downloadDesign = () => {
+            const link = document.createElement('a');
+            link.download = 'diseño_itd.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        };
 
-        // ==========================================
-        // EFECTOS Y FILTROS
-        // ==========================================
-        function applyFilter(filterFn) {
-            loading.classList.add('active');
-            setTimeout(() => {
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                filterFn(imageData.data);
-                ctx.putImageData(imageData, 0, 0);
-                saveState();
-                loading.classList.remove('active');
-            }, 50);
-        }
+        // Init
+        render();
 
-        document.getElementById('btnGrayscale').addEventListener('click', () => applyFilter(data => {
-            for(let i=0; i<data.length; i+=4) {
-                const avg = (data[i] + data[i+1] + data[i+2]) / 3;
-                data[i] = data[i+1] = data[i+2] = avg;
-            }
-        }));
-
-        document.getElementById('btnSepia').addEventListener('click', () => applyFilter(data => {
-            for(let i=0; i<data.length; i+=4) {
-                const r=data[i], g=data[i+1], b=data[i+2];
-                data[i] = Math.min(255, (r*0.393)+(g*0.769)+(b*0.189));
-                data[i+1] = Math.min(255, (r*0.349)+(g*0.686)+(b*0.168));
-                data[i+2] = Math.min(255, (r*0.272)+(g*0.534)+(b*0.131));
-            }
-        }));
-
-        document.getElementById('btnInvert').addEventListener('click', () => applyFilter(data => {
-            for(let i=0; i<data.length; i+=4) {
-                data[i] = 255 - data[i];
-                data[i+1] = 255 - data[i+1];
-                data[i+2] = 255 - data[i+2];
-            }
-        }));
-
-        document.getElementById('btnWarm').addEventListener('click', () => applyFilter(data => {
-            for(let i=0; i<data.length; i+=4) {
-                data[i] = Math.min(255, data[i] + 20); // Más rojo
-                data[i+1] = Math.min(255, data[i+1] + 5); // Un poco verde
-                data[i+2] = Math.max(0, data[i+2] - 20); // Menos azul
-            }
-        }));
-
-        document.getElementById('btnCool').addEventListener('click', () => applyFilter(data => {
-            for(let i=0; i<data.length; i+=4) {
-                data[i] = Math.max(0, data[i] - 10); // Menos rojo
-                data[i+2] = Math.min(255, data[i+2] + 20); // Más azul
-            }
-        }));
-
-        // Blur usando canvas filter
-        document.getElementById('btnBlur').addEventListener('click', () => {
-            loading.classList.add('active');
-            setTimeout(() => {
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = canvas.width;
-                tempCanvas.height = canvas.height;
-                const tempCtx = tempCanvas.getContext('2d');
-                
-                tempCtx.filter = 'blur(4px)';
-                tempCtx.drawImage(canvas, 0, 0);
-                
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(tempCanvas, 0, 0);
-                saveState();
-                loading.classList.remove('active');
-            }, 50);
-        });
-
-        // Pixelar
-        document.getElementById('btnPixelate').addEventListener('click', () => {
-            loading.classList.add('active');
-            setTimeout(() => {
-                const pixelSize = 10;
-                const w = canvas.width;
-                const h = canvas.height;
-                
-                // Reducir
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = w / pixelSize;
-                tempCanvas.height = h / pixelSize;
-                const tempCtx = tempCanvas.getContext('2d');
-                tempCtx.imageSmoothingEnabled = false;
-                
-                tempCtx.drawImage(canvas, 0, 0, tempCanvas.width, tempCanvas.height);
-                
-                // Agrandar (con suavizado desactivado)
-                ctx.imageSmoothingEnabled = false;
-                ctx.clearRect(0, 0, w, h);
-                ctx.drawImage(tempCanvas, 0, 0, w, h);
-                ctx.imageSmoothingEnabled = true; // Restaurar
-                
-                saveState();
-                loading.classList.remove('active');
-            }, 50);
-        });
-
-        // Viñeta (Gradiente radial negro transparente)
-        document.getElementById('btnVignette').addEventListener('click', () => {
-            const w = canvas.width, h = canvas.height;
-            // Usar source-over para pintar encima
-            const gradient = ctx.createRadialGradient(w/2, h/2, w/3, w/2, h/2, w*0.8);
-            gradient.addColorStop(0, "rgba(0,0,0,0)");
-            gradient.addColorStop(1, "rgba(0,0,0,0.6)");
-            
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, w, h);
-            saveState();
-        });
-
-        // ==========================================
-        // DESCARGA
-        // ==========================================
-        document.getElementById('download').addEventListener('click', () => {
-            const format = formatSelect.value;
-            const ext = format.split('/')[1];
-            
-            // Si es JPG, necesitamos fondo blanco si hay transparencia
-            if (format === 'image/jpeg') {
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = canvas.width;
-                tempCanvas.height = canvas.height;
-                const tCtx = tempCanvas.getContext('2d');
-                
-                tCtx.fillStyle = '#FFFFFF';
-                tCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-                tCtx.drawImage(canvas, 0, 0);
-                
-                const link = document.createElement('a');
-                link.download = `editada_itd.${ext}`;
-                link.href = tempCanvas.toDataURL(format, 0.9);
-                link.click();
-            } else {
-                // PNG y WebP soportan transparencia directa
-                const link = document.createElement('a');
-                link.download = `editada_itd.${ext}`;
-                link.href = canvas.toDataURL(format, 0.9);
-                link.click();
-            }
-        });
     </script>
 </body>
 </html>
