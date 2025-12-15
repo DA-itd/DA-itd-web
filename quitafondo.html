@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Portal de Herramientas Digitales - Instituto Tecnológico de Durango">
-    <title>Herramientas Digitales ITD</title>
+    <title>Editor de Imágenes con IA - ITD</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         * {
@@ -17,8 +16,6 @@
             --itd-blue: #1b396a;
             --itd-gold: #d4a017;
             --maroon: #8B1538;
-            --card-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            --card-shadow-hover: 0 15px 40px rgba(0,0,0,0.2);
         }
 
         body {
@@ -28,243 +25,156 @@
             color: #333;
         }
 
-        /* Header con fondo blanco para logos */
         .header {
             background: white;
             box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        }
-
-        .header-logos {
-            background: white;
-            padding: 2rem 2rem 1.5rem 2rem;
+            margin-bottom: 2rem;
         }
 
         .header-content {
             max-width: 1400px;
             margin: 0 auto;
+            padding: 1.5rem 2rem;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            position: relative;
         }
 
-        /* Logos en extremos */
-        .logo-left, .logo-right {
-            flex-shrink: 0;
+        .logo {
+            height: 60px;
         }
 
-        .logo-left img, .logo-right img {
-            height: 100px;
-            width: auto;
-            object-fit: contain;
-            filter: drop-shadow(0 3px 10px rgba(0,0,0,0.12));
-            transition: transform 0.3s ease;
-        }
-
-        .logo-left img:hover, .logo-right img:hover {
-            transform: scale(1.08);
-        }
-
-        /* Espacio entre logos */
-        .center-spacer {
-            flex: 1;
-            min-width: 100px;
-        }
-
-        /* Línea guinda */
-        .maroon-line {
-            width: 100%;
-            height: 6px;
-            background: var(--maroon);
-            box-shadow: 0 2px 8px rgba(139, 21, 56, 0.3);
-        }
-
-        /* Título sobre fondo azul ITD */
         .header-title {
-            background: var(--itd-blue);
-            color: white;
-            padding: 2rem 1rem;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .header-title::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(45deg, rgba(212,160,23,0.1) 0%, transparent 100%);
-            pointer-events: none;
-        }
-
-        .header-text {
-            max-width: 1200px;
-            margin: 0 auto;
             text-align: center;
-            position: relative;
-            z-index: 1;
-        }
-
-        .header-text h1 {
-            font-size: 2.2rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-        }
-
-        .header-text .subtitle {
-            font-size: 1.1rem;
-            opacity: 0.95;
-            font-weight: 300;
-        }
-
-        /* Container Principal */
-        .main-container {
-            max-width: 1200px;
-            margin: 3rem auto;
-            padding: 0 1.5rem;
-        }
-
-        .section-title {
-            text-align: center;
-            margin-bottom: 3rem;
-        }
-
-        .section-title h2 {
-            font-size: 2.5rem;
-            color: var(--itd-blue);
-            margin-bottom: 0.5rem;
-            font-weight: 700;
-        }
-
-        .section-title p {
-            color: #666;
-            font-size: 1.1rem;
-        }
-
-        /* Grid de Cards */
-        .cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 2rem;
-            margin-bottom: 3rem;
-        }
-
-        .card {
-            background: white;
-            border-radius: 16px;
-            padding: 2rem;
-            box-shadow: var(--card-shadow);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
-
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 5px;
-            background: linear-gradient(90deg, var(--maroon), var(--itd-blue));
-            transform: scaleX(0);
-            transition: transform 0.3s ease;
-        }
-
-        .card:hover::before {
-            transform: scaleX(1);
-        }
-
-        .card:hover {
-            transform: translateY(-10px);
-            box-shadow: var(--card-shadow-hover);
-        }
-
-        .card.inactive {
-            opacity: 0.6;
-            background: #f5f5f5;
-        }
-
-        .card.inactive:hover {
-            transform: translateY(-5px);
-        }
-
-        .icon-box {
-            width: 70px;
-            height: 70px;
-            border-radius: 16px;
-            background: linear-gradient(135deg, var(--maroon), var(--itd-blue));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 2rem;
-            box-shadow: 0 8px 20px rgba(139, 21, 56, 0.3);
-            transition: all 0.3s ease;
-        }
-
-        .card:hover .icon-box {
-            transform: rotate(5deg) scale(1.1);
-            box-shadow: 0 12px 30px rgba(139, 21, 56, 0.4);
-        }
-
-        .card.inactive .icon-box {
-            background: linear-gradient(135deg, #94a3b8, #cbd5e1);
-        }
-
-        .badge {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            background: var(--itd-gold);
-            color: white;
-            padding: 0.4rem 1rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            box-shadow: 0 4px 12px rgba(212,160,23,0.4);
-        }
-
-        .card-title {
-            font-size: 1.5rem;
-            color: var(--itd-blue);
-            font-weight: 700;
-            margin: 0;
-        }
-
-        .card.inactive .card-title {
-            color: #64748b;
-        }
-
-        .card-desc {
-            color: #666;
-            line-height: 1.6;
-            font-size: 0.95rem;
             flex-grow: 1;
         }
 
-        /* Botones */
-        .btn {
+        .header-title h1 {
+            color: var(--itd-blue);
+            font-size: 1.8rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .header-title p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .btn-back {
+            background: var(--maroon);
+            color: white;
+            padding: 0.7rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
             display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-back:hover {
+            background: var(--itd-blue);
+            transform: translateY(-2px);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem 2rem 2rem;
+        }
+
+        .editor-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .panel-title {
+            color: var(--itd-blue);
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .upload-zone {
+            border: 3px dashed var(--maroon);
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--itd-blue);
+            background: #fff;
+            transform: translateY(-2px);
+        }
+
+        .upload-zone.dragover {
+            border-color: var(--itd-gold);
+            background: #fffbf0;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--maroon);
+            margin-bottom: 1rem;
+        }
+
+        .upload-text {
+            font-size: 1.1rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-subtext {
+            font-size: 0.9rem;
+            color: #999;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .control-label {
+            display: block;
+            font-weight: 600;
+            color: var(--itd-blue);
+            margin-bottom: 0.7rem;
+            font-size: 0.95rem;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.9rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
-            padding: 0.9rem 1.8rem;
-            border-radius: 10px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 0.95rem;
-            transition: all 0.3s ease;
-            border: none;
-            cursor: pointer;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -275,254 +185,703 @@
             box-shadow: 0 6px 20px rgba(139, 21, 56, 0.3);
         }
 
-        .btn-primary:hover {
-            background: linear-gradient(135deg, var(--itd-blue), var(--maroon));
-            box-shadow: 0 8px 25px rgba(139, 21, 56, 0.4);
+        .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(139, 21, 56, 0.4);
         }
 
-        .btn-disabled {
-            background: #e2e8f0;
-            color: #94a3b8;
+        .btn-secondary {
+            background: white;
+            color: var(--itd-blue);
+            border: 2px solid var(--itd-blue);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: var(--itd-blue);
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
             cursor: not-allowed;
-            box-shadow: none;
         }
 
-        .btn i {
+        .color-picker-wrapper {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        input[type="color"] {
+            width: 60px;
+            height: 60px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .color-value {
+            font-family: monospace;
+            font-size: 1rem;
+            color: #666;
+            padding: 0.5rem 1rem;
+            background: #f8f9fa;
+            border-radius: 6px;
+            flex-grow: 1;
+        }
+
+        .canvas-container {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 500px;
+            background: 
+                linear-gradient(45deg, #e0e0e0 25%, transparent 25%),
+                linear-gradient(-45deg, #e0e0e0 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #e0e0e0 75%),
+                linear-gradient(-45deg, transparent 75%, #e0e0e0 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        canvas {
+            max-width: 100%;
+            max-height: 600px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border-radius: 8px;
+        }
+
+        .placeholder {
+            text-align: center;
+            color: #999;
+        }
+
+        .placeholder i {
+            font-size: 4rem;
+            color: #ddd;
+            margin-bottom: 1rem;
+        }
+
+        .effects-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            font-size: 0.9rem;
+        }
+
+        .alert-info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border-left: 4px solid #1976d2;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border-left: 4px solid #ffc107;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--maroon);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .info-box {
+            background: #f8f9fa;
+            border-left: 4px solid var(--itd-gold);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        /* NUEVOS ESTILOS PARA HISTORIAL */
+        .history-controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.7rem;
+            margin-bottom: 1rem;
+        }
+
+        .btn-small {
+            padding: 0.7rem;
+            font-size: 0.85rem;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-warning:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(245, 158, 11, 0.4);
+        }
+
+        .history-info {
+            background: #f1f5f9;
+            padding: 0.7rem;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 0.85rem;
+            color: #475569;
+            margin-bottom: 1rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .history-info strong {
+            color: var(--maroon);
             font-size: 1.1rem;
         }
 
-        /* Footer */
-        .footer {
-            background: var(--itd-blue);
-            color: white;
-            padding: 2rem 1rem;
-            text-align: center;
-            margin-top: 4rem;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
-            border-top: 4px solid var(--maroon);
+        .divider {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+            margin: 1.5rem 0;
         }
 
-        .footer-content {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .footer-links {
-            display: flex;
-            justify-content: center;
-            gap: 2rem;
-            margin-bottom: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .footer-links a {
-            color: white;
-            text-decoration: none;
-            opacity: 0.9;
-            transition: all 0.3s ease;
-            font-size: 0.95rem;
-        }
-
-        .footer-links a:hover {
-            opacity: 1;
-            color: var(--itd-gold);
-        }
-
-        .footer-copy {
-            opacity: 0.8;
-            font-size: 0.9rem;
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid rgba(255,255,255,0.2);
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-                gap: 1.5rem;
-            }
-
-            .logo-left img, .logo-right img {
-                height: 70px;
-            }
-
-            .center-spacer {
-                display: none;
-            }
-
-            .header-text h1 {
-                font-size: 1.5rem;
-            }
-
-            .header-text .subtitle {
-                font-size: 0.9rem;
-            }
-
-            .section-title h2 {
-                font-size: 2rem;
-            }
-
-            .cards-grid {
+        @media (max-width: 1024px) {
+            .editor-grid {
                 grid-template-columns: 1fr;
-                gap: 1.5rem;
             }
 
-            .footer-links {
+            .header-content {
                 flex-direction: column;
                 gap: 1rem;
             }
-        }
 
-        /* Animaciones */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
+            .history-controls {
+                grid-template-columns: 1fr;
             }
         }
-
-        .card {
-            animation: fadeInUp 0.6s ease backwards;
-        }
-
-        .card:nth-child(1) { animation-delay: 0.1s; }
-        .card:nth-child(2) { animation-delay: 0.2s; }
-        .card:nth-child(3) { animation-delay: 0.3s; }
-        .card:nth-child(4) { animation-delay: 0.4s; }
     </style>
 </head>
-
 <body>
-    <!-- Header con logos en extremos -->
     <header class="header">
-        <div class="header-logos">
-            <div class="header-content">
-                <!-- Logo TecNM a la IZQUIERDA -->
-                <div class="logo-left">
-                    <img src="https://raw.githubusercontent.com/DA-itd/A/main/tecnm1.jpg" alt="TecNM">
-                </div>
-                
-                <!-- Espacio central -->
-                <div class="center-spacer"></div>
-                
-                <!-- Logo ITD a la DERECHA -->
-                <div class="logo-right">
-                    <img src="https://raw.githubusercontent.com/DA-itd/web/main/logo_itdurango.png" alt="Instituto Tecnológico de Durango">
-                </div>
+        <div class="header-content">
+            <img src="https://raw.githubusercontent.com/DA-itd/web/main/logo_itdurango.png" alt="ITD" class="logo">
+            <div class="header-title">
+                <h1><i class="fas fa-magic"></i> Editor de Imágenes con IA</h1>
+                <p>Elimina fondos, cambia colores y aplica efectos profesionales</p>
             </div>
-        </div>
-        
-        <!-- Línea guinda -->
-        <div class="maroon-line"></div>
-        
-        <!-- Título con fondo azul ITD -->
-        <div class="header-title">
-            <div class="header-text">
-                <h1>Portal de Herramientas Digitales</h1>
-                <p class="subtitle">Desarrollo Académico — Instituto Tecnológico de Durango</p>
-            </div>
+            <a href="index.html" class="btn-back">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
         </div>
     </header>
 
-    <!-- Contenido Principal -->
-    <main class="main-container">
-        <div class="section-title">
-            <h2>Herramientas Disponibles</h2>
-            <p>Selecciona la herramienta que necesites utilizar</p>
+    <div class="container">
+        <div class="editor-grid">
+            <!-- Panel de Controles -->
+            <div class="panel">
+                <h2 class="panel-title">
+                    <i class="fas fa-sliders-h"></i> Controles
+                </h2>
+
+                <!-- Cargar Imagen -->
+                <div class="control-group">
+                    <div class="upload-zone" id="uploadZone">
+                        <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                        <p class="upload-text">Arrastra tu imagen aquí</p>
+                        <p class="upload-subtext">o haz clic para seleccionar</p>
+                        <input type="file" id="fileInput" accept="image/*">
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Formatos: JPG, PNG, WebP (máx. 10MB)</span>
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- NUEVO: HISTORIAL DE CAMBIOS -->
+                <div class="control-group">
+                    <label class="control-label">
+                        <i class="fas fa-history"></i> Historial de Cambios
+                    </label>
+                    
+                    <div class="history-info" id="historyInfo">
+                        <div>Paso <strong id="currentStep">0</strong> de <strong id="totalSteps">0</strong></div>
+                    </div>
+
+                    <div class="history-controls">
+                        <button class="btn btn-secondary btn-small" id="undoBtn" disabled title="Deshacer (Ctrl+Z)">
+                            <i class="fas fa-undo"></i> Deshacer
+                        </button>
+                        <button class="btn btn-secondary btn-small" id="redoBtn" disabled title="Rehacer (Ctrl+Y)">
+                            <i class="fas fa-redo"></i> Rehacer
+                        </button>
+                        <button class="btn btn-warning btn-small" id="resetBtn" disabled title="Restaurar imagen original">
+                            <i class="fas fa-sync-alt"></i> Restaurar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Efectos de IA -->
+                <div class="control-group">
+                    <label class="control-label">
+                        <i class="fas fa-robot"></i> Efectos con IA
+                    </label>
+                    <button class="btn btn-primary" id="removeBackground" disabled>
+                        <i class="fas fa-eraser"></i> Eliminar Fondo
+                    </button>
+                </div>
+
+                <!-- Color de Fondo -->
+                <div class="control-group">
+                    <label class="control-label">
+                        <i class="fas fa-fill-drip"></i> Color de Fondo
+                    </label>
+                    <div class="color-picker-wrapper">
+                        <input type="color" id="bgColor" value="#ffffff" disabled>
+                        <span class="color-value" id="colorValue">#FFFFFF</span>
+                    </div>
+                    <button class="btn btn-secondary" id="applyBgColor" disabled style="margin-top: 0.7rem;">
+                        Aplicar Color
+                    </button>
+                </div>
+
+                <!-- Efectos de Color -->
+                <div class="control-group">
+                    <label class="control-label">
+                        <i class="fas fa-palette"></i> Efectos de Color
+                    </label>
+                    <div class="effects-grid">
+                        <button class="btn btn-secondary" id="invertColors" disabled>
+                            <i class="fas fa-adjust"></i> Invertir
+                        </button>
+                        <button class="btn btn-secondary" id="grayscale" disabled>
+                            <i class="fas fa-moon"></i> B/N
+                        </button>
+                        <button class="btn btn-secondary" id="sepia" disabled>
+                            <i class="fas fa-image"></i> Sepia
+                        </button>
+                        <button class="btn btn-secondary" id="brightness" disabled>
+                            <i class="fas fa-sun"></i> Brillo+
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Descargar -->
+                <div class="control-group">
+                    <label class="control-label">
+                        <i class="fas fa-download"></i> Descargar
+                    </label>
+                    <button class="btn btn-primary" id="download" disabled>
+                        <i class="fas fa-file-download"></i> Descargar Imagen
+                    </button>
+                </div>
+
+                <div class="info-box">
+                    <strong>💡 Tip:</strong> Usa <kbd>Ctrl+Z</kbd> para deshacer y <kbd>Ctrl+Y</kbd> para rehacer. El historial guarda todos tus cambios.
+                </div>
+            </div>
+
+            <!-- Canvas de Vista Previa -->
+            <div class="panel">
+                <h2 class="panel-title">
+                    <i class="fas fa-image"></i> Vista Previa
+                </h2>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Procesando imagen con IA...</p>
+                </div>
+
+                <div class="canvas-container" id="canvasContainer">
+                    <div class="placeholder" id="placeholder">
+                        <i class="fas fa-image"></i>
+                        <p>Carga una imagen para comenzar</p>
+                    </div>
+                    <canvas id="canvas"></canvas>
+                </div>
+            </div>
         </div>
+    </div>
 
-        <div class="cards-grid">
-            <!-- Generador de Correos -->
-            <div class="card">
-                <div class="icon-box">
-                    <i class="fas fa-envelope-open-text"></i>
-                </div>
-                <div>
-                    <h3 class="card-title">Generador de Correos</h3>
-                    <p class="card-desc">
-                        Crea comunicados oficiales con formato institucional. 
-                        Editor visual con bloques personalizables para correos profesionales.
-                    </p>
-                </div>
-                <a href="generador.html" class="btn btn-primary">
-                    Ingresar <i class="fas fa-arrow-right"></i>
-                </a>
-            </div>
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const uploadZone = document.getElementById('uploadZone');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const placeholder = document.getElementById('placeholder');
+        const loading = document.getElementById('loading');
+        const bgColorInput = document.getElementById('bgColor');
+        const colorValue = document.getElementById('colorValue');
 
-            <!-- Clasificador de Cursos -->
-            <div class="card active">
-                <div class="icon-box">
-                    <i class="fas fa-chalkboard-teacher"></i>
-                </div>
-                <div>
-                    <h3 class="card-title">Clasificador de Cursos</h3>
-                    <p class="card-desc">
-                        Analiza y clasifica cursos automáticamente según tipo Docente o Profesional.
-                        Soporta CSV y JSON con edición manual.
-                    </p>
-                </div>
-                <a href="clasificador.html" class="btn btn-primary">
-                    Ingresar <i class="fas fa-arrow-right"></i>
-                </a>
-            </div>
+        // NUEVO: Variables para historial
+        let history = [];
+        let historyStep = -1;
+        const MAX_HISTORY = 20; // Máximo de pasos guardados
 
-            <!-- Editor de Imágenes con IA -->
-            <div class="card">
-                <span class="badge">Nuevo</span>
-                <div class="icon-box">
-                    <i class="fas fa-magic"></i>
-                </div>
-                <div>
-                    <h3 class="card-title">Editor de Imágenes con IA</h3>
-                    <p class="card-desc">
-                        Elimina fondos automáticamente, cambia colores, invierte tonos y aplica efectos.
-                        Procesamiento inteligente con IA y descarga instantánea.
-                    </p>
-                </div>
-                <a href="quitarfondo.html" class="btn btn-primary">
-                    Ingresar <i class="fas fa-arrow-right"></i>
-                </a>
-            </div>
+        let currentImage = null;
+        let originalImageData = null;
 
-            <!-- Gestor de Documentos (Próximamente) -->
-            <div class="card inactive">
-                <span class="badge">Próximamente</span>
-                <div class="icon-box">
-                    <i class="fas fa-file-pdf"></i>
-                </div>
-                <div>
-                    <h3 class="card-title">Gestor de Documentos</h3>
-                    <p class="card-desc">
-                        Conversión y estandarización automática de documentos.
-                        Procesamiento de PDFs, Word y formatos oficiales.
-                    </p>
-                </div>
-                <button class="btn btn-disabled">
-                    No disponible
-                </button>
-            </div>
-        </div>
-    </main>
+        // Configurar zona de carga
+        uploadZone.addEventListener('click', () => fileInput.click());
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="footer-content">
-            <div class="footer-links">
-                <a href="#"><i class="fas fa-home"></i> Inicio</a>
-                <a href="#"><i class="fas fa-info-circle"></i> Acerca de</a>
-                <a href="#"><i class="fas fa-envelope"></i> Contacto</a>
-                <a href="#"><i class="fas fa-question-circle"></i> Ayuda</a>
-            </div>
-            <div class="footer-copy">
-                © 2025 Instituto Tecnológico de Durango — Coordinación de Actualización Docente
-            </div>
-        </div>
-    </footer>
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                loadImage(file);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                loadImage(file);
+            }
+        });
+
+        // Cargar imagen
+        function loadImage(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    currentImage = img;
+                    drawImage(img);
+                    enableControls();
+                    placeholder.style.display = 'none';
+                    canvas.style.display = 'block';
+                    
+                    // NUEVO: Reiniciar historial al cargar nueva imagen
+                    resetHistory();
+                    saveState();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Dibujar imagen en canvas
+        function drawImage(img) {
+            const maxWidth = 800;
+            const maxHeight = 600;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > maxWidth || height > maxHeight) {
+                const ratio = Math.min(maxWidth / width, maxHeight / height);
+                width *= ratio;
+                height *= ratio;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            ctx.clearRect(0, 0, width, height);
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            originalImageData = ctx.getImageData(0, 0, width, height);
+        }
+
+        // Habilitar controles
+        function enableControls() {
+            document.getElementById('removeBackground').disabled = false;
+            document.getElementById('bgColor').disabled = false;
+            document.getElementById('applyBgColor').disabled = false;
+            document.getElementById('invertColors').disabled = false;
+            document.getElementById('grayscale').disabled = false;
+            document.getElementById('sepia').disabled = false;
+            document.getElementById('brightness').disabled = false;
+            document.getElementById('download').disabled = false;
+            document.getElementById('resetBtn').disabled = false;
+        }
+
+        // NUEVO: Funciones de historial
+        function saveState() {
+            // Eliminar estados futuros si estamos en medio del historial
+            if (historyStep < history.length - 1) {
+                history = history.slice(0, historyStep + 1);
+            }
+
+            // Guardar estado actual
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            history.push(imageData);
+
+            // Limitar tamaño del historial
+            if (history.length > MAX_HISTORY) {
+                history.shift();
+            } else {
+                historyStep++;
+            }
+
+            updateHistoryUI();
+        }
+
+        function undo() {
+            if (historyStep > 0) {
+                historyStep--;
+                restoreState(history[historyStep]);
+                updateHistoryUI();
+            }
+        }
+
+        function redo() {
+            if (historyStep < history.length - 1) {
+                historyStep++;
+                restoreState(history[historyStep]);
+                updateHistoryUI();
+            }
+        }
+
+        function resetToOriginal() {
+            if (history.length > 0) {
+                historyStep = 0;
+                restoreState(history[0]);
+                updateHistoryUI();
+            }
+        }
+
+        function restoreState(imageData) {
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        function resetHistory() {
+            history = [];
+            historyStep = -1;
+            updateHistoryUI();
+        }
+
+        function updateHistoryUI() {
+            const undoBtn = document.getElementById('undoBtn');
+            const redoBtn = document.getElementById('redoBtn');
+            const currentStepEl = document.getElementById('currentStep');
+            const totalStepsEl = document.getElementById('totalSteps');
+
+            undoBtn.disabled = historyStep <= 0;
+            redoBtn.disabled = historyStep >= history.length - 1;
+
+            currentStepEl.textContent = historyStep + 1;
+            totalStepsEl.textContent = history.length;
+        }
+
+        // Eventos de botones de historial
+        document.getElementById('undoBtn').addEventListener('click', undo);
+        document.getElementById('redoBtn').addEventListener('click', redo);
+        document.getElementById('resetBtn').addEventListener('click', resetToOriginal);
+
+        // Atajos de teclado
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'z') {
+                e.preventDefault();
+                undo();
+            }
+            if (e.ctrlKey && e.key === 'y') {
+                e.preventDefault();
+                redo();
+            }
+        });
+
+        // Color picker
+        bgColorInput.addEventListener('input', (e) => {
+            colorValue.textContent = e.target.value.toUpperCase();
+        });
+
+        // Eliminar fondo (algoritmo simple basado en detección de bordes)
+        document.getElementById('removeBackground').addEventListener('click', () => {
+            if (!currentImage) return;
+            
+            loading.classList.add('active');
+            
+            setTimeout(() => {
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                
+                // Detectar color dominante en los bordes
+                const bgColor = detectBackgroundColor(data, canvas.width, canvas.height);
+                
+                // Eliminar píxeles similares al fondo
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    
+                    // Calcular diferencia con color de fondo
+                    const diff = Math.sqrt(
+                        Math.pow(r - bgColor.r, 2) +
+                        Math.pow(g - bgColor.g, 2) +
+                        Math.pow(b - bgColor.b, 2)
+                    );
+                    
+                    // Si es similar al fondo, hacerlo transparente
+                    if (diff < 60) {
+                        data[i + 3] = 0;
+                    }
+                }
+                
+                ctx.putImageData(imageData, 0, 0);
+                saveState(); // NUEVO: Guardar en historial
+                loading.classList.remove('active');
+            }, 500);
+        });
+
+        // Detectar color de fondo
+        function detectBackgroundColor(data, width, height) {
+            const samples = [];
+            
+            // Muestrear esquinas y bordes
+            for (let i = 0; i < 10; i++) {
+                samples.push({
+                    r: data[i * 4],
+                    g: data[i * 4 + 1],
+                    b: data[i * 4 + 2]
+                });
+            }
+            
+            // Promedio
+            const avg = samples.reduce((acc, c) => ({
+                r: acc.r + c.r / samples.length,
+                g: acc.g + c.g / samples.length,
+                b: acc.b + c.b / samples.length
+            }), { r: 0, g: 0, b: 0 });
+            
+            return avg;
+        }
+
+        // Aplicar color de fondo
+        document.getElementById('applyBgColor').addEventListener('click', () => {
+            const color = bgColorInput.value;
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            // Dibujar fondo de color
+            tempCtx.fillStyle = color;
+            tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            
+            // Dibujar imagen encima
+            tempCtx.drawImage(canvas, 0, 0);
+            
+            // Actualizar canvas principal
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(tempCanvas, 0, 0);
+            
+            saveState(); // NUEVO: Guardar en historial
+        });
+
+        // Invertir colores
+        document.getElementById('invertColors').addEventListener('click', () => {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                data[i] = 255 - data[i];         // R
+                data[i + 1] = 255 - data[i + 1]; // G
+                data[i + 2] = 255 - data[i + 2]; // B
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+            saveState(); // NUEVO: Guardar en historial
+        });
+
+        // Escala de grises
+        document.getElementById('grayscale').addEventListener('click', () => {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+                data[i] = data[i + 1] = data[i + 2] = gray;
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+            saveState(); // NUEVO: Guardar en historial
+        });
+
+        // Sepia
+        document.getElementById('sepia').addEventListener('click', () => {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                
+                data[i] = Math.min(255, r * 0.393 + g * 0.769 + b * 0.189);
+                data[i + 1] = Math.min(255, r * 0.349 + g * 0.686 + b * 0.168);
+                data[i + 2] = Math.min(255, r * 0.272 + g * 0.534 + b * 0.131);
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+            saveState(); // NUEVO: Guardar en historial
+        });
+
+        // Aumentar brillo
+        document.getElementById('brightness').addEventListener('click', () => {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            const adjustment = 30;
+            for (let i = 0; i < data.length; i += 4) {
+                data[i] = Math.min(255, data[i] + adjustment);
+                data[i + 1] = Math.min(255, data[i + 1] + adjustment);
+                data[i + 2] = Math.min(255, data[i + 2] + adjustment);
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+            saveState(); // NUEVO: Guardar en historial
+        });
+
+        // Descargar
+        document.getElementById('download').addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = 'imagen-editada-itd.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+    </script>
 </body>
 </html>
