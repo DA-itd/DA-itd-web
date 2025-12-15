@@ -235,31 +235,6 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* MODAL */
-        .modal {
-            display: none;
-            position: fixed; z-index: 200;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
-            align-items: center; justify-content: center;
-        }
-        .modal.show { display: flex; }
-        .modal-content {
-            background: var(--panel-bg);
-            padding: 20px;
-            border-radius: 8px;
-            width: 400px;
-            border: 1px solid var(--border);
-        }
-        
-        .api-key-banner {
-            background: #333; 
-            padding: 10px; 
-            font-size: 0.8rem; 
-            text-align: center; 
-            border-bottom: 1px solid #444;
-        }
-
         /* RESIZE HANDLES */
         .resize-handle {
             position: absolute;
@@ -276,12 +251,6 @@
     <div class="header">
         <h1><i class="fas fa-layer-group"></i> Estudio de Diseño AI <span style="font-size: 0.7rem; background: var(--accent); color: black; padding: 2px 6px; border-radius: 4px;">BETA</span></h1>
         <a href="index.html" class="back-link"><i class="fas fa-arrow-left"></i> Volver al Portal</a>
-    </div>
-
-    <!-- API KEY Warning (Simulated for this environment) -->
-    <div class="api-key-banner" id="apiKeyBanner">
-        Nota: Las funciones IA requieren configurar tu API Key de Google Gemini.
-        <button onclick="showApiKeyModal()" style="background:none; border:none; color: var(--accent); text-decoration: underline; cursor:pointer;">Configurar</button>
     </div>
 
     <div class="workspace">
@@ -348,22 +317,13 @@
 
     <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleImageUpload(this)">
 
-    <!-- API KEY MODAL -->
-    <div class="modal" id="apiKeyModal">
-        <div class="modal-content">
-            <h3 style="margin-bottom: 15px;">Configurar Gemini API</h3>
-            <p style="font-size: 0.9rem; margin-bottom: 15px; color: #ccc;">Ingresa tu API Key para usar las funciones de generación de imágenes y texto.</p>
-            <input type="password" id="userApiKey" placeholder="Pegar API Key aquí...">
-            <div style="display: flex; gap: 10px; margin-top: 15px;">
-                <button class="btn-action secondary" onclick="document.getElementById('apiKeyModal').classList.remove('show')">Cancelar</button>
-                <button class="btn-action" onclick="saveApiKey()">Guardar</button>
-            </div>
-            <p style="font-size: 0.75rem; margin-top: 10px; color: #666;">La clave se guarda solo en tu navegador.</p>
-        </div>
-    </div>
-
     <script type="module">
         import { GoogleGenAI } from "@google/genai";
+
+        // ==========================================
+        // CONFIG
+        // ==========================================
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
         // ==========================================
         // ENGINE STATE
@@ -380,7 +340,6 @@
         let selectedLayerId = null;
         let isDragging = false;
         let dragStart = { x: 0, y: 0 };
-        let apiKey = localStorage.getItem('GEMINI_API_KEY') || '';
 
         // ==========================================
         // CORE RENDER LOOP
@@ -686,23 +645,7 @@
         // ==========================================
         // AI FEATURES (Gemini)
         // ==========================================
-        window.showApiKeyModal = () => document.getElementById('apiKeyModal').classList.add('show');
         
-        window.saveApiKey = () => {
-            apiKey = document.getElementById('userApiKey').value;
-            localStorage.setItem('GEMINI_API_KEY', apiKey);
-            document.getElementById('apiKeyModal').classList.remove('show');
-            alert('API Key guardada.');
-        };
-
-        function getAIClient() {
-            if (!apiKey) {
-                showApiKeyModal();
-                return null;
-            }
-            return new GoogleGenAI({ apiKey: apiKey });
-        }
-
         // 1. Remove Background (Pixel Algorithm from previous version, wrapped)
         window.removeBackgroundOfSelected = () => {
             const layer = layers.find(l => l.id === selectedLayerId);
@@ -758,9 +701,6 @@
 
         // 2. Generate Background (Gemini/Imagen)
         window.generateBackgroundAI = async () => {
-            const ai = getAIClient();
-            if (!ai) return;
-
             const prompt = document.getElementById('aiPrompt').value;
             if (!prompt) { alert('Escribe una descripción para el fondo.'); return; }
 
@@ -769,8 +709,6 @@
             document.getElementById('loaderText').innerText = 'Generando Fondo con IA...';
 
             try {
-                // Use generateContent with gemini-2.5-flash-image for generation (Simulating Imagen behavior via instructions)
-                // Instructions say: "General Image Generation...: 'gemini-2.5-flash-image'"
                 const response = await ai.models.generateContent({
                     model: 'gemini-2.5-flash-image',
                     contents: {
@@ -825,9 +763,6 @@
 
         // 3. Suggest Caption (Gemini Text)
         window.suggestCaptionAI = async () => {
-            const ai = getAIClient();
-            if (!ai) return;
-
             const loader = document.getElementById('loader');
             loader.classList.add('active');
             document.getElementById('loaderText').innerText = 'Analizando diseño...';
