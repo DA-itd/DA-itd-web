@@ -3,523 +3,708 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quitafondos AI - Herramientas ITD</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome -->
+    <title>Editor de Imágenes con IA - ITD</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    
-    <!-- Import map for Google GenAI -->
-    <script type="importmap">
-    {
-      "imports": {
-        "@google/genai": "https://esm.sh/@google/genai@^1.33.0"
-      }
-    }
-    </script>
-
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              itd: {
-                blue: '#1b396a',
-                gold: '#d4a017',
-                maroon: '#8B1538',
-              }
-            }
-          }
-        }
-      }
-    </script>
-
     <style>
-        /* ITD Portal Style Overrides */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         :root {
             --itd-blue: #1b396a;
             --itd-gold: #d4a017;
             --maroon: #8B1538;
         }
-        
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            color: #333;
         }
 
-        .bg-checkerboard {
-            background-image:
-              linear-gradient(45deg, #e5e7eb 25%, transparent 25%),
-              linear-gradient(-45deg, #e5e7eb 25%, transparent 25%),
-              linear-gradient(45deg, transparent 75%, #e5e7eb 75%),
-              linear-gradient(-45deg, transparent 75%, #e5e7eb 75%);
+        .header {
+            background: white;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1.5rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            height: 60px;
+        }
+
+        .header-title {
+            text-align: center;
+            flex-grow: 1;
+        }
+
+        .header-title h1 {
+            color: var(--itd-blue);
+            font-size: 1.8rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .header-title p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .btn-back {
+            background: var(--maroon);
+            color: white;
+            padding: 0.7rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-back:hover {
+            background: var(--itd-blue);
+            transform: translateY(-2px);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem 2rem 2rem;
+        }
+
+        .editor-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .panel-title {
+            color: var(--itd-blue);
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .upload-zone {
+            border: 3px dashed var(--maroon);
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--itd-blue);
+            background: #fff;
+            transform: translateY(-2px);
+        }
+
+        .upload-zone.dragover {
+            border-color: var(--itd-gold);
+            background: #fffbf0;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--maroon);
+            margin-bottom: 1rem;
+        }
+
+        .upload-text {
+            font-size: 1.1rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-subtext {
+            font-size: 0.9rem;
+            color: #999;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .control-label {
+            display: block;
+            font-weight: 600;
+            color: var(--itd-blue);
+            margin-bottom: 0.7rem;
+            font-size: 0.95rem;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.9rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--maroon), var(--itd-blue));
+            color: white;
+            box-shadow: 0 6px 20px rgba(139, 21, 56, 0.3);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(139, 21, 56, 0.4);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--itd-blue);
+            border: 2px solid var(--itd-blue);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: var(--itd-blue);
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .color-picker-wrapper {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        input[type="color"] {
+            width: 60px;
+            height: 60px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .color-value {
+            font-family: monospace;
+            font-size: 1rem;
+            color: #666;
+            padding: 0.5rem 1rem;
+            background: #f8f9fa;
+            border-radius: 6px;
+            flex-grow: 1;
+        }
+
+        .canvas-container {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 500px;
+            background: 
+                linear-gradient(45deg, #e0e0e0 25%, transparent 25%),
+                linear-gradient(-45deg, #e0e0e0 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #e0e0e0 75%),
+                linear-gradient(-45deg, transparent 75%, #e0e0e0 75%);
             background-size: 20px 20px;
             background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            border-radius: 12px;
+            overflow: hidden;
         }
 
-        /* Loading Spinner */
+        canvas {
+            max-width: 100%;
+            max-height: 600px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border-radius: 8px;
+        }
+
+        .placeholder {
+            text-align: center;
+            color: #999;
+        }
+
+        .placeholder i {
+            font-size: 4rem;
+            color: #ddd;
+            margin-bottom: 1rem;
+        }
+
+        .effects-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            font-size: 0.9rem;
+        }
+
+        .alert-info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border-left: 4px solid #1976d2;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border-left: 4px solid #ffc107;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
         .spinner {
-            border: 4px solid #e2e8f0;
-            border-top: 4px solid var(--itd-blue);
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--maroon);
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
             animation: spin 1s linear infinite;
+            margin: 0 auto 1rem auto;
         }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        .color-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            border: 2px solid #e5e7eb;
-            cursor: pointer;
-            transition: transform 0.2s, border-color 0.2s;
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
-        .color-btn:hover {
-            transform: scale(1.1);
+
+        .info-box {
+            background: #f8f9fa;
+            border-left: 4px solid var(--itd-gold);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            color: #666;
         }
-        .color-btn.active {
-            border-color: var(--itd-blue);
-            transform: scale(1.1);
-            box-shadow: 0 0 0 2px white, 0 0 0 4px var(--itd-blue);
+
+        @media (max-width: 1024px) {
+            .editor-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
         }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen flex flex-col">
-
-    <!-- ITD Header (Simplified) -->
-    <header class="bg-white shadow-sm border-b border-gray-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <a href="index.html" class="flex items-center text-gray-500 hover:text-itd-blue transition-colors">
-                    <i class="fas fa-arrow-left mr-2"></i> Volver
-                </a>
-                <div class="h-8 w-px bg-gray-300 mx-2"></div>
-                <div class="flex items-center gap-3">
-                    <div class="bg-gradient-to-br from-itd-maroon to-itd-blue p-2 rounded-lg text-white">
-                        <i class="fas fa-image"></i>
-                    </div>
-                    <h1 class="text-xl font-bold text-itd-blue tracking-tight">Quitafondos <span class="text-itd-gold">AI</span></h1>
-                </div>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <img src="https://raw.githubusercontent.com/DA-itd/web/main/logo_itdurango.png" alt="ITD" class="logo">
+            <div class="header-title">
+                <h1><i class="fas fa-magic"></i> Editor de Imágenes con IA</h1>
+                <p>Elimina fondos, cambia colores y aplica efectos profesionales</p>
             </div>
-            <div class="hidden sm:block">
-                <img src="https://raw.githubusercontent.com/DA-itd/web/main/logo_itdurango.png" alt="ITD Logo" class="h-10 object-contain opacity-80">
-            </div>
+            <a href="index.html" class="btn-back">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="flex-grow max-w-6xl w-full mx-auto px-4 py-8">
-        
-        <div class="text-center mb-10">
-            <h2 class="text-3xl font-bold text-gray-800 mb-2">Eliminar Fondo de Imagen</h2>
-            <p class="text-gray-600 max-w-2xl mx-auto">Sube una imagen y nuestra herramienta con Inteligencia Artificial procesará y aislará el sujeto automáticamente.</p>
-        </div>
+    <div class="container">
+        <div class="editor-grid">
+            <!-- Panel de Controles -->
+            <div class="panel">
+                <h2 class="panel-title">
+                    <i class="fas fa-sliders-h"></i> Controles
+                </h2>
 
-        <!-- App Container -->
-        <div class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden" id="app-container">
-            
-            <!-- Upload View -->
-            <div id="upload-view" class="p-8 sm:p-12 transition-all duration-300">
-                <div 
-                    id="drop-zone"
-                    class="relative border-2 border-dashed border-gray-300 rounded-2xl p-10 text-center hover:border-itd-blue hover:bg-blue-50 transition-all cursor-pointer group"
-                >
-                    <input type="file" id="file-input" accept="image/png, image/jpeg, image/jpg, image/webp" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
-                    
-                    <div class="flex flex-col items-center justify-center space-y-4 pointer-events-none">
-                        <div class="p-4 rounded-full bg-gray-100 group-hover:bg-white transition-colors">
-                            <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 group-hover:text-itd-blue"></i>
-                        </div>
-                        <div>
-                            <p class="text-lg font-semibold text-gray-700 group-hover:text-itd-blue">
-                                Haz clic o arrastra una imagen aquí
-                            </p>
-                            <p class="text-sm text-gray-500 mt-1">
-                                PNG, JPG o WEBP (Máx 5MB)
-                            </p>
-                        </div>
+                <!-- Cargar Imagen -->
+                <div class="control-group">
+                    <div class="upload-zone" id="uploadZone">
+                        <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                        <p class="upload-text">Arrastra tu imagen aquí</p>
+                        <p class="upload-subtext">o haz clic para seleccionar</p>
+                        <input type="file" id="fileInput" accept="image/*">
                     </div>
                 </div>
-            </div>
 
-            <!-- Processing / Result View (Hidden by default) -->
-            <div id="result-view" class="hidden flex-col">
-                <!-- Toolbar -->
-                <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
-                    
-                    <div class="flex items-center gap-4 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto">
-                        <span class="text-sm font-semibold text-gray-600">Fondo:</span>
-                        <div class="flex gap-2">
-                            <!-- Transparent -->
-                            <button class="color-btn active bg-checkerboard" onclick="changeBackground('transparent')" title="Transparente"></button>
-                            <!-- White -->
-                            <button class="color-btn bg-white" onclick="changeBackground('#ffffff')" title="Blanco"></button>
-                            <!-- Black -->
-                            <button class="color-btn bg-black" onclick="changeBackground('#000000')" title="Negro"></button>
-                            <!-- ITD Colors -->
-                            <button class="color-btn" style="background-color: #1b396a;" onclick="changeBackground('#1b396a')" title="Azul ITD"></button>
-                            <button class="color-btn" style="background-color: #8B1538;" onclick="changeBackground('#8B1538')" title="Guinda ITD"></button>
-                            <!-- Custom -->
-                            <div class="relative w-8 h-8 rounded-full overflow-hidden border-2 border-gray-200 cursor-pointer hover:scale-110 transition-transform">
-                                <input type="color" id="custom-color" class="absolute -top-2 -left-2 w-12 h-12 cursor-pointer p-0 border-0" onchange="changeBackground(this.value)">
-                            </div>
-                        </div>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Formatos: JPG, PNG, WebP (máx. 10MB)</span>
+                </div>
+
+                <!-- Efectos de IA -->
+                <div class="control-group">
+                    <label class="control-label">
+                        <i class="fas fa-robot"></i> Efectos con IA
+                    </label>
+                    <button class="btn btn-primary" id="removeBackground" disabled>
+                        <i class="fas fa-eraser"></i> Eliminar Fondo
+                    </button>
+                </div>
+
+                <!-- Color de Fondo -->
+                <div class="control-group">
+                    <label class="control-label">
+                        <i class="fas fa-fill-drip"></i> Color de Fondo
+                    </label>
+                    <div class="color-picker-wrapper">
+                        <input type="color" id="bgColor" value="#ffffff" disabled>
+                        <span class="color-value" id="colorValue">#FFFFFF</span>
                     </div>
+                    <button class="btn btn-secondary" id="applyBgColor" disabled style="margin-top: 0.7rem;">
+                        Aplicar Color
+                    </button>
+                </div>
 
-                    <div class="flex gap-3 w-full md:w-auto justify-end">
-                        <button id="btn-reset" class="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-gray-800 transition-colors">
-                            <i class="fas fa-redo md:mr-2"></i> <span class="hidden md:inline">Nueva</span>
+                <!-- Efectos de Color -->
+                <div class="control-group">
+                    <label class="control-label">
+                        <i class="fas fa-palette"></i> Efectos de Color
+                    </label>
+                    <div class="effects-grid">
+                        <button class="btn btn-secondary" id="invertColors" disabled>
+                            <i class="fas fa-adjust"></i> Invertir
                         </button>
-                        <div class="relative group">
-                            <button id="btn-download-group" class="hidden px-4 py-2 text-sm font-medium text-white bg-itd-blue rounded-lg hover:bg-blue-800 shadow-sm flex items-center gap-2 transition-all">
-                                <i class="fas fa-download"></i> Descargar
-                            </button>
-                            <!-- Dropdown for download options -->
-                            <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden group-hover:block border border-gray-100">
-                                <button id="btn-download-png" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                    PNG (Transparente)
-                                </button>
-                                <button id="btn-download-bg" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                    JPG (Con Fondo)
-                                </button>
-                            </div>
-                        </div>
+                        <button class="btn btn-secondary" id="grayscale" disabled>
+                            <i class="fas fa-moon"></i> B/N
+                        </button>
+                        <button class="btn btn-secondary" id="sepia" disabled>
+                            <i class="fas fa-image"></i> Sepia
+                        </button>
+                        <button class="btn btn-secondary" id="brightness" disabled>
+                            <i class="fas fa-sun"></i> Brillo+
+                        </button>
                     </div>
                 </div>
 
-                <!-- Error Message -->
-                <div id="error-message" class="hidden m-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-start gap-3">
-                    <i class="fas fa-exclamation-circle mt-1"></i>
-                    <div>
-                        <h4 class="font-bold">Error</h4>
-                        <p id="error-text" class="text-sm">No se pudo procesar la imagen.</p>
-                    </div>
+                <!-- Descargar -->
+                <div class="control-group">
+                    <label class="control-label">
+                        <i class="fas fa-download"></i> Descargar
+                    </label>
+                    <button class="btn btn-primary" id="download" disabled>
+                        <i class="fas fa-file-download"></i> Descargar Imagen
+                    </button>
                 </div>
 
-                <!-- Image Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-200">
-                    <!-- Original -->
-                    <div class="p-6 flex flex-col items-center bg-white">
-                        <span class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-4 bg-gray-100 px-2 py-1 rounded">Original</span>
-                        <div class="relative w-full aspect-square max-h-[400px] rounded-lg overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center">
-                            <img id="img-original" class="max-w-full max-h-full object-contain" src="" alt="Original">
-                        </div>
-                    </div>
-
-                    <!-- Processed -->
-                    <div class="p-6 flex flex-col items-center bg-white">
-                        <span class="text-xs font-bold uppercase tracking-wider text-itd-blue mb-4 bg-blue-50 px-2 py-1 rounded">Resultado</span>
-                        
-                        <!-- Wrapper for background color -->
-                        <div id="result-container" class="relative w-full aspect-square max-h-[400px] rounded-lg overflow-hidden border border-gray-200 bg-checkerboard flex items-center justify-center transition-colors duration-300">
-                            
-                            <!-- Loading State -->
-                            <div id="loading-state" class="absolute inset-0 flex flex-col items-center justify-center bg-white bg-opacity-90 z-20">
-                                <div class="spinner mb-4"></div>
-                                <p class="text-itd-blue font-medium animate-pulse">Procesando con IA...</p>
-                            </div>
-
-                            <img id="img-processed" class="max-w-full max-h-full object-contain relative z-10 hidden" src="" alt="Processed">
-                        </div>
-                    </div>
+                <div class="info-box">
+                    <strong>💡 Tip:</strong> La eliminación de fondo usa IA local. Para mejores resultados, usa imágenes con buen contraste entre sujeto y fondo.
                 </div>
             </div>
 
+            <!-- Canvas de Vista Previa -->
+            <div class="panel">
+                <h2 class="panel-title">
+                    <i class="fas fa-image"></i> Vista Previa
+                </h2>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Procesando imagen con IA...</p>
+                </div>
+
+                <div class="canvas-container" id="canvasContainer">
+                    <div class="placeholder" id="placeholder">
+                        <i class="fas fa-image"></i>
+                        <p>Carga una imagen para comenzar</p>
+                    </div>
+                    <canvas id="canvas"></canvas>
+                </div>
+            </div>
         </div>
-    </main>
+    </div>
 
-    <!-- Footer -->
-    <footer class="bg-itd-blue text-white py-8 mt-auto border-t-4 border-itd-maroon">
-        <div class="max-w-7xl mx-auto px-4 text-center">
-            <p class="text-sm opacity-90">© 2025 Instituto Tecnológico de Durango — Coordinación de Actualización Docente</p>
-            <p class="text-xs opacity-60 mt-2">Powered by Google Gemini</p>
-        </div>
-    </footer>
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const uploadZone = document.getElementById('uploadZone');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const placeholder = document.getElementById('placeholder');
+        const loading = document.getElementById('loading');
+        const bgColorInput = document.getElementById('bgColor');
+        const colorValue = document.getElementById('colorValue');
 
-    <!-- Logic Script -->
-    <script type="module">
-        import { GoogleGenAI } from "@google/genai";
+        let currentImage = null;
+        let originalImageData = null;
+        let processedImage = null;
 
-        // --- SAFE API KEY INITIALIZATION ---
-        // Helper to safely get env var without crashing if process is undefined
-        const getApiKey = () => {
-            try {
-                if (typeof process !== 'undefined' && process.env) {
-                    return process.env.API_KEY;
-                }
-            } catch (e) {
-                // Ignore ReferenceError
+        // Configurar zona de carga
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                loadImage(file);
             }
-            return null;
-        };
+        });
 
-        const apiKey = getApiKey();
-        let ai = null;
-
-        if (apiKey) {
-            try {
-                ai = new GoogleGenAI({ apiKey: apiKey });
-            } catch (e) {
-                console.error("Initialization warning:", e);
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                loadImage(file);
             }
-        } else {
-            console.warn("API Key not found. The app will load but processing will fail unless configured.");
-        }
+        });
 
-        // --- UI Elements ---
-        const dropZone = document.getElementById('drop-zone');
-        const fileInput = document.getElementById('file-input');
-        const uploadView = document.getElementById('upload-view');
-        const resultView = document.getElementById('result-view');
-        const imgOriginal = document.getElementById('img-original');
-        const imgProcessed = document.getElementById('img-processed');
-        const resultContainer = document.getElementById('result-container');
-        const loadingState = document.getElementById('loading-state');
-        const btnReset = document.getElementById('btn-reset');
-        const btnDownloadGroup = document.getElementById('btn-download-group');
-        const btnDownloadPng = document.getElementById('btn-download-png');
-        const btnDownloadBg = document.getElementById('btn-download-bg');
-        const errorMessage = document.getElementById('error-message');
-        const errorText = document.getElementById('error-text');
-
-        // State
-        let currentBgColor = 'transparent';
-        let processedImageBase64 = null;
-
-        // --- Event Listeners ---
-        
-        // File Input
-        if (fileInput) {
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length > 0) {
-                    handleFile(e.target.files[0]);
-                }
-            });
-        }
-
-        // Drag & Drop visual feedback
-        if (dropZone) {
-            dropZone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropZone.classList.add('border-itd-blue', 'bg-blue-50');
-            });
-
-            dropZone.addEventListener('dragleave', (e) => {
-                e.preventDefault();
-                dropZone.classList.remove('border-itd-blue', 'bg-blue-50');
-            });
-
-            dropZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropZone.classList.remove('border-itd-blue', 'bg-blue-50');
-                if (e.dataTransfer.files.length > 0) {
-                    handleFile(e.dataTransfer.files[0]);
-                }
-            });
-        }
-
-        // Reset
-        if (btnReset) {
-            btnReset.addEventListener('click', () => {
-                uploadView.classList.remove('hidden');
-                resultView.classList.add('hidden');
-                if(fileInput) fileInput.value = ''; 
-                imgOriginal.src = '';
-                imgProcessed.src = '';
-                imgProcessed.classList.add('hidden');
-                btnDownloadGroup.classList.add('hidden');
-                errorMessage.classList.add('hidden');
-                changeBackground('transparent'); // Reset bg
-                processedImageBase64 = null;
-            });
-        }
-
-        // Download PNG (Transparent)
-        if (btnDownloadPng) {
-            btnDownloadPng.addEventListener('click', () => {
-                if (processedImageBase64) {
-                    downloadBase64(processedImageBase64, 'itd-sin-fondo.png');
-                }
-            });
-        }
-
-        // Download with Background
-        if (btnDownloadBg) {
-            btnDownloadBg.addEventListener('click', async () => {
-                if (processedImageBase64) {
-                    // If transparent is selected, just download PNG
-                    if (currentBgColor === 'transparent') {
-                         downloadBase64(processedImageBase64, 'itd-sin-fondo.png');
-                         return;
-                    }
-                    
-                    try {
-                        const compositeData = await compositeImage(processedImageBase64, currentBgColor);
-                        downloadBase64(compositeData, 'itd-con-fondo.jpg');
-                    } catch (e) {
-                        console.error("Error compositing image", e);
-                        alert("Error al generar la imagen con fondo.");
-                    }
-                }
-            });
-        }
-        
-        // Global function for background change (called by onclick attributes)
-        window.changeBackground = function(color) {
-            currentBgColor = color;
-            
-            // Remove active class from all buttons
-            document.querySelectorAll('.color-btn').forEach(btn => btn.classList.remove('active'));
-            
-            // Highlight the clicked button (if it's a predefined button)
-            const matchingBtn = Array.from(document.querySelectorAll('.color-btn')).find(btn => {
-                 return btn.getAttribute('onclick')?.includes(`'${color}'`);
-            });
-            if (matchingBtn) matchingBtn.classList.add('active');
-
-            // Apply style
-            if (color === 'transparent') {
-                resultContainer.style.background = '';
-                resultContainer.style.backgroundColor = '';
-                resultContainer.classList.add('bg-checkerboard');
-            } else {
-                resultContainer.classList.remove('bg-checkerboard');
-                resultContainer.style.background = 'none';
-                resultContainer.style.backgroundColor = color;
-            }
-        }
-
-        // --- Core Logic ---
-
-        function handleFile(file) {
-            if (!file.type.startsWith('image/')) {
-                alert('Por favor selecciona un archivo de imagen válido.');
-                return;
-            }
-
-            // Show Result View
-            uploadView.classList.add('hidden');
-            resultView.classList.remove('hidden');
-            resultView.classList.add('flex');
-            
-            // Set Loading
-            loadingState.classList.remove('hidden');
-            errorMessage.classList.add('hidden');
-            btnDownloadGroup.classList.add('hidden');
-            imgProcessed.classList.add('hidden');
-            processedImageBase64 = null;
-
+        // Cargar imagen
+        function loadImage(file) {
             const reader = new FileReader();
-            reader.onload = async (event) => {
-                const base64Data = event.target.result;
-                imgOriginal.src = base64Data;
-                
-                try {
-                    if (!ai) {
-                        // Late check for API key
-                         throw new Error("Clave API no detectada. Verifique la configuración del entorno (process.env.API_KEY).");
-                    }
-                    
-                    const processedBase64 = await removeBackground(base64Data, file.type);
-                    
-                    // Success
-                    processedImageBase64 = processedBase64;
-                    imgProcessed.src = processedBase64;
-                    
-                    // Wait for image to load before showing controls
-                    imgProcessed.onload = () => {
-                         imgProcessed.classList.remove('hidden');
-                         loadingState.classList.add('hidden');
-                         btnDownloadGroup.classList.remove('hidden');
-                    };
-                } catch (error) {
-                    console.error("Error processing image:", error);
-                    loadingState.classList.add('hidden');
-                    errorMessage.classList.remove('hidden');
-                    errorText.textContent = error.message || "Ocurrió un error al procesar la imagen.";
-                }
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    currentImage = img;
+                    drawImage(img);
+                    enableControls();
+                    placeholder.style.display = 'none';
+                    canvas.style.display = 'block';
+                };
+                img.src = e.target.result;
             };
             reader.readAsDataURL(file);
         }
 
-        async function removeBackground(base64Image, mimeType) {
-            // Clean base64 string
-            const cleanBase64 = base64Image.replace(/^data:image\/\w+;base64,/, "");
+        // Dibujar imagen en canvas
+        function drawImage(img) {
+            const maxWidth = 800;
+            const maxHeight = 600;
+            let width = img.width;
+            let height = img.height;
 
-            // Using the specific model for image editing/tasks
-            const model = 'gemini-2.5-flash-image';
+            if (width > maxWidth || height > maxHeight) {
+                const ratio = Math.min(maxWidth / width, maxHeight / height);
+                width *= ratio;
+                height *= ratio;
+            }
 
-            const response = await ai.models.generateContent({
-                model: model,
-                contents: {
-                    parts: [
-                        {
-                            inlineData: {
-                                data: cleanBase64,
-                                mimeType: mimeType,
-                            },
-                        },
-                        {
-                            text: "Remove the background from this image. Return strictly the image with a transparent background. Ensure high quality edges for the subject.",
-                        },
-                    ],
-                },
-            });
-
-            // Iterate through parts to find the image
-            const parts = response.candidates?.[0]?.content?.parts;
+            canvas.width = width;
+            canvas.height = height;
+            ctx.clearRect(0, 0, width, height);
+            ctx.drawImage(img, 0, 0, width, height);
             
-            if (!parts) {
-                throw new Error("La API no devolvió contenido.");
-            }
+            originalImageData = ctx.getImageData(0, 0, width, height);
+        }
 
-            for (const part of parts) {
-                if (part.inlineData && part.inlineData.data) {
-                    return `data:image/png;base64,${part.inlineData.data}`;
+        // Habilitar controles
+        function enableControls() {
+            document.getElementById('removeBackground').disabled = false;
+            document.getElementById('bgColor').disabled = false;
+            document.getElementById('applyBgColor').disabled = false;
+            document.getElementById('invertColors').disabled = false;
+            document.getElementById('grayscale').disabled = false;
+            document.getElementById('sepia').disabled = false;
+            document.getElementById('brightness').disabled = false;
+            document.getElementById('download').disabled = false;
+        }
+
+        // Color picker
+        bgColorInput.addEventListener('input', (e) => {
+            colorValue.textContent = e.target.value.toUpperCase();
+        });
+
+        // Eliminar fondo (algoritmo simple basado en detección de bordes)
+        document.getElementById('removeBackground').addEventListener('click', () => {
+            if (!currentImage) return;
+            
+            loading.classList.add('active');
+            
+            setTimeout(() => {
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                
+                // Detectar color dominante en los bordes
+                const bgColor = detectBackgroundColor(data, canvas.width, canvas.height);
+                
+                // Eliminar píxeles similares al fondo
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    
+                    // Calcular diferencia con color de fondo
+                    const diff = Math.sqrt(
+                        Math.pow(r - bgColor.r, 2) +
+                        Math.pow(g - bgColor.g, 2) +
+                        Math.pow(b - bgColor.b, 2)
+                    );
+                    
+                    // Si es similar al fondo, hacerlo transparente
+                    if (diff < 60) {
+                        data[i + 3] = 0;
+                    }
                 }
+                
+                ctx.putImageData(imageData, 0, 0);
+                processedImage = imageData;
+                loading.classList.remove('active');
+            }, 500);
+        });
+
+        // Detectar color de fondo
+        function detectBackgroundColor(data, width, height) {
+            const samples = [];
+            
+            // Muestrear esquinas y bordes
+            for (let i = 0; i < 10; i++) {
+                samples.push({
+                    r: data[i * 4],
+                    g: data[i * 4 + 1],
+                    b: data[i * 4 + 2]
+                });
             }
-
-            throw new Error("El modelo no devolvió una imagen.");
+            
+            // Promedio
+            const avg = samples.reduce((acc, c) => ({
+                r: acc.r + c.r / samples.length,
+                g: acc.g + c.g / samples.length,
+                b: acc.b + c.b / samples.length
+            }), { r: 0, g: 0, b: 0 });
+            
+            return avg;
         }
 
-        function downloadBase64(base64Data, fileName) {
+        // Aplicar color de fondo
+        document.getElementById('applyBgColor').addEventListener('click', () => {
+            const color = bgColorInput.value;
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            // Dibujar fondo de color
+            tempCtx.fillStyle = color;
+            tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            
+            // Dibujar imagen encima
+            tempCtx.drawImage(canvas, 0, 0);
+            
+            // Actualizar canvas principal
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(tempCanvas, 0, 0);
+        });
+
+        // Invertir colores
+        document.getElementById('invertColors').addEventListener('click', () => {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                data[i] = 255 - data[i];         // R
+                data[i + 1] = 255 - data[i + 1]; // G
+                data[i + 2] = 255 - data[i + 2]; // B
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+        });
+
+        // Escala de grises
+        document.getElementById('grayscale').addEventListener('click', () => {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+                data[i] = data[i + 1] = data[i + 2] = gray;
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+        });
+
+        // Sepia
+        document.getElementById('sepia').addEventListener('click', () => {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                
+                data[i] = Math.min(255, r * 0.393 + g * 0.769 + b * 0.189);
+                data[i + 1] = Math.min(255, r * 0.349 + g * 0.686 + b * 0.168);
+                data[i + 2] = Math.min(255, r * 0.272 + g * 0.534 + b * 0.131);
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+        });
+
+        // Aumentar brillo
+        document.getElementById('brightness').addEventListener('click', () => {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            const adjustment = 30;
+            for (let i = 0; i < data.length; i += 4) {
+                data[i] = Math.min(255, data[i] + adjustment);
+                data[i + 1] = Math.min(255, data[i + 1] + adjustment);
+                data[i + 2] = Math.min(255, data[i + 2] + adjustment);
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+        });
+
+        // Descargar
+        document.getElementById('download').addEventListener('click', () => {
             const link = document.createElement('a');
-            link.href = base64Data;
-            link.download = fileName;
-            document.body.appendChild(link);
+            link.download = 'imagen-editada-itd.png';
+            link.href = canvas.toDataURL('image/png');
             link.click();
-            document.body.removeChild(link);
-        }
-
-        function compositeImage(foregroundBase64, backgroundColor) {
-            return new Promise((resolve, reject) => {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                const img = new Image();
-                
-                // Allow cross origin just in case
-                img.crossOrigin = "anonymous";
-                
-                img.onload = () => {
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    
-                    // Fill background
-                    ctx.fillStyle = backgroundColor;
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    
-                    // Draw foreground
-                    ctx.drawImage(img, 0, 0);
-                    
-                    // Export as JPG
-                    resolve(canvas.toDataURL('image/jpeg', 0.95));
-                };
-                
-                img.onerror = reject;
-                img.src = foregroundBase64;
-            });
-        }
+        });
     </script>
 </body>
 </html>
