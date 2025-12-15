@@ -67,11 +67,21 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        .header-title-gradient {
-            background: linear-gradient(90deg, var(--maroon), var(--itd-blue));
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
+        .color-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid #e5e7eb;
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .color-btn:hover {
+            transform: scale(1.1);
+        }
+        .color-btn.active {
+            border-color: var(--itd-blue);
+            transform: scale(1.1);
+            box-shadow: 0 0 0 2px white, 0 0 0 4px var(--itd-blue);
         }
     </style>
 </head>
@@ -136,15 +146,45 @@
             <!-- Processing / Result View (Hidden by default) -->
             <div id="result-view" class="hidden flex-col">
                 <!-- Toolbar -->
-                <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                    <h3 class="font-semibold text-gray-700">Resultado</h3>
-                    <div class="flex gap-3">
+                <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
+                    
+                    <div class="flex items-center gap-4 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto">
+                        <span class="text-sm font-semibold text-gray-600">Fondo:</span>
+                        <div class="flex gap-2">
+                            <!-- Transparent -->
+                            <button class="color-btn active bg-checkerboard" onclick="changeBackground('transparent')" title="Transparente"></button>
+                            <!-- White -->
+                            <button class="color-btn bg-white" onclick="changeBackground('#ffffff')" title="Blanco"></button>
+                            <!-- Black -->
+                            <button class="color-btn bg-black" onclick="changeBackground('#000000')" title="Negro"></button>
+                            <!-- ITD Colors -->
+                            <button class="color-btn" style="background-color: #1b396a;" onclick="changeBackground('#1b396a')" title="Azul ITD"></button>
+                            <button class="color-btn" style="background-color: #8B1538;" onclick="changeBackground('#8B1538')" title="Guinda ITD"></button>
+                            <!-- Custom -->
+                            <div class="relative w-8 h-8 rounded-full overflow-hidden border-2 border-gray-200 cursor-pointer hover:scale-110 transition-transform">
+                                <input type="color" id="custom-color" class="absolute -top-2 -left-2 w-12 h-12 cursor-pointer p-0 border-0" onchange="changeBackground(this.value)">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3 w-full md:w-auto justify-end">
                         <button id="btn-reset" class="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-gray-800 transition-colors">
-                            <i class="fas fa-redo mr-2"></i> Nueva Imagen
+                            <i class="fas fa-redo md:mr-2"></i> <span class="hidden md:inline">Nueva</span>
                         </button>
-                        <button id="btn-download" class="hidden px-4 py-2 text-sm font-medium text-white bg-itd-blue rounded-lg hover:bg-blue-800 shadow-sm flex items-center gap-2 transition-all">
-                            <i class="fas fa-download"></i> Descargar PNG
-                        </button>
+                        <div class="relative group">
+                            <button id="btn-download-group" class="hidden px-4 py-2 text-sm font-medium text-white bg-itd-blue rounded-lg hover:bg-blue-800 shadow-sm flex items-center gap-2 transition-all">
+                                <i class="fas fa-download"></i> Descargar
+                            </button>
+                            <!-- Dropdown for download options -->
+                            <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden group-hover:block border border-gray-100">
+                                <button id="btn-download-png" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    PNG (Transparente)
+                                </button>
+                                <button id="btn-download-bg" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    JPG (Con Fondo)
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -169,8 +209,10 @@
 
                     <!-- Processed -->
                     <div class="p-6 flex flex-col items-center bg-white">
-                        <span class="text-xs font-bold uppercase tracking-wider text-itd-blue mb-4 bg-blue-50 px-2 py-1 rounded">Sin Fondo</span>
-                        <div class="relative w-full aspect-square max-h-[400px] rounded-lg overflow-hidden border border-gray-200 bg-checkerboard flex items-center justify-center">
+                        <span class="text-xs font-bold uppercase tracking-wider text-itd-blue mb-4 bg-blue-50 px-2 py-1 rounded">Resultado</span>
+                        
+                        <!-- Wrapper for background color -->
+                        <div id="result-container" class="relative w-full aspect-square max-h-[400px] rounded-lg overflow-hidden border border-gray-200 bg-checkerboard flex items-center justify-center transition-colors duration-300">
                             
                             <!-- Loading State -->
                             <div id="loading-state" class="absolute inset-0 flex flex-col items-center justify-center bg-white bg-opacity-90 z-20">
@@ -200,11 +242,25 @@
         import { GoogleGenAI } from "@google/genai";
 
         // --- Configuration ---
-        // Access key from process.env if available (bundler) or assume it's injected/handled.
-        // NOTE: For static GitHub pages, you might need a different strategy or ensure this is replaced during deployment.
-        const API_KEY = process.env.API_KEY; 
+        // Safely access process.env to prevent ReferenceError in browser without build step
+        const getApiKey = () => {
+            try {
+                if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+                    return process.env.API_KEY;
+                }
+            } catch (e) {
+                // process is not defined
+            }
+            return ''; // Fallback, empty key will likely cause API error unless injected
+        };
         
-        const ai = new GoogleGenAI({ apiKey: API_KEY });
+        const API_KEY = getApiKey();
+        let ai;
+        try {
+             ai = new GoogleGenAI({ apiKey: API_KEY });
+        } catch (error) {
+            console.error("Error initializing AI client:", error);
+        }
 
         // --- UI Elements ---
         const dropZone = document.getElementById('drop-zone');
@@ -213,63 +269,122 @@
         const resultView = document.getElementById('result-view');
         const imgOriginal = document.getElementById('img-original');
         const imgProcessed = document.getElementById('img-processed');
+        const resultContainer = document.getElementById('result-container');
         const loadingState = document.getElementById('loading-state');
         const btnReset = document.getElementById('btn-reset');
-        const btnDownload = document.getElementById('btn-download');
+        const btnDownloadGroup = document.getElementById('btn-download-group');
+        const btnDownloadPng = document.getElementById('btn-download-png');
+        const btnDownloadBg = document.getElementById('btn-download-bg');
         const errorMessage = document.getElementById('error-message');
         const errorText = document.getElementById('error-text');
+
+        // State
+        let currentBgColor = 'transparent';
+        let processedImageBase64 = null;
 
         // --- Event Listeners ---
         
         // File Input
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                handleFile(e.target.files[0]);
-            }
-        });
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFile(e.target.files[0]);
+                }
+            });
+        }
 
         // Drag & Drop visual feedback
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('border-itd-blue', 'bg-blue-50');
-        });
+        if (dropZone) {
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('border-itd-blue', 'bg-blue-50');
+            });
 
-        dropZone.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('border-itd-blue', 'bg-blue-50');
-        });
+            dropZone.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-itd-blue', 'bg-blue-50');
+            });
 
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('border-itd-blue', 'bg-blue-50');
-            if (e.dataTransfer.files.length > 0) {
-                handleFile(e.dataTransfer.files[0]);
-            }
-        });
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-itd-blue', 'bg-blue-50');
+                if (e.dataTransfer.files.length > 0) {
+                    handleFile(e.dataTransfer.files[0]);
+                }
+            });
+        }
 
         // Reset
-        btnReset.addEventListener('click', () => {
-            uploadView.classList.remove('hidden');
-            resultView.classList.add('hidden');
-            fileInput.value = ''; // clear input
-            imgOriginal.src = '';
-            imgProcessed.src = '';
-            imgProcessed.classList.add('hidden');
-            btnDownload.classList.add('hidden');
-            errorMessage.classList.add('hidden');
-        });
+        if (btnReset) {
+            btnReset.addEventListener('click', () => {
+                uploadView.classList.remove('hidden');
+                resultView.classList.add('hidden');
+                if(fileInput) fileInput.value = ''; 
+                imgOriginal.src = '';
+                imgProcessed.src = '';
+                imgProcessed.classList.add('hidden');
+                btnDownloadGroup.classList.add('hidden');
+                errorMessage.classList.add('hidden');
+                changeBackground('transparent'); // Reset bg
+                processedImageBase64 = null;
+            });
+        }
 
-        // Download
-        btnDownload.addEventListener('click', () => {
-            if (imgProcessed.src) {
-                const link = document.createElement('a');
-                link.href = imgProcessed.src;
-                link.download = `itd-sin-fondo-${Date.now()}.png`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+        // Download PNG (Transparent)
+        if (btnDownloadPng) {
+            btnDownloadPng.addEventListener('click', () => {
+                if (processedImageBase64) {
+                    downloadBase64(processedImageBase64, 'itd-sin-fondo.png');
+                }
+            });
+        }
+
+        // Download with Background
+        if (btnDownloadBg) {
+            btnDownloadBg.addEventListener('click', async () => {
+                if (processedImageBase64) {
+                    if (currentBgColor === 'transparent') {
+                         downloadBase64(processedImageBase64, 'itd-sin-fondo.png');
+                         return;
+                    }
+                    
+                    try {
+                        const compositeData = await compositeImage(processedImageBase64, currentBgColor);
+                        downloadBase64(compositeData, 'itd-con-fondo.jpg');
+                    } catch (e) {
+                        console.error("Error compositing image", e);
+                        alert("Error al generar la imagen con fondo.");
+                    }
+                }
+            });
+        }
+        
+        // Global function for background change (called by onclick attributes)
+        window.changeBackground = function(color) {
+            currentBgColor = color;
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.color-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Highlight the clicked button (if it's a predefined button)
+            // This simple check might not match custom color perfectly but works for preset buttons
+            const matchingBtn = Array.from(document.querySelectorAll('.color-btn')).find(btn => {
+                 // Check inline style or class
+                 return btn.getAttribute('onclick')?.includes(color);
+            });
+            if (matchingBtn) matchingBtn.classList.add('active');
+
+            // Apply style
+            if (color === 'transparent') {
+                resultContainer.style.background = '';
+                resultContainer.style.backgroundColor = '';
+                resultContainer.classList.add('bg-checkerboard');
+            } else {
+                resultContainer.classList.remove('bg-checkerboard');
+                resultContainer.style.background = 'none';
+                resultContainer.style.backgroundColor = color;
             }
-        });
+        }
 
         // --- Core Logic ---
 
@@ -287,8 +402,9 @@
             // Set Loading
             loadingState.classList.remove('hidden');
             errorMessage.classList.add('hidden');
-            btnDownload.classList.add('hidden');
+            btnDownloadGroup.classList.add('hidden');
             imgProcessed.classList.add('hidden');
+            processedImageBase64 = null;
 
             const reader = new FileReader();
             reader.onload = async (event) => {
@@ -296,18 +412,26 @@
                 imgOriginal.src = base64Data;
                 
                 try {
+                    // Check if AI is initialized (key might be missing)
+                    if (!ai) {
+                        throw new Error("API Key configuration error. Please ensure API_KEY is set.");
+                    }
+                    
                     const processedBase64 = await removeBackground(base64Data, file.type);
                     
                     // Success
+                    processedImageBase64 = processedBase64;
                     imgProcessed.src = processedBase64;
-                    imgProcessed.classList.remove('hidden');
-                    loadingState.classList.add('hidden');
-                    btnDownload.classList.remove('hidden');
+                    imgProcessed.onload = () => {
+                         imgProcessed.classList.remove('hidden');
+                         loadingState.classList.add('hidden');
+                         btnDownloadGroup.classList.remove('hidden');
+                    };
                 } catch (error) {
                     console.error("Error processing image:", error);
                     loadingState.classList.add('hidden');
                     errorMessage.classList.remove('hidden');
-                    errorText.textContent = "Ocurrió un error al procesar la imagen con la IA. Inténtalo de nuevo.";
+                    errorText.textContent = error.message || "Ocurrió un error al procesar la imagen con la IA. Verifica tu conexión o la API Key.";
                 }
             };
             reader.readAsDataURL(file);
@@ -347,7 +471,42 @@
                 }
             }
 
-            throw new Error("No image returned by the model.");
+            throw new Error("No image returned by the model. (Safety block or format issue)");
+        }
+
+        function downloadBase64(base64Data, fileName) {
+            const link = document.createElement('a');
+            link.href = base64Data;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function compositeImage(foregroundBase64, backgroundColor) {
+            return new Promise((resolve, reject) => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+                
+                img.onload = () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    
+                    // Fill background
+                    ctx.fillStyle = backgroundColor;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Draw foreground
+                    ctx.drawImage(img, 0, 0);
+                    
+                    // Export as JPG (since it has background)
+                    resolve(canvas.toDataURL('image/jpeg', 0.9));
+                };
+                
+                img.onerror = reject;
+                img.src = foregroundBase64;
+            });
         }
     </script>
 </body>
