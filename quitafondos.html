@@ -241,16 +241,30 @@
     <script type="module">
         import { GoogleGenAI } from "@google/genai";
 
-        // Initialize AI with process.env.API_KEY directly. 
-        // Bundlers will replace this string. In browser-only mode without build, this requires manual handling or a polyfill.
-        // We assume the environment is correctly configured as per instructions.
-        let ai;
-        try {
-            ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        } catch (e) {
-            console.error("Initialization error:", e);
-            document.getElementById('error-message').classList.remove('hidden');
-            document.getElementById('error-text').textContent = "Error de configuración de API Key.";
+        // --- SAFE API KEY INITIALIZATION ---
+        // Helper to safely get env var without crashing if process is undefined
+        const getApiKey = () => {
+            try {
+                if (typeof process !== 'undefined' && process.env) {
+                    return process.env.API_KEY;
+                }
+            } catch (e) {
+                // Ignore ReferenceError
+            }
+            return null;
+        };
+
+        const apiKey = getApiKey();
+        let ai = null;
+
+        if (apiKey) {
+            try {
+                ai = new GoogleGenAI({ apiKey: apiKey });
+            } catch (e) {
+                console.error("Initialization warning:", e);
+            }
+        } else {
+            console.warn("API Key not found. The app will load but processing will fail unless configured.");
         }
 
         // --- UI Elements ---
@@ -402,7 +416,10 @@
                 imgOriginal.src = base64Data;
                 
                 try {
-                    if (!ai) throw new Error("Cliente AI no inicializado.");
+                    if (!ai) {
+                        // Late check for API key
+                         throw new Error("Clave API no detectada. Verifique la configuración del entorno (process.env.API_KEY).");
+                    }
                     
                     const processedBase64 = await removeBackground(base64Data, file.type);
                     
@@ -463,7 +480,7 @@
                 }
             }
 
-            throw new Error("El modelo no devolvió una imagen (posible bloqueo de seguridad).");
+            throw new Error("El modelo no devolvió una imagen.");
         }
 
         function downloadBase64(base64Data, fileName) {
