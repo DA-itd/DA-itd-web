@@ -239,6 +239,21 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        /* MODAL */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); display: none;
+            align-items: center; justify-content: center; z-index: 200;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-content {
+            background: var(--panel-bg); padding: 25px; border-radius: 8px;
+            width: 320px; border: 1px solid var(--border);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        .modal-content h3 { margin-bottom: 20px; color: var(--text-light); text-align: center; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+        
         /* RESIZE HANDLES */
         .resize-handle {
             position: absolute;
@@ -314,7 +329,30 @@
 
             <!-- EXPORT -->
             <div class="panel-section">
-                <button class="btn-action" onclick="downloadDesign()"><i class="fas fa-download"></i> Descargar Diseño</button>
+                <button class="btn-action" onclick="openDownloadModal()"><i class="fas fa-download"></i> Descargar Diseño</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Download Modal -->
+    <div id="downloadModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3><i class="fas fa-download"></i> Descargar</h3>
+            <div class="control-group">
+                <label>Nombre del archivo</label>
+                <input type="text" id="fileName" value="diseño_itd">
+            </div>
+            <div class="control-group">
+                <label>Formato</label>
+                <select id="fileFormat">
+                    <option value="image/png">PNG (Fondo Transparente)</option>
+                    <option value="image/jpeg">JPG (Fondo Blanco)</option>
+                    <option value="image/webp">WebP (Alta Calidad)</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-action secondary" onclick="closeDownloadModal()">Cancelar</button>
+                <button class="btn-action" onclick="confirmDownload()">Guardar</button>
             </div>
         </div>
     </div>
@@ -380,8 +418,8 @@
         function render() {
             // 1. Clear Canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#ffffff'; // Default white canvas background if no bg layer
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // ctx.fillStyle = '#ffffff'; // NO FILL by default to allow transparency in PNG
+            // If user wants background, they add a layer, or we fill on export for JPG.
 
             // 2. Draw Layers
             layers.forEach(layer => {
@@ -424,7 +462,8 @@
 
                 ctx.globalAlpha = 1;
 
-                // Selection Box
+                // Selection Box (Only draw if NOT rendering for download - controlled by global flag or argument? 
+                // For now, we clear selection before download)
                 if (layer.id === selectedLayerId) {
                     ctx.strokeStyle = '#d4a017';
                     ctx.lineWidth = 2;
@@ -467,7 +506,7 @@
                 content: content,
                 fontSize: 40,
                 fontFamily: 'Arial',
-                color: '#000000',
+                color: '#ffffff',
                 width: 100, height: 40
             });
         };
@@ -490,21 +529,18 @@
                 reader.onload = (evt) => {
                     const img = new Image();
                     img.onload = () => {
-                        // Fit to canvas if too big
-                        let w = img.width;
-                        let h = img.height;
-                        if (w > 600) {
-                            const ratio = 600 / w;
-                            w = 600; h = h * ratio;
-                        }
+                        // AUTO-RESIZE CANVAS TO MATCH UPLOADED IMAGE
+                        // This fixes the issue where the download has empty space or is too small
+                        canvas.width = img.width;
+                        canvas.height = img.height;
                         
                         window.addLayer({
                             type: 'image',
                             imgElement: img,
-                            width: w,
-                            height: h,
-                            x: (canvas.width - w) / 2,
-                            y: (canvas.height - h) / 2,
+                            width: img.width,
+                            height: img.height,
+                            x: 0, // Position at 0,0 to fill canvas
+                            y: 0,
                             originalData: img.src 
                         });
                         
@@ -891,11 +927,56 @@
             }
         };
 
-        window.downloadDesign = () => {
-            const link = document.createElement('a');
-            link.download = 'diseño_itd.png';
-            link.href = canvas.toDataURL('image/png');
-            link.click();
+        // ==========================================
+        // DOWNLOAD MODAL
+        // ==========================================
+        window.openDownloadModal = () => {
+            document.getElementById('downloadModal').classList.add('active');
+        };
+
+        window.closeDownloadModal = () => {
+            document.getElementById('downloadModal').classList.remove('active');
+        };
+
+        window.confirmDownload = () => {
+            const fileName = document.getElementById('fileName').value || 'diseño_itd';
+            const format = document.getElementById('fileFormat').value;
+            
+            // Temporary hide selection for clean export
+            const currentSelection = selectedLayerId;
+            selectedLayerId = null;
+            render(); // Redraw without selection handles
+            
+            // Handle JPG background (needs white fill, otherwise black)
+            if (format === 'image/jpeg') {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
+                const tCtx = tempCanvas.getContext('2d');
+                
+                // Fill white
+                tCtx.fillStyle = '#ffffff';
+                tCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+                // Draw original
+                tCtx.drawImage(canvas, 0, 0);
+                
+                const link = document.createElement('a');
+                link.download = `${fileName}.jpg`;
+                link.href = tempCanvas.toDataURL('image/jpeg', 0.9);
+                link.click();
+            } else {
+                // PNG / WebP
+                const link = document.createElement('a');
+                const ext = format === 'image/webp' ? 'webp' : 'png';
+                link.download = `${fileName}.${ext}`;
+                link.href = canvas.toDataURL(format);
+                link.click();
+            }
+
+            // Restore
+            selectedLayerId = currentSelection;
+            render();
+            closeDownloadModal();
         };
 
         // Init
