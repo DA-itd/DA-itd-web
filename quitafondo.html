@@ -112,12 +112,16 @@
             justify-content: center;
             position: relative;
             overflow: hidden;
+            padding: 20px;
         }
 
         canvas {
             background: white;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
             cursor: default;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
         }
 
         /* PROPERTIES & LAYERS (RIGHT) */
@@ -315,7 +319,8 @@
         </div>
     </div>
 
-    <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleImageUpload(this)">
+    <!-- Eliminado onchange inline, se maneja desde JS -->
+    <input type="file" id="fileInput" accept="image/*" style="display: none;">
 
     <script type="module">
         import { GoogleGenAI } from "@google/genai";
@@ -323,7 +328,12 @@
         // ==========================================
         // CONFIG
         // ==========================================
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        // Nota: Asegúrate de que process.env.API_KEY esté disponible en tu entorno de build
+        const apiKey = typeof process !== 'undefined' && process.env ? process.env.API_KEY : '';
+        let ai;
+        try {
+            if(apiKey) ai = new GoogleGenAI({ apiKey: apiKey });
+        } catch(e) { console.error("Error iniciando Gemini:", e); }
 
         // ==========================================
         // ENGINE STATE
@@ -340,6 +350,19 @@
         let selectedLayerId = null;
         let isDragging = false;
         let dragStart = { x: 0, y: 0 };
+
+        // ==========================================
+        // UTILS
+        // ==========================================
+        
+        // Helper para obtener coordenadas del mouse corregidas por escala CSS
+        function getMousePos(evt) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: (evt.clientX - rect.left) * (canvas.width / rect.width),
+                y: (evt.clientY - rect.top) * (canvas.height / rect.height)
+            };
+        }
 
         // ==========================================
         // CORE RENDER LOOP
@@ -442,10 +465,13 @@
             });
         };
 
-        window.handleImageUpload = (input) => {
+        // Attach event listener explicitly
+        const fileInput = document.getElementById('fileInput');
+        fileInput.addEventListener('change', (e) => {
+            const input = e.target;
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
-                reader.onload = (e) => {
+                reader.onload = (evt) => {
                     const img = new Image();
                     img.onload = () => {
                         // Fit to canvas if too big
@@ -463,14 +489,17 @@
                             height: h,
                             x: (canvas.width - w) / 2,
                             y: (canvas.height - h) / 2,
-                            originalData: img.src // Store for AI processing
+                            originalData: img.src 
                         });
+                        
+                        // Reset input so same file can be selected again if needed
+                        input.value = '';
                     };
-                    img.src = e.target.result;
+                    img.src = evt.target.result;
                 };
                 reader.readAsDataURL(input.files[0]);
             }
-        };
+        });
 
         window.removeLayer = (id) => {
             layers = layers.filter(l => l.id !== id);
@@ -599,9 +628,9 @@
         // MOUSE EVENTS (Interaction)
         // ==========================================
         canvas.addEventListener('mousedown', (e) => {
-            const rect = canvas.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
+            const pos = getMousePos(e);
+            const mouseX = pos.x;
+            const mouseY = pos.y;
 
             // Check hit test (reverse to check top layers first)
             let hit = false;
@@ -627,14 +656,12 @@
 
         canvas.addEventListener('mousemove', (e) => {
             if (isDragging && selectedLayerId) {
-                const rect = canvas.getBoundingClientRect();
-                const mouseX = e.clientX - rect.left;
-                const mouseY = e.clientY - rect.top;
+                const pos = getMousePos(e);
                 
                 const layer = layers.find(l => l.id === selectedLayerId);
                 if (layer) {
-                    layer.x = mouseX - dragStart.x;
-                    layer.y = mouseY - dragStart.y;
+                    layer.x = pos.x - dragStart.x;
+                    layer.y = pos.y - dragStart.y;
                     render();
                 }
             }
@@ -701,6 +728,7 @@
 
         // 2. Generate Background (Gemini/Imagen)
         window.generateBackgroundAI = async () => {
+            if(!ai) { alert("API Key no configurada"); return; }
             const prompt = document.getElementById('aiPrompt').value;
             if (!prompt) { alert('Escribe una descripción para el fondo.'); return; }
 
@@ -763,6 +791,7 @@
 
         // 3. Suggest Caption (Gemini Text)
         window.suggestCaptionAI = async () => {
+            if(!ai) { alert("API Key no configurada"); return; }
             const loader = document.getElementById('loader');
             loader.classList.add('active');
             document.getElementById('loaderText').innerText = 'Analizando diseño...';
