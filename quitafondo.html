@@ -6,63 +6,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{
-  margin:0;
-  font-family: Arial, Helvetica, sans-serif;
-  background:#eef1f4;
-}
-header{
-  background:#1b396a;
-  color:#fff;
-  padding:10px 16px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-main{
-  display:flex;
-  gap:12px;
-  padding:12px;
-}
-aside{
-  width:280px;
-  background:#fff;
-  border-radius:6px;
-  padding:12px;
-  box-shadow:0 2px 6px rgba(0,0,0,.15);
-}
-section{
-  flex:1;
-  background:#fff;
-  border-radius:6px;
-  padding:12px;
-  box-shadow:0 2px 6px rgba(0,0,0,.15);
-}
-button{
-  width:100%;
-  padding:8px;
-  margin-bottom:6px;
-  border:none;
-  border-radius:4px;
-  cursor:pointer;
-}
+body{margin:0;font-family:Arial;background:#eef1f4;}
+header{background:#1b396a;color:#fff;padding:10px 16px;display:flex;justify-content:space-between;}
+main{display:flex;gap:12px;padding:12px;}
+aside{width:300px;background:#fff;padding:12px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.15);}
+section{flex:1;background:#fff;padding:12px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.15);}
+button{width:100%;padding:8px;margin-bottom:6px;border:none;border-radius:4px;cursor:pointer;}
 .btn-ai{background:#1b396a;color:#fff;}
 .btn-sec{background:#777;color:#fff;}
 .btn-warn{background:#b33;color:#fff;}
-input, textarea{
-  width:100%;
-  margin-bottom:6px;
-  padding:6px;
-}
-canvas{
-  border:1px solid #ccc;
-}
-#loader{
-  display:none;
-  margin:6px 0;
-  color:#1b396a;
-  font-weight:bold;
-}
+input,textarea{width:100%;margin-bottom:6px;padding:6px;}
+canvas{border:2px dashed #ccc;}
+#canvas.dragover{border-color:#1b396a;}
+#loader{display:none;color:#1b396a;font-weight:bold;}
 #loader.active{display:block;}
 small{opacity:.7;}
 </style>
@@ -72,81 +28,92 @@ small{opacity:.7;}
 
 <header>
   <strong>Herramienta IA Interna</strong>
-  <small>Uso limitado</small>
+  <small>Arrastra una imagen al lienzo</small>
 </header>
 
 <main>
 
-<!-- PANEL IZQUIERDO -->
 <aside>
+  <button class="btn-sec" onclick="openFile()">📂 Cargar imagen</button>
+  <input type="file" id="fileInput" accept="image/*" hidden>
 
   <button class="btn-ai" onclick="quickUse()">⚡ Uso rápido institucional</button>
   <button class="btn-ai" onclick="generateBackground()">🎨 Generar fondo IA</button>
   <button class="btn-ai" onclick="removeBackground()">✂ Quitar fondo</button>
 
   <hr>
-
   <button class="btn-sec" onclick="saveTemplate()">💾 Guardar plantilla</button>
   <button class="btn-sec" onclick="loadTemplate()">📂 Cargar plantilla</button>
-
-  <hr>
-
   <button class="btn-warn" onclick="clearCanvas()">🗑 Limpiar todo</button>
 
-  <div id="loader">Procesando IA…</div>
-
+  <div id="loader">Procesando…</div>
 </aside>
 
-<!-- ÁREA DE TRABAJO -->
 <section>
-
   <canvas id="canvas" width="1000" height="600"></canvas>
 
   <hr>
-
   <strong>Texto</strong>
   <input id="txtContent" placeholder="Texto institucional">
   <input id="txtSize" type="number" value="48">
   <input id="txtColor" type="color" value="#1b396a">
   <button class="btn-sec" onclick="addText()">➕ Agregar texto</button>
-
 </section>
 
 </main>
 
 <script type="module">
-/* ===============================
-   IA – CONFIGURACIÓN
-================================ */
 import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
-
 let ai=null;
 
 function initAI(){
-  const key=localStorage.getItem("GOOGLE_API_KEY");
-  if(!key){
-    const k=prompt("Ingresa API Key de Google Gemini:");
-    if(!k)return;
-    localStorage.setItem("GOOGLE_API_KEY",k);
-    location.reload();
-    return;
+  const k=localStorage.getItem("GOOGLE_API_KEY");
+  if(!k){
+    const p=prompt("Ingresa API Key de Google Gemini:");
+    if(!p)return;
+    localStorage.setItem("GOOGLE_API_KEY",p);
+    location.reload();return;
   }
-  ai=new GoogleGenerativeAI(key);
+  ai=new GoogleGenerativeAI(k);
 }
 
-/* ===============================
-   CANVAS Y CAPAS
-================================ */
 const canvas=document.getElementById("canvas");
 const ctx=canvas.getContext("2d");
 let layers=[];
 
+/* -------- Drag & Drop -------- */
+canvas.addEventListener("dragover",e=>{
+  e.preventDefault();canvas.classList.add("dragover");
+});
+canvas.addEventListener("dragleave",()=>canvas.classList.remove("dragover"));
+canvas.addEventListener("drop",e=>{
+  e.preventDefault();canvas.classList.remove("dragover");
+  loadFile(e.dataTransfer.files[0]);
+});
+
+/* -------- File load -------- */
+window.openFile=()=>fileInput.click();
+fileInput.onchange=e=>loadFile(e.target.files[0]);
+
+function loadFile(file){
+  if(!file||!file.type.startsWith("image/"))return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    const img=new Image();
+    img.onload=()=>{
+      layers.unshift({type:"image",img});
+      render();
+    };
+    img.src=reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+/* -------- Canvas -------- */
 function render(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   layers.forEach(l=>{
-    if(l.type==="image"){
-      ctx.drawImage(l.img,0,0,canvas.width,canvas.height);
-    }
+    if(l.type==="image")ctx.drawImage(l.img,0,0,canvas.width,canvas.height);
     if(l.type==="text"){
       ctx.fillStyle=l.color;
       ctx.font=`${l.size}px Arial`;
@@ -155,9 +122,7 @@ function render(){
   });
 }
 
-/* ===============================
-   FUNCIONES IA
-================================ */
+/* -------- IA -------- */
 async function generateImage(prompt){
   document.getElementById("loader").classList.add("active");
   const res=await ai.models.generateContent({
@@ -174,21 +139,18 @@ async function generateImage(prompt){
 window.generateBackground=async()=>{
   if(!ai)return alert("IA no configurada");
   const img64=await generateImage(
-    "Fondo institucional moderno, académico, tonos azul marino y dorado, sin texto"
+    "Fondo institucional moderno, azul marino y dorado, sin texto"
   );
   if(!img64)return;
   const img=new Image();
-  img.onload=()=>{
-    layers.unshift({type:"image",img});
-    render();
-  };
+  img.onload=()=>{layers.unshift({type:"image",img});render();};
   img.src="data:image/png;base64,"+img64;
 };
 
 window.quickUse=async()=>{
   if(!ai)return alert("IA no configurada");
   const img64=await generateImage(
-    "Banner institucional académico, limpio, profesional, azul marino y dorado, sin texto"
+    "Banner institucional académico, profesional, azul marino y dorado, sin texto"
   );
   if(!img64)return;
   const img=new Image();
@@ -202,36 +164,29 @@ window.quickUse=async()=>{
   img.src="data:image/png;base64,"+img64;
 };
 
-window.removeBackground=async()=>{
-  if(layers.length===0)return alert("No hay imagen");
-  alert("Función ilustrativa: aquí puedes integrar eliminación de fondo si la requieres");
+window.removeBackground=()=>{
+  if(!layers.length)return alert("Carga una imagen primero");
+  alert("Aquí se integra la eliminación de fondo con IA o servicio dedicado");
 };
 
-/* ===============================
-   TEXTO
-================================ */
+/* -------- Texto -------- */
 window.addText=()=>{
-  const t=document.getElementById("txtContent").value;
-  if(!t)return;
+  if(!txtContent.value)return;
   layers.push({
     type:"text",
-    text:t,
-    x:100,
-    y:200,
-    size:parseInt(txtSize.value),
+    text:txtContent.value,
+    x:100,y:200,
+    size:+txtSize.value,
     color:txtColor.value
   });
   render();
 };
 
-/* ===============================
-   PLANTILLAS
-================================ */
+/* -------- Plantillas -------- */
 window.saveTemplate=()=>{
   localStorage.setItem("ITD_TEMPLATE",JSON.stringify(layers));
   alert("Plantilla guardada");
 };
-
 window.loadTemplate=()=>{
   const d=localStorage.getItem("ITD_TEMPLATE");
   if(!d)return alert("No hay plantilla");
@@ -239,20 +194,11 @@ window.loadTemplate=()=>{
   render();
 };
 
-/* ===============================
-   UTILIDADES
-================================ */
-window.clearCanvas=()=>{
-  layers=[];
-  render();
-};
+/* -------- Utils -------- */
+window.clearCanvas=()=>{layers=[];render();};
 
-/* ===============================
-   INIT
-================================ */
 initAI();
 render();
-
 </script>
 
 </body>
