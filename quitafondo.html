@@ -2,63 +2,69 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Herramienta IA Interna</title>
+<title>Herramienta IA – Uso Interno</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body {
-  margin: 0;
+body{
+  margin:0;
   font-family: Arial, Helvetica, sans-serif;
-  background: #f4f6f8;
+  background:#eef1f4;
 }
-header {
-  background: #1b396a;
-  color: #fff;
-  padding: 10px 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+header{
+  background:#1b396a;
+  color:#fff;
+  padding:10px 16px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
 }
-main {
-  padding: 20px;
+main{
+  display:flex;
+  gap:12px;
+  padding:12px;
 }
-button {
-  padding: 10px 14px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-right: 8px;
+aside{
+  width:280px;
+  background:#fff;
+  border-radius:6px;
+  padding:12px;
+  box-shadow:0 2px 6px rgba(0,0,0,.15);
 }
-.btn-primary {
-  background: #1b396a;
-  color: white;
+section{
+  flex:1;
+  background:#fff;
+  border-radius:6px;
+  padding:12px;
+  box-shadow:0 2px 6px rgba(0,0,0,.15);
 }
-.btn-secondary {
-  background: #777;
-  color: white;
+button{
+  width:100%;
+  padding:8px;
+  margin-bottom:6px;
+  border:none;
+  border-radius:4px;
+  cursor:pointer;
 }
-#usageCounter {
-  font-size: 0.75rem;
-  background: rgba(0,0,0,0.4);
-  padding: 4px 8px;
-  border-radius: 4px;
+.btn-ai{background:#1b396a;color:#fff;}
+.btn-sec{background:#777;color:#fff;}
+.btn-warn{background:#b33;color:#fff;}
+input, textarea{
+  width:100%;
+  margin-bottom:6px;
+  padding:6px;
 }
-#canvasContainer {
-  margin-top: 20px;
-  background: white;
-  border: 1px solid #ccc;
-  display: inline-block;
+canvas{
+  border:1px solid #ccc;
 }
-canvas {
-  display: block;
+#loader{
+  display:none;
+  margin:6px 0;
+  color:#1b396a;
+  font-weight:bold;
 }
-#loader {
-  display: none;
-  margin-top: 10px;
-}
-#loader.active {
-  display: block;
-}
+#loader.active{display:block;}
+small{opacity:.7;}
 </style>
 </head>
 
@@ -66,204 +72,185 @@ canvas {
 
 <header>
   <strong>Herramienta IA Interna</strong>
-  <span id="usageCounter"></span>
+  <small>Uso limitado</small>
 </header>
 
 <main>
 
-  <div>
-    <button class="btn-primary" onclick="quickUseAI()">⚡ Uso rápido institucional</button>
-    <button class="btn-secondary" onclick="generateBackground()">🎨 Generar fondo</button>
-  </div>
+<!-- PANEL IZQUIERDO -->
+<aside>
+
+  <button class="btn-ai" onclick="quickUse()">⚡ Uso rápido institucional</button>
+  <button class="btn-ai" onclick="generateBackground()">🎨 Generar fondo IA</button>
+  <button class="btn-ai" onclick="removeBackground()">✂ Quitar fondo</button>
+
+  <hr>
+
+  <button class="btn-sec" onclick="saveTemplate()">💾 Guardar plantilla</button>
+  <button class="btn-sec" onclick="loadTemplate()">📂 Cargar plantilla</button>
+
+  <hr>
+
+  <button class="btn-warn" onclick="clearCanvas()">🗑 Limpiar todo</button>
 
   <div id="loader">Procesando IA…</div>
 
-  <div id="canvasContainer">
-    <canvas id="canvas" width="1000" height="600"></canvas>
-  </div>
+</aside>
+
+<!-- ÁREA DE TRABAJO -->
+<section>
+
+  <canvas id="canvas" width="1000" height="600"></canvas>
+
+  <hr>
+
+  <strong>Texto</strong>
+  <input id="txtContent" placeholder="Texto institucional">
+  <input id="txtSize" type="number" value="48">
+  <input id="txtColor" type="color" value="#1b396a">
+  <button class="btn-sec" onclick="addText()">➕ Agregar texto</button>
+
+</section>
 
 </main>
 
 <script type="module">
 /* ===============================
-   CONFIGURACIÓN IA
+   IA – CONFIGURACIÓN
 ================================ */
-
 import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
 
-let ai = null;
+let ai=null;
 
-function initAI() {
-  const key = localStorage.getItem("GOOGLE_API_KEY");
-  if (!key) {
-    const k = prompt("Ingresa API Key de Google Gemini:");
-    if (!k) return;
-    localStorage.setItem("GOOGLE_API_KEY", k);
+function initAI(){
+  const key=localStorage.getItem("GOOGLE_API_KEY");
+  if(!key){
+    const k=prompt("Ingresa API Key de Google Gemini:");
+    if(!k)return;
+    localStorage.setItem("GOOGLE_API_KEY",k);
     location.reload();
     return;
   }
-  ai = new GoogleGenerativeAI(key);
+  ai=new GoogleGenerativeAI(key);
 }
 
 /* ===============================
-   CONTADOR TRIMESTRAL
+   CANVAS Y CAPAS
 ================================ */
+const canvas=document.getElementById("canvas");
+const ctx=canvas.getContext("2d");
+let layers=[];
 
-function getCurrentQuarter() {
-  const m = new Date().getMonth() + 1;
-  if (m <= 3) return 1;
-  if (m <= 6) return 2;
-  if (m <= 9) return 3;
-  return 4;
-}
-
-function initUsageCounter() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const quarter = getCurrentQuarter();
-  const currentKey = `${year}-Q${quarter}`;
-
-  const savedKey = localStorage.getItem("ITD_USAGE_PERIOD");
-  if (savedKey !== currentKey) {
-    localStorage.setItem("ITD_USAGE_PERIOD", currentKey);
-    localStorage.setItem("ITD_USAGE_COUNT", "0");
-  }
-}
-
-function incrementUsage() {
-  let count = parseInt(localStorage.getItem("ITD_USAGE_COUNT") || "0", 10);
-  count++;
-  localStorage.setItem("ITD_USAGE_COUNT", count.toString());
-  updateUsageUI();
-}
-
-function updateUsageUI() {
-  const count = localStorage.getItem("ITD_USAGE_COUNT") || "0";
-  const period = localStorage.getItem("ITD_USAGE_PERIOD") || "";
-  document.getElementById("usageCounter").innerText =
-    `Uso IA: ${count} (${period})`;
-}
-
-/* ===============================
-   CANVAS
-================================ */
-
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-
-let layers = [];
-
-function render() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  layers.forEach(l => {
-    if (l.type === "image") {
-      ctx.drawImage(l.img, 0, 0, canvas.width, canvas.height);
+function render(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  layers.forEach(l=>{
+    if(l.type==="image"){
+      ctx.drawImage(l.img,0,0,canvas.width,canvas.height);
     }
-    if (l.type === "text") {
-      ctx.fillStyle = l.color;
-      ctx.font = `${l.size}px Arial`;
-      ctx.fillText(l.text, l.x, l.y);
+    if(l.type==="text"){
+      ctx.fillStyle=l.color;
+      ctx.font=`${l.size}px Arial`;
+      ctx.fillText(l.text,l.x,l.y);
     }
   });
 }
 
 /* ===============================
-   IA FUNCIONES
+   FUNCIONES IA
 ================================ */
-
-window.generateBackground = async function () {
-  if (!ai) return alert("IA no configurada");
-
-  incrementUsage();
+async function generateImage(prompt){
   document.getElementById("loader").classList.add("active");
-
-  const prompt = `
-  Fondo institucional moderno,
-  colores azul marino y dorado,
-  estilo tecnológico limpio,
-  sin texto.
-  `;
-
-  try {
-    const res = await ai.models.generateContent({
-      model: "gemini-2.5-flash-image",
-      contents: { parts: [{ text: prompt }] }
-    });
-
-    let img64 = null;
-    for (const p of res.candidates[0].content.parts) {
-      if (p.inlineData) { img64 = p.inlineData.data; break; }
-    }
-
-    const img = new Image();
-    img.onload = () => {
-      layers = [{ type: "image", img }];
-      render();
-      document.getElementById("loader").classList.remove("active");
-    };
-    img.src = "data:image/png;base64," + img64;
-
-  } catch {
-    alert("Error al generar fondo");
-    document.getElementById("loader").classList.remove("active");
+  const res=await ai.models.generateContent({
+    model:"gemini-2.5-flash-image",
+    contents:{parts:[{text:prompt}]}
+  });
+  document.getElementById("loader").classList.remove("active");
+  for(const p of res.candidates[0].content.parts){
+    if(p.inlineData)return p.inlineData.data;
   }
+  return null;
+}
+
+window.generateBackground=async()=>{
+  if(!ai)return alert("IA no configurada");
+  const img64=await generateImage(
+    "Fondo institucional moderno, académico, tonos azul marino y dorado, sin texto"
+  );
+  if(!img64)return;
+  const img=new Image();
+  img.onload=()=>{
+    layers.unshift({type:"image",img});
+    render();
+  };
+  img.src="data:image/png;base64,"+img64;
 };
 
-window.quickUseAI = async function () {
-  if (!ai) return alert("IA no configurada");
+window.quickUse=async()=>{
+  if(!ai)return alert("IA no configurada");
+  const img64=await generateImage(
+    "Banner institucional académico, limpio, profesional, azul marino y dorado, sin texto"
+  );
+  if(!img64)return;
+  const img=new Image();
+  img.onload=()=>{
+    layers=[
+      {type:"image",img},
+      {type:"text",text:"Título institucional",x:100,y:120,size:48,color:"#1b396a"}
+    ];
+    render();
+  };
+  img.src="data:image/png;base64,"+img64;
+};
 
-  incrementUsage();
-  document.getElementById("loader").classList.add("active");
+window.removeBackground=async()=>{
+  if(layers.length===0)return alert("No hay imagen");
+  alert("Función ilustrativa: aquí puedes integrar eliminación de fondo si la requieres");
+};
 
-  const prompt = `
-  Fondo institucional académico,
-  moderno, profesional,
-  tonos azul marino y dorado,
-  sin texto.
-  `;
+/* ===============================
+   TEXTO
+================================ */
+window.addText=()=>{
+  const t=document.getElementById("txtContent").value;
+  if(!t)return;
+  layers.push({
+    type:"text",
+    text:t,
+    x:100,
+    y:200,
+    size:parseInt(txtSize.value),
+    color:txtColor.value
+  });
+  render();
+};
 
-  try {
-    const res = await ai.models.generateContent({
-      model: "gemini-2.5-flash-image",
-      contents: { parts: [{ text: prompt }] }
-    });
+/* ===============================
+   PLANTILLAS
+================================ */
+window.saveTemplate=()=>{
+  localStorage.setItem("ITD_TEMPLATE",JSON.stringify(layers));
+  alert("Plantilla guardada");
+};
 
-    let img64 = null;
-    for (const p of res.candidates[0].content.parts) {
-      if (p.inlineData) { img64 = p.inlineData.data; break; }
-    }
+window.loadTemplate=()=>{
+  const d=localStorage.getItem("ITD_TEMPLATE");
+  if(!d)return alert("No hay plantilla");
+  layers=JSON.parse(d);
+  render();
+};
 
-    const img = new Image();
-    img.onload = () => {
-      layers = [
-        { type: "image", img },
-        {
-          type: "text",
-          text: "Título institucional",
-          x: 100,
-          y: 120,
-          size: 48,
-          color: "#1b396a"
-        }
-      ];
-      render();
-      document.getElementById("loader").classList.remove("active");
-    };
-    img.src = "data:image/png;base64," + img64;
-
-  } catch {
-    alert("Error en uso rápido");
-    document.getElementById("loader").classList.remove("active");
-  }
+/* ===============================
+   UTILIDADES
+================================ */
+window.clearCanvas=()=>{
+  layers=[];
+  render();
 };
 
 /* ===============================
    INIT
 ================================ */
-
 initAI();
-initUsageCounter();
-updateUsageUI();
 render();
 
 </script>
