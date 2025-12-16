@@ -1,1093 +1,272 @@
 <!DOCTYPE html>
 <html lang="es">
-<script>
-  function saveApiKey() {
-    const key = prompt("Pega aquí tu API Key de Google AI:");
-    if (key && key.startsWith("AIza")) {
-      localStorage.setItem("GOOGLE_API_KEY", key);
-      alert("API Key guardada correctamente");
-      location.reload();
-    } else {
-      alert("API Key inválida");
-    }
-  }
-</script>
-    <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estudio de Diseño AI - ITD</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <!-- Import Map para Google GenAI -->
-    <script type="importmap">
-      {
-        "imports": {
-          "@google/genai": "https://esm.run/@google/genai"
-        }
-      }
-    </script>
-    <style>
-        :root {
-            --primary: #1b396a;
-            --accent: #d4a017;
-            --maroon: #8B1538;
-            --bg-dark: #1e1e1e;
-            --panel-bg: #2d2d2d;
-            --text-light: #f5f5f5;
-            --border: #444;
-        }
+<head>
+<meta charset="UTF-8">
+<title>Herramienta IA Interna</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--text-light);
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        /* HEADER */
-        .header {
-            height: 50px;
-            background: var(--primary);
-            display: flex;
-            align-items: center;
-            padding: 0 20px;
-            justify-content: space-between;
-            border-bottom: 1px solid #000;
-        }
-        
-        .header h1 { font-size: 1.1rem; display: flex; align-items: center; gap: 10px; }
-        .back-link { color: white; text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; gap: 5px; }
-        .back-link:hover { color: var(--accent); }
-
-        .auth-btn {
-            background: rgba(0,0,0,0.3);
-            border: 1px solid rgba(255,255,255,0.2);
-            color: #fff;
-            padding: 5px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            display: none; /* Se activa vía JS */
-            align-items: center;
-            gap: 6px;
-        }
-        .auth-btn:hover { background: rgba(0,0,0,0.5); border-color: var(--accent); }
-
-        /* MAIN LAYOUT */
-        .workspace {
-            display: flex;
-            flex: 1;
-            height: calc(100vh - 50px);
-        }
-
-        /* TOOLBAR (LEFT) */
-        .toolbar {
-            width: 60px;
-            background: var(--panel-bg);
-            border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding-top: 10px;
-            gap: 15px;
-            z-index: 10;
-        }
-
-        .tool-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            border: none;
-            background: transparent;
-            color: #aaa;
-            font-size: 1.2rem;
-            cursor: pointer;
-            transition: 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-        }
-
-        .tool-btn:hover { background: rgba(255,255,255,0.1); color: white; }
-        .tool-btn.active { background: var(--accent); color: var(--primary); }
-        .tool-btn[data-tooltip]:hover::after {
-            content: attr(data-tooltip);
-            position: absolute;
-            left: 50px;
-            background: #000;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            white-space: nowrap;
-            z-index: 20;
-        }
-
-        /* CANVAS AREA (CENTER) */
-        .canvas-area {
-            flex: 1;
-            background: #111;
-            background-image: radial-gradient(#333 1px, transparent 1px);
-            background-size: 20px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            overflow: hidden;
-            padding: 20px;
-        }
-
-        canvas {
-            background: white;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            cursor: default;
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-        }
-
-        /* PROPERTIES & LAYERS (RIGHT) */
-        .sidebar {
-            width: 300px;
-            background: var(--panel-bg);
-            border-left: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .panel-section {
-            padding: 15px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .panel-title {
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            color: #888;
-            margin-bottom: 10px;
-            font-weight: bold;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        /* CONTROLS */
-        .control-group { margin-bottom: 10px; }
-        .control-group label { display: block; font-size: 0.8rem; margin-bottom: 5px; color: #ccc; }
-        
-        input[type="text"], input[type="number"], select, textarea {
-            width: 100%;
-            background: #222;
-            border: 1px solid #555;
-            color: white;
-            padding: 8px;
-            border-radius: 4px;
-            font-family: inherit;
-        }
-
-        input[type="color"] {
-            width: 100%;
-            height: 35px;
-            border: none;
-            background: none;
-            cursor: pointer;
-        }
-
-        .btn-action {
-            width: 100%;
-            padding: 10px;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            margin-top: 5px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: 0.2s;
-        }
-
-        .btn-action:hover { filter: brightness(1.2); }
-        .btn-action.secondary { background: #444; }
-        .btn-action.ai { background: linear-gradient(135deg, var(--maroon), var(--primary)); }
-
-        /* LAYER LIST */
-        .layer-list {
-            flex: 1;
-            overflow-y: auto;
-            max-height: 300px;
-        }
-
-        .layer-item {
-            display: flex;
-            align-items: center;
-            padding: 8px 15px;
-            background: #333;
-            margin-bottom: 2px;
-            cursor: pointer;
-            border-left: 3px solid transparent;
-        }
-
-        .layer-item.selected {
-            background: #444;
-            border-left-color: var(--accent);
-        }
-
-        .layer-item i { margin-right: 10px; width: 15px; text-align: center; }
-        .layer-name { flex: 1; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .layer-actions i { cursor: pointer; color: #666; font-size: 0.8rem; margin-left: 5px; }
-        .layer-actions i:hover { color: #fff; }
-
-        /* LOADING */
-        .loader {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-        }
-        .loader.active { display: flex; }
-        .spinner {
-            width: 40px; height: 40px;
-            border: 4px solid #fff;
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* MODAL */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7); display: none;
-            align-items: center; justify-content: center; z-index: 200;
-        }
-        .modal-overlay.active { display: flex; }
-        .modal-content {
-            background: var(--panel-bg); padding: 25px; border-radius: 8px;
-            width: 320px; border: 1px solid var(--border);
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-        }
-        .modal-content h3 { margin-bottom: 20px; color: var(--text-light); text-align: center; }
-        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
-        
-        /* RESIZE HANDLES */
-        .resize-handle {
-            position: absolute;
-            width: 10px; height: 10px;
-            background: white;
-            border: 1px solid var(--primary);
-            border-radius: 50%;
-            pointer-events: none; /* Handle via logic */
-        }
-    </style>
+<style>
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #f4f6f8;
+}
+header {
+  background: #1b396a;
+  color: #fff;
+  padding: 10px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+main {
+  padding: 20px;
+}
+button {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 8px;
+}
+.btn-primary {
+  background: #1b396a;
+  color: white;
+}
+.btn-secondary {
+  background: #777;
+  color: white;
+}
+#usageCounter {
+  font-size: 0.75rem;
+  background: rgba(0,0,0,0.4);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+#canvasContainer {
+  margin-top: 20px;
+  background: white;
+  border: 1px solid #ccc;
+  display: inline-block;
+}
+canvas {
+  display: block;
+}
+#loader {
+  display: none;
+  margin-top: 10px;
+}
+#loader.active {
+  display: block;
+}
+</style>
 </head>
+
 <body>
 
-    <div class="header">
-        <h1><i class="fas fa-layer-group"></i> Estudio de Diseño AI <span style="font-size: 0.7rem; background: var(--accent); color: black; padding: 2px 6px; border-radius: 4px;">BETA</span></h1>
-        
-        <div style="display: flex; gap: 15px; align-items: center;">
-            <!-- Botón para configurar API Key -->
-            <button id="apiKeyBtn" class="auth-btn" onclick="requestApiKey()">
-                <i class="fas fa-key"></i> Configurar API Key
-            </button>
-            <a href="index.html" class="back-link"><i class="fas fa-arrow-left"></i> Volver</a>
-        </div>
-    </div>
+<header>
+  <strong>Herramienta IA Interna</strong>
+  <span id="usageCounter"></span>
+</header>
 
-    <div class="workspace">
-        <!-- TOOLBAR -->
-        <div class="toolbar">
-            <button class="tool-btn" onclick="document.getElementById('fileInput').click()" data-tooltip="Subir Imagen"><i class="fas fa-upload"></i></button>
-            <button class="tool-btn" onclick="addTextLayer()" data-tooltip="Añadir Texto"><i class="fas fa-font"></i></button>
-            <button class="tool-btn" onclick="addShape('rect')" data-tooltip="Rectángulo"><i class="fas fa-vector-square"></i></button>
-            <button class="tool-btn" onclick="addShape('circle')" data-tooltip="Círculo"><i class="fas fa-circle"></i></button>
-            <div style="width: 30px; height: 1px; background: #555; margin: 5px 0;"></div>
-            <button class="tool-btn active" id="toolSelect" onclick="setTool('select')" data-tooltip="Mover/Seleccionar"><i class="fas fa-mouse-pointer"></i></button>
-            <button class="tool-btn" id="toolEraser" onclick="removeBackgroundOfSelected()" data-tooltip="IA: Quitar Fondo"><i class="fas fa-eraser" style="color: var(--accent);"></i></button>
-        </div>
+<main>
 
-        <!-- CANVAS -->
-        <div class="canvas-area" id="canvasContainer">
-            <canvas id="mainCanvas"></canvas>
-            <div class="loader" id="loader">
-                <div class="spinner"></div>
-                <p id="loaderText" style="margin-top: 15px;">Procesando con IA...</p>
-            </div>
-        </div>
+  <div>
+    <button class="btn-primary" onclick="quickUseAI()">⚡ Uso rápido institucional</button>
+    <button class="btn-secondary" onclick="generateBackground()">🎨 Generar fondo</button>
+  </div>
 
-        <!-- SIDEBAR -->
-        <div class="sidebar">
-            <!-- PROPIEDADES -->
-            <div class="panel-section">
-                <div class="panel-title">Propiedades</div>
-                <div id="propertiesPanel">
-                    <p style="color: #666; font-size: 0.8rem; text-align: center;">Selecciona un elemento</p>
-                </div>
-            </div>
+  <div id="loader">Procesando IA…</div>
 
-            <!-- CAPAS -->
-            <div class="panel-section" style="flex: 1; display: flex; flex-direction: column;">
-                <div class="panel-title">
-                    Capas
-                    <div>
-                        <i class="fas fa-arrow-up" style="cursor: pointer; margin-right: 5px;" onclick="moveLayer(-1)" title="Subir"></i>
-                        <i class="fas fa-arrow-down" style="cursor: pointer;" onclick="moveLayer(1)" title="Bajar"></i>
-                    </div>
-                </div>
-                <div class="layer-list" id="layerList">
-                    <!-- Layer items injected here -->
-                </div>
-            </div>
+  <div id="canvasContainer">
+    <canvas id="canvas" width="1000" height="600"></canvas>
+  </div>
 
-            <!-- IA TOOLS -->
-            <div class="panel-section">
-                <div class="panel-title"><i class="fas fa-sparkles" style="color: var(--accent);"></i> Generador IA</div>
-                <div class="control-group">
-                    <textarea id="aiPrompt" placeholder="Ej: Un paisaje futurista de neón..." rows="2" style="margin-bottom: 5px;"></textarea>
-                    <button class="btn-action ai" onclick="generateBackgroundAI()">Generar Fondo</button>
-                </div>
-                <button class="btn-action secondary" onclick="suggestCaptionAI()"><i class="fas fa-lightbulb"></i> Sugerir Frase</button>
-            </div>
+</main>
 
-            <!-- EXPORT -->
-            <div class="panel-section">
-                <button class="btn-action" onclick="openDownloadModal()"><i class="fas fa-download"></i> Descargar Diseño</button>
-            </div>
-        </div>
-    </div>
+<script type="module">
+/* ===============================
+   CONFIGURACIÓN IA
+================================ */
 
-    <!-- Download Modal -->
-    <div id="downloadModal" class="modal-overlay">
-        <div class="modal-content">
-            <h3><i class="fas fa-download"></i> Descargar</h3>
-            <div class="control-group">
-                <label>Nombre del archivo</label>
-                <input type="text" id="fileName" value="diseño_itd">
-            </div>
-            <div class="control-group">
-                <label>Formato</label>
-                <select id="fileFormat">
-                    <option value="image/png">PNG (Fondo Transparente)</option>
-                    <option value="image/jpeg">JPG (Fondo Blanco)</option>
-                    <option value="image/webp">WebP (Alta Calidad)</option>
-                </select>
-            </div>
-            <div class="modal-actions">
-                <button class="btn-action secondary" onclick="closeDownloadModal()">Cancelar</button>
-                <button class="btn-action" onclick="confirmDownload()">Guardar</button>
-            </div>
-        </div>
-    </div>
+import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
 
-    <input type="file" id="fileInput" accept="image/*" style="display: none;">
+let ai = null;
 
-    <script type="module">
-        import { GoogleGenAI } from "@google/genai";
+function initAI() {
+  const key = localStorage.getItem("GOOGLE_API_KEY");
+  if (!key) {
+    const k = prompt("Ingresa API Key de Google Gemini:");
+    if (!k) return;
+    localStorage.setItem("GOOGLE_API_KEY", k);
+    location.reload();
+    return;
+  }
+  ai = new GoogleGenerativeAI(key);
+}
 
-        // ==========================================
-        // INITIALIZATION & AUTH
-        // ==========================================
-        let ai = null;
+/* ===============================
+   CONTADOR TRIMESTRAL
+================================ */
 
-        async function initAI() {
-            try {
-                // 1. Verificar si window.aistudio está disponible (Google IDX / AI Studio)
-                if (window.aistudio) {
-                    const hasKey = await window.aistudio.hasSelectedApiKey();
-                    if (hasKey) {
-                        // El entorno inyecta la key en process.env
-                        ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-                        document.getElementById('apiKeyBtn').style.display = 'none';
-                    } else {
-                        // Mostrar botón para que el usuario seleccione la key
-                        document.getElementById('apiKeyBtn').style.display = 'inline-flex';
-                    }
-                } 
-                // 2. Verificar si process.env ya tiene la key (Configuración manual o build)
-                else if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
-                    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-                    document.getElementById('apiKeyBtn').style.display = 'none';
-                } else {
-                    // Estado fallido localmente, mostrar botón para intentar forzar auth si el shim existe
-                    document.getElementById('apiKeyBtn').style.display = 'inline-flex';
-                }
-            } catch (error) {
-                console.warn("Error inicializando AI:", error);
-                document.getElementById('apiKeyBtn').style.display = 'inline-flex';
-            }
+function getCurrentQuarter() {
+  const m = new Date().getMonth() + 1;
+  if (m <= 3) return 1;
+  if (m <= 6) return 2;
+  if (m <= 9) return 3;
+  return 4;
+}
+
+function initUsageCounter() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const quarter = getCurrentQuarter();
+  const currentKey = `${year}-Q${quarter}`;
+
+  const savedKey = localStorage.getItem("ITD_USAGE_PERIOD");
+  if (savedKey !== currentKey) {
+    localStorage.setItem("ITD_USAGE_PERIOD", currentKey);
+    localStorage.setItem("ITD_USAGE_COUNT", "0");
+  }
+}
+
+function incrementUsage() {
+  let count = parseInt(localStorage.getItem("ITD_USAGE_COUNT") || "0", 10);
+  count++;
+  localStorage.setItem("ITD_USAGE_COUNT", count.toString());
+  updateUsageUI();
+}
+
+function updateUsageUI() {
+  const count = localStorage.getItem("ITD_USAGE_COUNT") || "0";
+  const period = localStorage.getItem("ITD_USAGE_PERIOD") || "";
+  document.getElementById("usageCounter").innerText =
+    `Uso IA: ${count} (${period})`;
+}
+
+/* ===============================
+   CANVAS
+================================ */
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+let layers = [];
+
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  layers.forEach(l => {
+    if (l.type === "image") {
+      ctx.drawImage(l.img, 0, 0, canvas.width, canvas.height);
+    }
+    if (l.type === "text") {
+      ctx.fillStyle = l.color;
+      ctx.font = `${l.size}px Arial`;
+      ctx.fillText(l.text, l.x, l.y);
+    }
+  });
+}
+
+/* ===============================
+   IA FUNCIONES
+================================ */
+
+window.generateBackground = async function () {
+  if (!ai) return alert("IA no configurada");
+
+  incrementUsage();
+  document.getElementById("loader").classList.add("active");
+
+  const prompt = `
+  Fondo institucional moderno,
+  colores azul marino y dorado,
+  estilo tecnológico limpio,
+  sin texto.
+  `;
+
+  try {
+    const res = await ai.models.generateContent({
+      model: "gemini-2.5-flash-image",
+      contents: { parts: [{ text: prompt }] }
+    });
+
+    let img64 = null;
+    for (const p of res.candidates[0].content.parts) {
+      if (p.inlineData) { img64 = p.inlineData.data; break; }
+    }
+
+    const img = new Image();
+    img.onload = () => {
+      layers = [{ type: "image", img }];
+      render();
+      document.getElementById("loader").classList.remove("active");
+    };
+    img.src = "data:image/png;base64," + img64;
+
+  } catch {
+    alert("Error al generar fondo");
+    document.getElementById("loader").classList.remove("active");
+  }
+};
+
+window.quickUseAI = async function () {
+  if (!ai) return alert("IA no configurada");
+
+  incrementUsage();
+  document.getElementById("loader").classList.add("active");
+
+  const prompt = `
+  Fondo institucional académico,
+  moderno, profesional,
+  tonos azul marino y dorado,
+  sin texto.
+  `;
+
+  try {
+    const res = await ai.models.generateContent({
+      model: "gemini-2.5-flash-image",
+      contents: { parts: [{ text: prompt }] }
+    });
+
+    let img64 = null;
+    for (const p of res.candidates[0].content.parts) {
+      if (p.inlineData) { img64 = p.inlineData.data; break; }
+    }
+
+    const img = new Image();
+    img.onload = () => {
+      layers = [
+        { type: "image", img },
+        {
+          type: "text",
+          text: "Título institucional",
+          x: 100,
+          y: 120,
+          size: 48,
+          color: "#1b396a"
         }
+      ];
+      render();
+      document.getElementById("loader").classList.remove("active");
+    };
+    img.src = "data:image/png;base64," + img64;
+
+  } catch {
+    alert("Error en uso rápido");
+    document.getElementById("loader").classList.remove("active");
+  }
+};
+
+/* ===============================
+   INIT
+================================ */
+
+initAI();
+initUsageCounter();
+updateUsageUI();
+render();
+
+</script>
 
-        // Función expuesta al window para el botón de configuración
-        window.requestApiKey = async () => {
-            if (window.aistudio) {
-                try {
-                    const success = await window.aistudio.openSelectKey();
-                    if (success) {
-                        ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-                        document.getElementById('apiKeyBtn').style.display = 'none';
-                        alert("API Key configurada correctamente.");
-                    }
-                } catch(e) {
-                    console.error(e);
-                    alert("Error seleccionando la llave. Verifica la consola.");
-                }
-            } else {
-                alert("Para usar esta herramienta, asegúrate de correr en un entorno compatible con Google AI Studio o configurar process.env.API_KEY.");
-            }
-        };
-
-        // Iniciar al cargar
-        initAI();
-
-        // ==========================================
-        // ENGINE STATE
-        // ==========================================
-        const canvas = document.getElementById('mainCanvas');
-        const ctx = canvas.getContext('2d');
-        const container = document.getElementById('canvasContainer');
-        
-        // Initial Canvas Size
-        canvas.width = 800;
-        canvas.height = 600;
-
-        let layers = []; // { id, type, x, y, width, height, content, color, font, rotation, visible }
-        let selectedLayerId = null;
-        
-        // Mouse State
-        let isDragging = false;
-        let isResizing = false;
-        let dragStart = { x: 0, y: 0 };
-        const HANDLE_SIZE = 12;
-
-        // ==========================================
-        // UTILS
-        // ==========================================
-        
-        function getMousePos(evt) {
-            const rect = canvas.getBoundingClientRect();
-            return {
-                x: (evt.clientX - rect.left) * (canvas.width / rect.width),
-                y: (evt.clientY - rect.top) * (canvas.height / rect.height)
-            };
-        }
-
-        function isHandleClicked(layer, mx, my) {
-            if (!layer) return false;
-            const hx = layer.x + layer.width - HANDLE_SIZE/2;
-            const hy = layer.y + layer.height - HANDLE_SIZE/2;
-            return mx >= hx && mx <= hx + HANDLE_SIZE && my >= hy && my <= hy + HANDLE_SIZE;
-        }
-
-        // ==========================================
-        // CORE RENDER LOOP
-        // ==========================================
-        function render() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            layers.forEach(layer => {
-                if (!layer.visible) return;
-                
-                ctx.save();
-                const cx = layer.x + layer.width / 2;
-                const cy = layer.y + layer.height / 2;
-                ctx.translate(cx, cy);
-                ctx.rotate(layer.rotation * Math.PI / 180);
-                ctx.translate(-cx, -cy);
-
-                ctx.globalAlpha = layer.opacity !== undefined ? layer.opacity : 1;
-
-                if (layer.type === 'image') {
-                    if (layer.imgElement) {
-                        ctx.drawImage(layer.imgElement, layer.x, layer.y, layer.width, layer.height);
-                    }
-                } else if (layer.type === 'shape') {
-                    ctx.fillStyle = layer.color;
-                    if (layer.shapeType === 'rect') {
-                        ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
-                    } else if (layer.shapeType === 'circle') {
-                        ctx.beginPath();
-                        ctx.ellipse(cx, cy, layer.width/2, layer.height/2, 0, 0, 2 * Math.PI);
-                        ctx.fill();
-                    }
-                } else if (layer.type === 'text') {
-                    ctx.font = `${layer.fontSize}px ${layer.fontFamily}`;
-                    ctx.fillStyle = layer.color;
-                    ctx.textBaseline = 'top';
-                    ctx.fillText(layer.content, layer.x, layer.y);
-                    const metrics = ctx.measureText(layer.content);
-                    layer.width = metrics.width;
-                    layer.height = layer.fontSize; 
-                }
-
-                ctx.globalAlpha = 1;
-
-                if (layer.id === selectedLayerId) {
-                    ctx.strokeStyle = '#d4a017';
-                    ctx.lineWidth = 2;
-                    ctx.strokeRect(layer.x, layer.y, layer.width, layer.height);
-                    
-                    ctx.fillStyle = '#d4a017';
-                    const hSize = HANDLE_SIZE;
-                    ctx.fillRect(layer.x + layer.width - hSize/2, layer.y + layer.height - hSize/2, hSize, hSize);
-                }
-
-                ctx.restore();
-            });
-        }
-
-        // ==========================================
-        // LAYER MANAGEMENT
-        // ==========================================
-        function createId() { return Math.random().toString(36).substr(2, 9); }
-
-        window.addLayer = (layerData) => {
-            const newLayer = {
-                id: createId(),
-                x: 50, y: 50,
-                width: 100, height: 100,
-                rotation: 0,
-                visible: true,
-                opacity: 1,
-                ...layerData
-            };
-            layers.push(newLayer);
-            selectedLayerId = newLayer.id;
-            updateUI();
-            render();
-        };
-
-        window.addTextLayer = (content = 'Texto Nuevo') => {
-            window.addLayer({
-                type: 'text',
-                content: content,
-                fontSize: 40,
-                fontFamily: 'Arial',
-                color: '#ffffff',
-                width: 100, height: 40
-            });
-        };
-
-        window.addShape = (shapeType) => {
-            window.addLayer({
-                type: 'shape',
-                shapeType: shapeType,
-                color: '#1b396a',
-                width: 150, height: 150
-            });
-        };
-
-        const fileInput = document.getElementById('fileInput');
-        fileInput.addEventListener('change', (e) => {
-            const input = e.target;
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = (evt) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                        
-                        window.addLayer({
-                            type: 'image',
-                            imgElement: img,
-                            width: img.width,
-                            height: img.height,
-                            x: 0, 
-                            y: 0,
-                            originalData: img.src 
-                        });
-                        
-                        input.value = '';
-                    };
-                    img.src = evt.target.result;
-                };
-                reader.readAsDataURL(input.files[0]);
-            }
-        });
-
-        window.removeLayer = (id) => {
-            layers = layers.filter(l => l.id !== id);
-            if (selectedLayerId === id) selectedLayerId = null;
-            updateUI();
-            render();
-        };
-
-        window.moveLayer = (dir) => {
-            if (!selectedLayerId) return;
-            const idx = layers.findIndex(l => l.id === selectedLayerId);
-            if (idx === -1) return;
-            
-            const newIdx = idx + dir;
-            if (newIdx >= 0 && newIdx < layers.length) {
-                [layers[idx], layers[newIdx]] = [layers[newIdx], layers[idx]];
-                updateUI();
-                render();
-            }
-        };
-
-        window.selectLayer = (id) => {
-            selectedLayerId = id;
-            updateUI();
-            render();
-        };
-
-        // ==========================================
-        // UI UPDATES
-        // ==========================================
-        function updateUI() {
-            const list = document.getElementById('layerList');
-            list.innerHTML = '';
-            [...layers].reverse().forEach(layer => {
-                const div = document.createElement('div');
-                div.className = `layer-item ${layer.id === selectedLayerId ? 'selected' : ''}`;
-                div.onclick = () => window.selectLayer(layer.id);
-                
-                let icon = 'fa-layer-group';
-                let name = 'Capa';
-                if (layer.type === 'text') { icon = 'fa-font'; name = layer.content; }
-                if (layer.type === 'image') { icon = 'fa-image'; name = 'Imagen'; }
-                if (layer.type === 'shape') { icon = 'fa-shapes'; name = 'Forma'; }
-
-                div.innerHTML = `
-                    <i class="fas ${icon}"></i>
-                    <span class="layer-name">${name}</span>
-                    <div class="layer-actions">
-                        <i class="fas fa-eye${layer.visible ? '' : '-slash'}" onclick="event.stopPropagation(); toggleVis('${layer.id}')"></i>
-                        <i class="fas fa-trash" onclick="event.stopPropagation(); removeLayer('${layer.id}')"></i>
-                    </div>
-                `;
-                list.appendChild(div);
-            });
-
-            const propsPanel = document.getElementById('propertiesPanel');
-            const selLayer = layers.find(l => l.id === selectedLayerId);
-            
-            if (!selLayer) {
-                propsPanel.innerHTML = '<p style="color: #666; font-size: 0.8rem; text-align: center;">Selecciona un elemento</p>';
-                return;
-            }
-
-            let html = `
-                <div class="control-group">
-                    <label>Opacidad</label>
-                    <input type="range" min="0" max="1" step="0.1" value="${selLayer.opacity !== undefined ? selLayer.opacity : 1}" oninput="updateProp('opacity', this.value)">
-                </div>
-            `;
-
-            if (selLayer.type === 'text') {
-                html += `
-                    <div class="control-group"><label>Texto</label><input type="text" value="${selLayer.content}" oninput="updateProp('content', this.value)"></div>
-                    <div class="control-group"><label>Tamaño</label><input type="number" value="${selLayer.fontSize}" oninput="updateProp('fontSize', this.value)"></div>
-                    <div class="control-group"><label>Color</label><input type="color" value="${selLayer.color}" oninput="updateProp('color', this.value)"></div>
-                    <div class="control-group"><label>Fuente</label>
-                        <select onchange="updateProp('fontFamily', this.value)">
-                            <option value="Arial" ${selLayer.fontFamily === 'Arial' ? 'selected' : ''}>Arial</option>
-                            <option value="Georgia" ${selLayer.fontFamily === 'Georgia' ? 'selected' : ''}>Georgia</option>
-                            <option value="Courier New" ${selLayer.fontFamily === 'Courier New' ? 'selected' : ''}>Courier</option>
-                            <option value="Verdana" ${selLayer.fontFamily === 'Verdana' ? 'selected' : ''}>Verdana</option>
-                        </select>
-                    </div>
-                `;
-            } else if (selLayer.type === 'shape') {
-                html += `
-                    <div class="control-group"><label>Color</label><input type="color" value="${selLayer.color}" oninput="updateProp('color', this.value)"></div>
-                    <div class="control-group"><label>Ancho</label><input type="number" value="${selLayer.width}" oninput="updateProp('width', this.value)"></div>
-                    <div class="control-group"><label>Alto</label><input type="number" value="${selLayer.height}" oninput="updateProp('height', this.value)"></div>
-                `;
-            } else if (selLayer.type === 'image') {
-                 html += `
-                    <div class="control-group"><label>Ancho</label><input type="number" value="${parseInt(selLayer.width)}" oninput="updateProp('width', this.value)"></div>
-                    <div class="control-group"><label>Alto</label><input type="number" value="${parseInt(selLayer.height)}" oninput="updateProp('height', this.value)"></div>
-                `;
-            }
-
-            propsPanel.innerHTML = html;
-        }
-
-        window.updateProp = (key, value) => {
-            const layer = layers.find(l => l.id === selectedLayerId);
-            if (layer) {
-                if (key === 'width' || key === 'height' || key === 'fontSize') value = parseInt(value);
-                if (key === 'opacity') value = parseFloat(value);
-                layer[key] = value;
-                render();
-            }
-        };
-
-        window.toggleVis = (id) => {
-            const layer = layers.find(l => l.id === id);
-            if (layer) {
-                layer.visible = !layer.visible;
-                updateUI();
-                render();
-            }
-        };
-
-        // ==========================================
-        // MOUSE EVENTS
-        // ==========================================
-        canvas.addEventListener('mousedown', (e) => {
-            const pos = getMousePos(e);
-            const mouseX = pos.x;
-            const mouseY = pos.y;
-
-            if (selectedLayerId) {
-                const layer = layers.find(l => l.id === selectedLayerId);
-                if (layer && isHandleClicked(layer, mouseX, mouseY)) {
-                    isResizing = true;
-                    isDragging = false;
-                    dragStart = { x: mouseX, y: mouseY };
-                    return;
-                }
-            }
-
-            let hit = false;
-            for (let i = layers.length - 1; i >= 0; i--) {
-                const l = layers[i];
-                if (!l.visible) continue;
-                if (mouseX >= l.x && mouseX <= l.x + l.width && mouseY >= l.y && mouseY <= l.y + l.height) {
-                    selectedLayerId = l.id;
-                    isDragging = true;
-                    isResizing = false;
-                    dragStart = { x: mouseX - l.x, y: mouseY - l.y };
-                    hit = true;
-                    updateUI();
-                    render();
-                    break;
-                }
-            }
-            
-            if (!hit) {
-                selectedLayerId = null;
-                isDragging = false;
-                isResizing = false;
-                updateUI();
-                render();
-            }
-        });
-
-        canvas.addEventListener('mousemove', (e) => {
-            const pos = getMousePos(e);
-            const mouseX = pos.x;
-            const mouseY = pos.y;
-            
-            let cursor = 'default';
-            if (isResizing) {
-                cursor = 'nwse-resize';
-            } else if (selectedLayerId) {
-                const layer = layers.find(l => l.id === selectedLayerId);
-                if (isHandleClicked(layer, mouseX, mouseY)) {
-                    cursor = 'nwse-resize';
-                } else if (mouseX >= layer.x && mouseX <= layer.x + layer.width && mouseY >= layer.y && mouseY <= layer.y + layer.height) {
-                    cursor = 'move';
-                }
-            }
-            canvas.style.cursor = cursor;
-
-            if (isResizing && selectedLayerId) {
-                const layer = layers.find(l => l.id === selectedLayerId);
-                if (layer) {
-                    const newW = Math.max(20, mouseX - layer.x);
-                    const newH = Math.max(20, mouseY - layer.y);
-                    layer.width = newW;
-                    layer.height = newH;
-                    updateUI();
-                    render();
-                }
-            } else if (isDragging && selectedLayerId) {
-                const layer = layers.find(l => l.id === selectedLayerId);
-                if (layer) {
-                    layer.x = pos.x - dragStart.x;
-                    layer.y = pos.y - dragStart.y;
-                    render();
-                }
-            }
-        });
-
-        window.addEventListener('mouseup', () => { 
-            isDragging = false; 
-            isResizing = false;
-        });
-
-        // ==========================================
-        // AI FEATURES (Gemini)
-        // ==========================================
-        
-        // 1. Remove Background
-        window.removeBackgroundOfSelected = async () => {
-            const layer = layers.find(l => l.id === selectedLayerId);
-            if (!layer || layer.type !== 'image' || !layer.imgElement) {
-                alert('Selecciona una capa de imagen primero.');
-                return;
-            }
-
-            // Check API Key
-            if(!ai) {
-                const conf = confirm("API Key no detectada. ¿Deseas configurarla ahora?");
-                if(conf) window.requestApiKey();
-                return;
-            }
-
-            const loader = document.getElementById('loader');
-            loader.classList.add('active');
-            document.getElementById('loaderText').innerText = 'IA Analizando sujeto y removiendo fondo...';
-
-            try {
-                // Get Base64 of original image via temp canvas
-                const tempC = document.createElement('canvas');
-                const MAX_DIM = 1024;
-                let srcW = layer.imgElement.naturalWidth;
-                let srcH = layer.imgElement.naturalHeight;
-                
-                if(srcW > MAX_DIM || srcH > MAX_DIM) {
-                    const ratio = Math.min(MAX_DIM/srcW, MAX_DIM/srcH);
-                    srcW *= ratio;
-                    srcH *= ratio;
-                }
-                
-                tempC.width = srcW;
-                tempC.height = srcH;
-                const tempCtx = tempC.getContext('2d');
-                tempCtx.drawImage(layer.imgElement, 0, 0, srcW, srcH);
-                const base64Data = tempC.toDataURL('image/jpeg', 0.8).split(',')[1];
-
-                // Call Gemini
-                const prompt = "Identify the main subject in this image. Keep the subject EXACTLY as it is. Replace the entire background with a solid bright green color (Hex #00FF00). Ensure high precision around hair and edges.";
-
-                const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash-image',
-                    contents: {
-                        parts: [
-                            { inlineData: { mimeType: 'image/jpeg', data: base64Data } },
-                            { text: prompt }
-                        ]
-                    }
-                });
-
-                let resultBase64 = null;
-                if(response.candidates?.[0]?.content?.parts) {
-                    for (const part of response.candidates[0].content.parts) {
-                        if (part.inlineData) {
-                            resultBase64 = part.inlineData.data;
-                            break;
-                        }
-                    }
-                }
-
-                if (!resultBase64) throw new Error("No se recibió imagen de la IA.");
-
-                // Chroma Key Processing
-                const resImg = new Image();
-                resImg.onload = () => {
-                    const procC = document.createElement('canvas');
-                    procC.width = resImg.width;
-                    procC.height = resImg.height;
-                    const procCtx = procC.getContext('2d');
-                    procCtx.drawImage(resImg, 0, 0);
-                    
-                    const imgData = procCtx.getImageData(0, 0, procC.width, procC.height);
-                    const data = imgData.data;
-                    
-                    // Sample BG color
-                    const bgR = data[0];
-                    const bgG = data[1];
-                    const bgB = data[2];
-                    
-                    const threshold = 60; 
-
-                    for (let i = 0; i < data.length; i += 4) {
-                        const r = data[i];
-                        const g = data[i + 1];
-                        const b = data[i + 2];
-                        
-                        const dist = Math.sqrt((r - bgR)**2 + (g - bgG)**2 + (b - bgB)**2);
-
-                        if (dist < threshold) {
-                            data[i + 3] = 0;
-                        } else if (dist < threshold + 20) {
-                            data[i + 3] = Math.max(0, data[i+3] - 150); 
-                        }
-                    }
-
-                    procCtx.putImageData(imgData, 0, 0);
-
-                    // Update Layer
-                    const finalImg = new Image();
-                    finalImg.onload = () => {
-                        layer.imgElement = finalImg;
-                        loader.classList.remove('active');
-                        render();
-                    };
-                    finalImg.src = procC.toDataURL();
-                };
-                resImg.src = `data:image/png;base64,${resultBase64}`;
-
-            } catch (error) {
-                console.error(error);
-                alert('Error al procesar con IA: ' + error.message);
-                loader.classList.remove('active');
-            }
-        };
-
-        // 2. Generate Background
-        window.generateBackgroundAI = async () => {
-            if(!ai) {
-                const conf = confirm("API Key no detectada. ¿Deseas configurarla ahora?");
-                if(conf) window.requestApiKey();
-                return;
-            }
-            const prompt = document.getElementById('aiPrompt').value;
-            if (!prompt) { alert('Escribe una descripción para el fondo.'); return; }
-
-            const loader = document.getElementById('loader');
-            loader.classList.add('active');
-            document.getElementById('loaderText').innerText = 'Generando Fondo con IA...';
-
-            try {
-                const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash-image',
-                    contents: {
-                        parts: [{ text: prompt }]
-                    },
-                    config: {
-                        imageConfig: { aspectRatio: "4:3" }
-                    }
-                });
-
-                let base64Image = null;
-                if(response.candidates?.[0]?.content?.parts) {
-                    for (const part of response.candidates[0].content.parts) {
-                        if (part.inlineData) {
-                            base64Image = part.inlineData.data;
-                            break;
-                        }
-                    }
-                }
-
-                if (base64Image) {
-                    const img = new Image();
-                    img.onload = () => {
-                        const newLayer = {
-                            id: createId(),
-                            type: 'image',
-                            imgElement: img,
-                            x: 0, y: 0,
-                            width: canvas.width,
-                            height: canvas.height,
-                            visible: true,
-                            rotation: 0
-                        };
-                        layers.unshift(newLayer);
-                        updateUI();
-                        render();
-                        loader.classList.remove('active');
-                    };
-                    img.src = `data:image/png;base64,${base64Image}`;
-                } else {
-                    throw new Error('No se generó imagen.');
-                }
-
-            } catch (error) {
-                console.error(error);
-                alert('Error generando imagen: ' + error.message);
-                loader.classList.remove('active');
-            }
-        };
-
-        // 3. Suggest Caption
-        window.suggestCaptionAI = async () => {
-            if(!ai) {
-                const conf = confirm("API Key no detectada. ¿Deseas configurarla ahora?");
-                if(conf) window.requestApiKey();
-                return;
-            }
-            const loader = document.getElementById('loader');
-            loader.classList.add('active');
-            document.getElementById('loaderText').innerText = 'Analizando diseño...';
-
-            try {
-                const currentDesign = canvas.toDataURL('image/jpeg').split(',')[1];
-
-                const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash',
-                    contents: {
-                        parts: [
-                            { inlineData: { mimeType: 'image/jpeg', data: currentDesign } },
-                            { text: "Suggest a short, catchy, professional title (max 5 words) for this design in Spanish. Just the text." }
-                        ]
-                    }
-                });
-
-                const text = response.text.trim().replace(/"/g, '');
-                window.addTextLayer(text);
-                loader.classList.remove('active');
-
-            } catch (error) {
-                console.error(error);
-                alert('Error: ' + error.message);
-                loader.classList.remove('active');
-            }
-        };
-
-        // ==========================================
-        // DOWNLOAD MODAL
-        // ==========================================
-        window.openDownloadModal = () => {
-            document.getElementById('downloadModal').classList.add('active');
-        };
-
-        window.closeDownloadModal = () => {
-            document.getElementById('downloadModal').classList.remove('active');
-        };
-
-        window.confirmDownload = () => {
-            const fileName = document.getElementById('fileName').value || 'diseño_itd';
-            const format = document.getElementById('fileFormat').value;
-            
-            const currentSelection = selectedLayerId;
-            selectedLayerId = null;
-            render(); 
-            
-            if (format === 'image/jpeg') {
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = canvas.width;
-                tempCanvas.height = canvas.height;
-                const tCtx = tempCanvas.getContext('2d');
-                
-                tCtx.fillStyle = '#ffffff';
-                tCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-                tCtx.drawImage(canvas, 0, 0);
-                
-                const link = document.createElement('a');
-                link.download = `${fileName}.jpg`;
-                link.href = tempCanvas.toDataURL('image/jpeg', 0.9);
-                link.click();
-            } else {
-                const link = document.createElement('a');
-                const ext = format === 'image/webp' ? 'webp' : 'png';
-                link.download = `${fileName}.${ext}`;
-                link.href = canvas.toDataURL(format);
-                link.click();
-            }
-
-            selectedLayerId = currentSelection;
-            render();
-            closeDownloadModal();
-        };
-
-        render();
-
-    </script>
 </body>
 </html>
