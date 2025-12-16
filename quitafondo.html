@@ -51,6 +51,20 @@
         .back-link { color: white; text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; gap: 5px; }
         .back-link:hover { color: var(--accent); }
 
+        .auth-btn {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            display: none; /* Se activa vía JS */
+            align-items: center;
+            gap: 6px;
+        }
+        .auth-btn:hover { background: rgba(0,0,0,0.5); border-color: var(--accent); }
+
         /* MAIN LAYOUT */
         .workspace {
             display: flex;
@@ -269,7 +283,14 @@
 
     <div class="header">
         <h1><i class="fas fa-layer-group"></i> Estudio de Diseño AI <span style="font-size: 0.7rem; background: var(--accent); color: black; padding: 2px 6px; border-radius: 4px;">BETA</span></h1>
-        <a href="index.html" class="back-link"><i class="fas fa-arrow-left"></i> Volver al Portal</a>
+        
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <!-- Botón para configurar API Key -->
+            <button id="apiKeyBtn" class="auth-btn" onclick="requestApiKey()">
+                <i class="fas fa-key"></i> Configurar API Key
+            </button>
+            <a href="index.html" class="back-link"><i class="fas fa-arrow-left"></i> Volver</a>
+        </div>
     </div>
 
     <div class="workspace">
@@ -357,20 +378,65 @@
         </div>
     </div>
 
-    <!-- Eliminado onchange inline, se maneja desde JS -->
     <input type="file" id="fileInput" accept="image/*" style="display: none;">
 
     <script type="module">
         import { GoogleGenAI } from "@google/genai";
 
         // ==========================================
-        // CONFIG
+        // INITIALIZATION & AUTH
         // ==========================================
-        const apiKey = typeof process !== 'undefined' && process.env ? process.env.API_KEY : '';
-        let ai;
-        try {
-            if(apiKey) ai = new GoogleGenAI({ apiKey: apiKey });
-        } catch(e) { console.error("Error iniciando Gemini:", e); }
+        let ai = null;
+
+        async function initAI() {
+            try {
+                // 1. Verificar si window.aistudio está disponible (Google IDX / AI Studio)
+                if (window.aistudio) {
+                    const hasKey = await window.aistudio.hasSelectedApiKey();
+                    if (hasKey) {
+                        // El entorno inyecta la key en process.env
+                        ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+                        document.getElementById('apiKeyBtn').style.display = 'none';
+                    } else {
+                        // Mostrar botón para que el usuario seleccione la key
+                        document.getElementById('apiKeyBtn').style.display = 'inline-flex';
+                    }
+                } 
+                // 2. Verificar si process.env ya tiene la key (Configuración manual o build)
+                else if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+                    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+                    document.getElementById('apiKeyBtn').style.display = 'none';
+                } else {
+                    // Estado fallido localmente, mostrar botón para intentar forzar auth si el shim existe
+                    document.getElementById('apiKeyBtn').style.display = 'inline-flex';
+                }
+            } catch (error) {
+                console.warn("Error inicializando AI:", error);
+                document.getElementById('apiKeyBtn').style.display = 'inline-flex';
+            }
+        }
+
+        // Función expuesta al window para el botón de configuración
+        window.requestApiKey = async () => {
+            if (window.aistudio) {
+                try {
+                    const success = await window.aistudio.openSelectKey();
+                    if (success) {
+                        ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+                        document.getElementById('apiKeyBtn').style.display = 'none';
+                        alert("API Key configurada correctamente.");
+                    }
+                } catch(e) {
+                    console.error(e);
+                    alert("Error seleccionando la llave. Verifica la consola.");
+                }
+            } else {
+                alert("Para usar esta herramienta, asegúrate de correr en un entorno compatible con Google AI Studio o configurar process.env.API_KEY.");
+            }
+        };
+
+        // Iniciar al cargar
+        initAI();
 
         // ==========================================
         // ENGINE STATE
@@ -396,7 +462,6 @@
         // UTILS
         // ==========================================
         
-        // Helper para obtener coordenadas del mouse corregidas por escala CSS
         function getMousePos(evt) {
             const rect = canvas.getBoundingClientRect();
             return {
@@ -416,18 +481,12 @@
         // CORE RENDER LOOP
         // ==========================================
         function render() {
-            // 1. Clear Canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            // ctx.fillStyle = '#ffffff'; // NO FILL by default to allow transparency in PNG
-            // If user wants background, they add a layer, or we fill on export for JPG.
 
-            // 2. Draw Layers
             layers.forEach(layer => {
                 if (!layer.visible) return;
                 
                 ctx.save();
-                
-                // Position & Rotation
                 const cx = layer.x + layer.width / 2;
                 const cy = layer.y + layer.height / 2;
                 ctx.translate(cx, cy);
@@ -454,22 +513,18 @@
                     ctx.fillStyle = layer.color;
                     ctx.textBaseline = 'top';
                     ctx.fillText(layer.content, layer.x, layer.y);
-                    // Approximate width/height for selection hit test
                     const metrics = ctx.measureText(layer.content);
                     layer.width = metrics.width;
-                    layer.height = layer.fontSize; // Rough approximation
+                    layer.height = layer.fontSize; 
                 }
 
                 ctx.globalAlpha = 1;
 
-                // Selection Box (Only draw if NOT rendering for download - controlled by global flag or argument? 
-                // For now, we clear selection before download)
                 if (layer.id === selectedLayerId) {
                     ctx.strokeStyle = '#d4a017';
                     ctx.lineWidth = 2;
                     ctx.strokeRect(layer.x, layer.y, layer.width, layer.height);
                     
-                    // Resize Handle (Bottom Right)
                     ctx.fillStyle = '#d4a017';
                     const hSize = HANDLE_SIZE;
                     ctx.fillRect(layer.x + layer.width - hSize/2, layer.y + layer.height - hSize/2, hSize, hSize);
@@ -520,7 +575,6 @@
             });
         };
 
-        // Attach event listener explicitly
         const fileInput = document.getElementById('fileInput');
         fileInput.addEventListener('change', (e) => {
             const input = e.target;
@@ -529,8 +583,6 @@
                 reader.onload = (evt) => {
                     const img = new Image();
                     img.onload = () => {
-                        // AUTO-RESIZE CANVAS TO MATCH UPLOADED IMAGE
-                        // This fixes the issue where the download has empty space or is too small
                         canvas.width = img.width;
                         canvas.height = img.height;
                         
@@ -539,12 +591,11 @@
                             imgElement: img,
                             width: img.width,
                             height: img.height,
-                            x: 0, // Position at 0,0 to fill canvas
+                            x: 0, 
                             y: 0,
                             originalData: img.src 
                         });
                         
-                        // Reset input so same file can be selected again if needed
                         input.value = '';
                     };
                     img.src = evt.target.result;
@@ -583,10 +634,8 @@
         // UI UPDATES
         // ==========================================
         function updateUI() {
-            // Update Layer List
             const list = document.getElementById('layerList');
             list.innerHTML = '';
-            // Render in reverse order (top layer first in list)
             [...layers].reverse().forEach(layer => {
                 const div = document.createElement('div');
                 div.className = `layer-item ${layer.id === selectedLayerId ? 'selected' : ''}`;
@@ -609,7 +658,6 @@
                 list.appendChild(div);
             });
 
-            // Update Properties Panel
             const propsPanel = document.getElementById('propertiesPanel');
             const selLayer = layers.find(l => l.id === selectedLayerId);
             
@@ -618,10 +666,7 @@
                 return;
             }
 
-            let html = '';
-            
-            // Common Props
-            html += `
+            let html = `
                 <div class="control-group">
                     <label>Opacidad</label>
                     <input type="range" min="0" max="1" step="0.1" value="${selLayer.opacity !== undefined ? selLayer.opacity : 1}" oninput="updateProp('opacity', this.value)">
@@ -678,25 +723,23 @@
         };
 
         // ==========================================
-        // MOUSE EVENTS (Interaction & Resize)
+        // MOUSE EVENTS
         // ==========================================
         canvas.addEventListener('mousedown', (e) => {
             const pos = getMousePos(e);
             const mouseX = pos.x;
             const mouseY = pos.y;
 
-            // 1. Check if clicking resize handle of selected layer
             if (selectedLayerId) {
                 const layer = layers.find(l => l.id === selectedLayerId);
                 if (layer && isHandleClicked(layer, mouseX, mouseY)) {
                     isResizing = true;
                     isDragging = false;
-                    dragStart = { x: mouseX, y: mouseY }; // Not used for delta in resize, but good for tracking
+                    dragStart = { x: mouseX, y: mouseY };
                     return;
                 }
             }
 
-            // 2. Check hit test for selecting/dragging
             let hit = false;
             for (let i = layers.length - 1; i >= 0; i--) {
                 const l = layers[i];
@@ -727,7 +770,6 @@
             const mouseX = pos.x;
             const mouseY = pos.y;
             
-            // Cursor update logic
             let cursor = 'default';
             if (isResizing) {
                 cursor = 'nwse-resize';
@@ -741,17 +783,14 @@
             }
             canvas.style.cursor = cursor;
 
-            // Operation logic
             if (isResizing && selectedLayerId) {
                 const layer = layers.find(l => l.id === selectedLayerId);
                 if (layer) {
-                    // Calculate new width/height based on mouse pos
-                    // Minimum size 20x20
                     const newW = Math.max(20, mouseX - layer.x);
                     const newH = Math.max(20, mouseY - layer.y);
                     layer.width = newW;
                     layer.height = newH;
-                    updateUI(); // Update property inputs
+                    updateUI();
                     render();
                 }
             } else if (isDragging && selectedLayerId) {
@@ -773,7 +812,7 @@
         // AI FEATURES (Gemini)
         // ==========================================
         
-        // 1. Remove Background (AI Green Screen Method)
+        // 1. Remove Background
         window.removeBackgroundOfSelected = async () => {
             const layer = layers.find(l => l.id === selectedLayerId);
             if (!layer || layer.type !== 'image' || !layer.imgElement) {
@@ -781,9 +820,11 @@
                 return;
             }
 
+            // Check API Key
             if(!ai) {
-                 alert("API Key no configurada. Por favor asegúrate de que process.env.API_KEY esté disponible.");
-                 return;
+                const conf = confirm("API Key no detectada. ¿Deseas configurarla ahora?");
+                if(conf) window.requestApiKey();
+                return;
             }
 
             const loader = document.getElementById('loader');
@@ -791,11 +832,8 @@
             document.getElementById('loaderText').innerText = 'IA Analizando sujeto y removiendo fondo...';
 
             try {
-                // 1. Get Base64 of original image
-                // We render the specific image to a temp canvas to get clean base64
+                // Get Base64 of original image via temp canvas
                 const tempC = document.createElement('canvas');
-                
-                // Use natural dimensions but limit max size to speed up AI and reduce tokens
                 const MAX_DIM = 1024;
                 let srcW = layer.imgElement.naturalWidth;
                 let srcH = layer.imgElement.naturalHeight;
@@ -812,9 +850,8 @@
                 tempCtx.drawImage(layer.imgElement, 0, 0, srcW, srcH);
                 const base64Data = tempC.toDataURL('image/jpeg', 0.8).split(',')[1];
 
-                // 2. Call Gemini
-                // Prompt strategy: Use a solid background color (Green Screen) to easily remove it later.
-                const prompt = "Identify the main subject in this image. Keep the subject EXACTLY as it is (do not alter face, hair, or clothing details). Replace the entire background with a solid bright green color (Hex #00FF00). Ensure high precision around hair and edges.";
+                // Call Gemini
+                const prompt = "Identify the main subject in this image. Keep the subject EXACTLY as it is. Replace the entire background with a solid bright green color (Hex #00FF00). Ensure high precision around hair and edges.";
 
                 const response = await ai.models.generateContent({
                     model: 'gemini-2.5-flash-image',
@@ -826,7 +863,6 @@
                     }
                 });
 
-                // 3. Process Response
                 let resultBase64 = null;
                 if(response.candidates?.[0]?.content?.parts) {
                     for (const part of response.candidates[0].content.parts) {
@@ -839,7 +875,7 @@
 
                 if (!resultBase64) throw new Error("No se recibió imagen de la IA.");
 
-                // 4. Chroma Key (Remove Green)
+                // Chroma Key Processing
                 const resImg = new Image();
                 resImg.onload = () => {
                     const procC = document.createElement('canvas');
@@ -851,36 +887,30 @@
                     const imgData = procCtx.getImageData(0, 0, procC.width, procC.height);
                     const data = imgData.data;
                     
-                    // Sample the top-left pixel to get the exact background color returned by AI
-                    // This deals with slight color shifts in generation.
+                    // Sample BG color
                     const bgR = data[0];
                     const bgG = data[1];
                     const bgB = data[2];
                     
-                    const threshold = 60; // Tolerance
+                    const threshold = 60; 
 
                     for (let i = 0; i < data.length; i += 4) {
                         const r = data[i];
                         const g = data[i + 1];
                         const b = data[i + 2];
                         
-                        const dist = Math.sqrt(
-                            (r - bgR) ** 2 +
-                            (g - bgG) ** 2 +
-                            (b - bgB) ** 2
-                        );
+                        const dist = Math.sqrt((r - bgR)**2 + (g - bgG)**2 + (b - bgB)**2);
 
                         if (dist < threshold) {
-                            data[i + 3] = 0; // Transparent
+                            data[i + 3] = 0;
                         } else if (dist < threshold + 20) {
-                            // Soft edge / Anti-aliasing
                             data[i + 3] = Math.max(0, data[i+3] - 150); 
                         }
                     }
 
                     procCtx.putImageData(imgData, 0, 0);
 
-                    // 5. Update Layer
+                    // Update Layer
                     const finalImg = new Image();
                     finalImg.onload = () => {
                         layer.imgElement = finalImg;
@@ -898,11 +928,12 @@
             }
         };
 
-        // 2. Generate Background (Gemini/Imagen)
+        // 2. Generate Background
         window.generateBackgroundAI = async () => {
-            if(!ai) { 
-                alert("API Key no configurada. Por favor asegúrate de que process.env.API_KEY esté definido correctamente en tu entorno de desarrollo."); 
-                return; 
+            if(!ai) {
+                const conf = confirm("API Key no detectada. ¿Deseas configurarla ahora?");
+                if(conf) window.requestApiKey();
+                return;
             }
             const prompt = document.getElementById('aiPrompt').value;
             if (!prompt) { alert('Escribe una descripción para el fondo.'); return; }
@@ -922,7 +953,6 @@
                     }
                 });
 
-                // Extract image
                 let base64Image = null;
                 if(response.candidates?.[0]?.content?.parts) {
                     for (const part of response.candidates[0].content.parts) {
@@ -936,7 +966,6 @@
                 if (base64Image) {
                     const img = new Image();
                     img.onload = () => {
-                        // Add as bottom layer
                         const newLayer = {
                             id: createId(),
                             type: 'image',
@@ -947,14 +976,14 @@
                             visible: true,
                             rotation: 0
                         };
-                        layers.unshift(newLayer); // Add to beginning (bottom)
+                        layers.unshift(newLayer);
                         updateUI();
                         render();
                         loader.classList.remove('active');
                     };
                     img.src = `data:image/png;base64,${base64Image}`;
                 } else {
-                    throw new Error('No image returned');
+                    throw new Error('No se generó imagen.');
                 }
 
             } catch (error) {
@@ -964,18 +993,18 @@
             }
         };
 
-        // 3. Suggest Caption (Gemini Text)
+        // 3. Suggest Caption
         window.suggestCaptionAI = async () => {
-            if(!ai) { 
-                alert("API Key no configurada. Por favor asegúrate de que process.env.API_KEY esté definido correctamente en tu entorno de desarrollo."); 
-                return; 
+            if(!ai) {
+                const conf = confirm("API Key no detectada. ¿Deseas configurarla ahora?");
+                if(conf) window.requestApiKey();
+                return;
             }
             const loader = document.getElementById('loader');
             loader.classList.add('active');
             document.getElementById('loaderText').innerText = 'Analizando diseño...';
 
             try {
-                // Get current canvas state as base64
                 const currentDesign = canvas.toDataURL('image/jpeg').split(',')[1];
 
                 const response = await ai.models.generateContent({
@@ -1014,22 +1043,18 @@
             const fileName = document.getElementById('fileName').value || 'diseño_itd';
             const format = document.getElementById('fileFormat').value;
             
-            // Temporary hide selection for clean export
             const currentSelection = selectedLayerId;
             selectedLayerId = null;
-            render(); // Redraw without selection handles
+            render(); 
             
-            // Handle JPG background (needs white fill, otherwise black)
             if (format === 'image/jpeg') {
                 const tempCanvas = document.createElement('canvas');
                 tempCanvas.width = canvas.width;
                 tempCanvas.height = canvas.height;
                 const tCtx = tempCanvas.getContext('2d');
                 
-                // Fill white
                 tCtx.fillStyle = '#ffffff';
                 tCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-                // Draw original
                 tCtx.drawImage(canvas, 0, 0);
                 
                 const link = document.createElement('a');
@@ -1037,7 +1062,6 @@
                 link.href = tempCanvas.toDataURL('image/jpeg', 0.9);
                 link.click();
             } else {
-                // PNG / WebP
                 const link = document.createElement('a');
                 const ext = format === 'image/webp' ? 'webp' : 'png';
                 link.download = `${fileName}.${ext}`;
@@ -1045,13 +1069,11 @@
                 link.click();
             }
 
-            // Restore
             selectedLayerId = currentSelection;
             render();
             closeDownloadModal();
         };
 
-        // Init
         render();
 
     </script>
