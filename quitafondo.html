@@ -1,6 +1,18 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
+<script>
+  function saveApiKey() {
+    const key = prompt("Pega aquí tu API Key de Google AI:");
+    if (key && key.startsWith("AIza")) {
+      localStorage.setItem("GOOGLE_API_KEY", key);
+      alert("API Key guardada correctamente");
+      location.reload();
+    } else {
+      alert("API Key inválida");
+    }
+  }
+</script>
+    <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Estudio de Diseño AI - ITD</title>
