@@ -477,6 +477,35 @@
         initAI();
 
         // ==========================================
+        // MANEJO CENTRALIZADO DE ERRORES API
+        // ==========================================
+        function handleAiError(error) {
+            console.error(error);
+            const msg = error.toString() + (error.message || "");
+            
+            // 1. Error de Cuota Excedida (429 / Resource Exhausted)
+            // Esto sucede en la capa gratuita si haces muchas peticiones seguidas.
+            if (msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED") || msg.includes("quota") || msg.includes("limit")) {
+                alert("⚠️ Límite de cuota excedido (Error 429).\n\nHas alcanzado el límite de peticiones gratuitas por minuto de Google Gemini.\n\nPor favor, espera unos minutos antes de intentar de nuevo. Tu llave es correcta, solo necesitas esperar un poco.");
+            } 
+            // 2. Error de Llave Inválida (400 / Invalid Argument)
+            else if (msg.includes("API key not valid") || msg.includes("400") || msg.includes("INVALID_ARGUMENT")) {
+                alert("La API Key guardada no es válida o ha expirado. Se borrará para que puedas ingresar una nueva.");
+                localStorage.removeItem('gemini_api_key');
+                ai = null; 
+                document.getElementById('apiKeyBtn').style.display = 'inline-flex';
+                window.requestApiKey();
+            } 
+            // 3. Otros errores
+            else {
+                alert('Error al procesar con IA: ' + (error.message || error));
+            }
+            
+            // Siempre quitar el loader
+            document.getElementById('loader').classList.remove('active');
+        }
+
+        // ==========================================
         // ENGINE STATE
         // ==========================================
         const canvas = document.getElementById('mainCanvas');
@@ -1050,18 +1079,7 @@
                 resImg.src = `data:image/png;base64,${resultBase64}`;
 
             } catch (error) {
-                console.error(error);
-                if (error.toString().includes("API key not valid") || error.toString().includes("400") || (error.message && error.message.includes("400"))) {
-                    alert("La API Key guardada ha expirado o no es válida. Se borrará para que puedas ingresar una nueva.");
-                    // Limpiar clave corrupta
-                    localStorage.removeItem('gemini_api_key');
-                    ai = null; 
-                    document.getElementById('apiKeyBtn').style.display = 'inline-flex';
-                    window.requestApiKey();
-                } else {
-                    alert('Error al procesar con IA: ' + (error.message || error));
-                }
-                loader.classList.remove('active');
+                handleAiError(error);
             }
         };
 
@@ -1124,18 +1142,7 @@
                 }
 
             } catch (error) {
-                console.error(error);
-                if (error.toString().includes("API key not valid") || error.toString().includes("400") || (error.message && error.message.includes("400"))) {
-                    alert("La API Key guardada ha expirado o no es válida. Se borrará para que puedas ingresar una nueva.");
-                    // Limpiar clave corrupta
-                    localStorage.removeItem('gemini_api_key');
-                    ai = null; 
-                    document.getElementById('apiKeyBtn').style.display = 'inline-flex';
-                    window.requestApiKey();
-                } else {
-                    alert('Error generando imagen: ' + error.message);
-                }
-                loader.classList.remove('active');
+                handleAiError(error);
             }
         };
 
@@ -1168,18 +1175,7 @@
                 loader.classList.remove('active');
 
             } catch (error) {
-                console.error(error);
-                if (error.toString().includes("API key not valid") || error.toString().includes("400") || (error.message && error.message.includes("400"))) {
-                    alert("La API Key guardada ha expirado o no es válida. Se borrará para que puedas ingresar una nueva.");
-                    // Limpiar clave corrupta
-                    localStorage.removeItem('gemini_api_key');
-                    ai = null;
-                    document.getElementById('apiKeyBtn').style.display = 'inline-flex';
-                    window.requestApiKey();
-                } else {
-                    alert('Error: ' + error.message);
-                }
-                loader.classList.remove('active');
+                handleAiError(error);
             }
         };
 
