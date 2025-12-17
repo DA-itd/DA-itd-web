@@ -402,24 +402,29 @@
 
         async function initAI() {
             try {
-                // 1. Verificar si window.aistudio está disponible (Google IDX / AI Studio)
+                // Prioridad 1: Revisar localStorage
+                const storedKey = localStorage.getItem('gemini_api_key');
+                if (storedKey) {
+                    ai = new GoogleGenAI({ apiKey: storedKey });
+                    document.getElementById('apiKeyBtn').style.display = 'none';
+                    return;
+                }
+
+                // Prioridad 2: AI Studio (Environment)
                 if (window.aistudio) {
                     const hasKey = await window.aistudio.hasSelectedApiKey();
                     if (hasKey) {
-                        // El entorno inyecta la key en process.env
                         ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
                         document.getElementById('apiKeyBtn').style.display = 'none';
-                    } else {
-                        // Mostrar botón para que el usuario seleccione la key
-                        document.getElementById('apiKeyBtn').style.display = 'inline-flex';
+                        return;
                     }
                 } 
-                // 2. Verificar si process.env ya tiene la key (Configuración manual o build)
-                else if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+                
+                // Prioridad 3: Process Env Manual
+                if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
                     ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
                     document.getElementById('apiKeyBtn').style.display = 'none';
                 } else {
-                    // Estado fallido localmente, mostrar botón para intentar forzar auth si el shim existe
                     document.getElementById('apiKeyBtn').style.display = 'inline-flex';
                 }
             } catch (error) {
@@ -445,20 +450,20 @@
                 }
             }
             
-            // Intento 2: Entrada Manual si falla lo anterior o no existe
-            let manualKey = prompt("Por favor, ingresa tu API Key de Google Gemini (sin espacios extra):", "");
+            // Intento 2: Entrada Manual
+            let manualKey = prompt("Por favor, ingresa tu API Key de Google Gemini (se guardará en este navegador):", "");
             if (manualKey) {
-                manualKey = manualKey.trim(); // Eliminamos espacios en blanco accidentales
+                manualKey = manualKey.trim(); // Limpieza crucial
                 if (manualKey.length > 0) {
                     try {
-                        // Establecemos la key manualmente en el entorno para este caso
-                        if (!window.process) window.process = { env: {} };
-                        if (!window.process.env) window.process.env = {};
-                        window.process.env.API_KEY = manualKey;
+                        // Guardar en localStorage para persistencia
+                        localStorage.setItem('gemini_api_key', manualKey);
                         
+                        // Configurar instancia
                         ai = new GoogleGenAI({ apiKey: manualKey });
+                        
                         document.getElementById('apiKeyBtn').style.display = 'none';
-                        alert("API Key configurada manualmente.");
+                        alert("API Key configurada y guardada.");
                     } catch (error) {
                         alert("Error al configurar la llave: " + error.message);
                     }
@@ -1047,8 +1052,10 @@
             } catch (error) {
                 console.error(error);
                 if (error.toString().includes("API key not valid") || error.toString().includes("400") || (error.message && error.message.includes("400"))) {
-                    alert("La API Key ingresada no es válida. Se solicitará nuevamente.");
-                    ai = null; // Reset
+                    alert("La API Key guardada ha expirado o no es válida. Se borrará para que puedas ingresar una nueva.");
+                    // Limpiar clave corrupta
+                    localStorage.removeItem('gemini_api_key');
+                    ai = null; 
                     document.getElementById('apiKeyBtn').style.display = 'inline-flex';
                     window.requestApiKey();
                 } else {
@@ -1119,7 +1126,9 @@
             } catch (error) {
                 console.error(error);
                 if (error.toString().includes("API key not valid") || error.toString().includes("400") || (error.message && error.message.includes("400"))) {
-                    alert("La API Key ingresada no es válida. Se solicitará nuevamente.");
+                    alert("La API Key guardada ha expirado o no es válida. Se borrará para que puedas ingresar una nueva.");
+                    // Limpiar clave corrupta
+                    localStorage.removeItem('gemini_api_key');
                     ai = null; 
                     document.getElementById('apiKeyBtn').style.display = 'inline-flex';
                     window.requestApiKey();
@@ -1161,7 +1170,9 @@
             } catch (error) {
                 console.error(error);
                 if (error.toString().includes("API key not valid") || error.toString().includes("400") || (error.message && error.message.includes("400"))) {
-                    alert("La API Key ingresada no es válida. Se solicitará nuevamente.");
+                    alert("La API Key guardada ha expirado o no es válida. Se borrará para que puedas ingresar una nueva.");
+                    // Limpiar clave corrupta
+                    localStorage.removeItem('gemini_api_key');
                     ai = null;
                     document.getElementById('apiKeyBtn').style.display = 'inline-flex';
                     window.requestApiKey();
