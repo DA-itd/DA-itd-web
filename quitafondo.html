@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estudio de Diseño AI - ITD</title>
+    <title>Estudio de Diseño - ITD</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <!-- Import Map para Google GenAI -->
+    <!-- Import Map solo para dependencias necesarias -->
     <script type="importmap">
       {
         "imports": {
-          "@google/genai": "https://esm.run/@google/genai"
+          "@xenova/transformers": "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js"
         }
       }
     </script>
@@ -50,20 +50,6 @@
         .header h1 { font-size: 1.1rem; display: flex; align-items: center; gap: 10px; }
         .back-link { color: white; text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; gap: 5px; }
         .back-link:hover { color: var(--accent); }
-
-        .auth-btn {
-            background: rgba(0,0,0,0.3);
-            border: 1px solid rgba(255,255,255,0.2);
-            color: #fff;
-            padding: 5px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            display: none; /* Se activa vía JS */
-            align-items: center;
-            gap: 6px;
-        }
-        .auth-btn:hover { background: rgba(0,0,0,0.5); border-color: var(--accent); }
 
         /* MAIN LAYOUT */
         .workspace {
@@ -209,7 +195,12 @@
 
         .btn-action:hover { filter: brightness(1.2); }
         .btn-action.secondary { background: #444; }
-        .btn-action.ai { background: linear-gradient(135deg, var(--maroon), var(--primary)); }
+        
+        /* New style for Local AI button */
+        .btn-action.local-ai { 
+            background: linear-gradient(135deg, #10b981, #059669); 
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+        }
 
         /* LAYER LIST */
         .layer-list {
@@ -288,13 +279,9 @@
 <body>
 
     <div class="header">
-        <h1><i class="fas fa-layer-group"></i> Estudio de Diseño AI <span style="font-size: 0.7rem; background: var(--accent); color: black; padding: 2px 6px; border-radius: 4px;">BETA</span></h1>
+        <h1><i class="fas fa-layer-group"></i> Estudio de Diseño <span style="font-size: 0.7rem; background: var(--accent); color: black; padding: 2px 6px; border-radius: 4px;">FREE</span></h1>
         
         <div style="display: flex; gap: 15px; align-items: center;">
-            <!-- Botón para configurar API Key -->
-            <button id="apiKeyBtn" class="auth-btn" onclick="requestApiKey()">
-                <i class="fas fa-key"></i> Configurar API Key
-            </button>
             <a href="index.html" class="back-link"><i class="fas fa-arrow-left"></i> Volver</a>
         </div>
     </div>
@@ -314,7 +301,7 @@
             <div style="width: 30px; height: 1px; background: #555; margin: 5px 0;"></div>
             
             <button class="tool-btn active" id="toolSelect" onclick="setTool('select')" data-tooltip="Mover/Seleccionar"><i class="fas fa-mouse-pointer"></i></button>
-            <button class="tool-btn" id="toolEraser" onclick="removeBackgroundOfSelected()" data-tooltip="IA: Quitar Fondo"><i class="fas fa-eraser" style="color: var(--accent);"></i></button>
+            <button class="tool-btn" id="toolEraser" onclick="removeBackgroundOfSelected()" data-tooltip="Quitar Fondo (IA Local)"><i class="fas fa-eraser" style="color: #10b981;"></i></button>
         </div>
 
         <!-- CANVAS -->
@@ -352,12 +339,11 @@
 
             <!-- IA TOOLS -->
             <div class="panel-section">
-                <div class="panel-title"><i class="fas fa-sparkles" style="color: var(--accent);"></i> Generador IA</div>
-                <div class="control-group">
-                    <textarea id="aiPrompt" placeholder="Ej: Un paisaje futurista de neón..." rows="2" style="margin-bottom: 5px;"></textarea>
-                    <button class="btn-action ai" onclick="generateBackgroundAI()">Generar Fondo</button>
-                </div>
-                <button class="btn-action secondary" onclick="suggestCaptionAI()"><i class="fas fa-lightbulb"></i> Sugerir Frase</button>
+                <div class="panel-title"><i class="fas fa-magic" style="color: #10b981;"></i> IA Local (Gratis)</div>
+                <button class="btn-action local-ai" onclick="removeBackgroundOfSelected()">
+                    <i class="fas fa-eraser"></i> Quitar Fondo
+                </button>
+                <p style="font-size: 0.7rem; color: #aaa; margin-top: 5px;">* Funciona en tu navegador, sin límites, sin costo.</p>
             </div>
 
             <!-- EXPORT -->
@@ -392,131 +378,53 @@
 
     <input type="file" id="fileInput" accept="image/*" style="display: none;">
 
+    <!-- TRANSFORMERS.JS MODULE -->
     <script type="module">
-        import { GoogleGenAI } from "@google/genai";
+        import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js';
+        
+        // Forzar descarga de HuggingFace ya que no tenemos servidor local de modelos
+        env.allowLocalModels = false;
+        env.useBrowserCache = true;
 
-        // ==========================================
-        // INITIALIZATION & AUTH
-        // ==========================================
-        let ai = null;
+        let segmenter = null;
 
-        async function initAI() {
+        // Preload del modelo local
+        window.initLocalModel = async () => {
             try {
-                // Prioridad 1: Revisar localStorage
-                const storedKey = localStorage.getItem('gemini_api_key');
-                if (storedKey) {
-                    ai = new GoogleGenAI({ apiKey: storedKey });
-                    document.getElementById('apiKeyBtn').style.display = 'none';
-                    return;
-                }
-
-                // Prioridad 2: AI Studio (Environment)
-                if (window.aistudio) {
-                    const hasKey = await window.aistudio.hasSelectedApiKey();
-                    if (hasKey) {
-                        ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-                        document.getElementById('apiKeyBtn').style.display = 'none';
-                        return;
-                    }
-                } 
-                
-                // Prioridad 3: Process Env Manual
-                if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
-                    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-                    document.getElementById('apiKeyBtn').style.display = 'none';
-                } else {
-                    document.getElementById('apiKeyBtn').style.display = 'inline-flex';
-                }
-            } catch (error) {
-                console.warn("Error inicializando AI:", error);
-                document.getElementById('apiKeyBtn').style.display = 'inline-flex';
+                console.log("Cargando modelo de segmentación...");
+                // Usamos RMBG-1.4 que es excelente para quitar fondos
+                segmenter = await pipeline('image-segmentation', 'briaai/RMBG-1.4');
+                console.log("Modelo cargado.");
+            } catch (e) {
+                console.error("Error cargando Transformers.js:", e);
             }
         }
-
-        // Función expuesta al window para el botón de configuración
-        window.requestApiKey = async () => {
-            // Intento 1: Usar la integración de AI Studio
-            if (window.aistudio) {
-                try {
-                    const success = await window.aistudio.openSelectKey();
-                    if (success) {
-                        ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-                        document.getElementById('apiKeyBtn').style.display = 'none';
-                        alert("API Key configurada correctamente.");
-                        return;
-                    }
-                } catch(e) {
-                    console.error("Fallo autenticación automática, intentando manual:", e);
-                }
+        
+        // Iniciar carga en background
+        window.initLocalModel();
+        
+        window.getSegmenter = async () => {
+            if (!segmenter) {
+                document.getElementById('loaderText').innerText = 'Descargando modelo IA (solo la primera vez)...';
+                document.getElementById('loader').classList.add('active');
+                await window.initLocalModel();
+                document.getElementById('loader').classList.remove('active');
             }
-            
-            // Intento 2: Entrada Manual
-            let manualKey = prompt("Por favor, ingresa tu API Key de Google Gemini (se guardará en este navegador):", "");
-            if (manualKey) {
-                manualKey = manualKey.trim(); // Limpieza crucial
-                if (manualKey.length > 0) {
-                    try {
-                        // Guardar en localStorage para persistencia
-                        localStorage.setItem('gemini_api_key', manualKey);
-                        
-                        // Configurar instancia
-                        ai = new GoogleGenAI({ apiKey: manualKey });
-                        
-                        document.getElementById('apiKeyBtn').style.display = 'none';
-                        alert("API Key configurada y guardada.");
-                    } catch (error) {
-                        alert("Error al configurar la llave: " + error.message);
-                    }
-                } else {
-                    alert("No se ingresó ninguna llave.");
-                }
-            }
-        };
-
-        // Iniciar al cargar
-        initAI();
-
-        // ==========================================
-        // MANEJO CENTRALIZADO DE ERRORES API
-        // ==========================================
-        function handleAiError(error) {
-            console.error(error);
-            const msg = error.toString() + (error.message || "");
-            
-            // 1. Error de Cuota Excedida (429 / Resource Exhausted)
-            // Esto sucede en la capa gratuita si haces muchas peticiones seguidas.
-            if (msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED") || msg.includes("quota") || msg.includes("limit")) {
-                alert("⚠️ Límite de cuota excedido (Error 429).\n\nHas alcanzado el límite de peticiones gratuitas por minuto de Google Gemini.\n\nPor favor, espera unos minutos antes de intentar de nuevo. Tu llave es correcta, solo necesitas esperar un poco.");
-            } 
-            // 2. Error de Llave Inválida (400 / Invalid Argument)
-            else if (msg.includes("API key not valid") || msg.includes("400") || msg.includes("INVALID_ARGUMENT")) {
-                alert("La API Key guardada no es válida o ha expirado. Se borrará para que puedas ingresar una nueva.");
-                localStorage.removeItem('gemini_api_key');
-                ai = null; 
-                document.getElementById('apiKeyBtn').style.display = 'inline-flex';
-                window.requestApiKey();
-            } 
-            // 3. Otros errores
-            else {
-                alert('Error al procesar con IA: ' + (error.message || error));
-            }
-            
-            // Siempre quitar el loader
-            document.getElementById('loader').classList.remove('active');
+            return segmenter;
         }
+    </script>
 
+    <script>
         // ==========================================
         // ENGINE STATE
         // ==========================================
         const canvas = document.getElementById('mainCanvas');
         const ctx = canvas.getContext('2d');
-        const container = document.getElementById('canvasContainer');
         
-        // Initial Canvas Size
         canvas.width = 800;
         canvas.height = 600;
 
-        let layers = []; // { id, type, x, y, width, height, content, color, font, rotation, visible }
+        let layers = []; 
         let selectedLayerId = null;
         
         // Mouse State
@@ -575,7 +483,6 @@
                         ctx.ellipse(cx, cy, layer.width/2, layer.height/2, 0, 0, 2 * Math.PI);
                         ctx.fill();
                     } else if (layer.shapeType === 'line') {
-                        // Lines are drawn as thin rectangles to allow easy rotation and selection
                         ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
                     }
                 } else if (layer.type === 'text') {
@@ -639,23 +546,9 @@
         window.addShape = (shapeType) => {
             let width = 150;
             let height = 150;
-            
-            // Si es línea, dimensiones por defecto diferentes
-            if (shapeType === 'line') {
-                width = 200;
-                height = 5; // Grosor por defecto
-            }
-
-            window.addLayer({
-                type: 'shape',
-                shapeType: shapeType,
-                color: '#1b396a',
-                width: width, 
-                height: height
-            });
+            if (shapeType === 'line') { width = 200; height = 5; }
+            window.addLayer({ type: 'shape', shapeType: shapeType, color: '#1b396a', width: width, height: height });
         };
-
-        // --- MANEJO DE IMÁGENES Y DRAG & DROP ---
 
         const handleImageUpload = (file) => {
             if (file) {
@@ -663,21 +556,8 @@
                 reader.onload = (evt) => {
                     const img = new Image();
                     img.onload = () => {
-                        // Ajustar tamaño del canvas si es la primera imagen
-                        if (layers.length === 0) {
-                            canvas.width = img.width;
-                            canvas.height = img.height;
-                        }
-                        
-                        window.addLayer({
-                            type: 'image',
-                            imgElement: img,
-                            width: img.width,
-                            height: img.height,
-                            x: 0, 
-                            y: 0,
-                            originalData: img.src 
-                        });
+                        if (layers.length === 0) { canvas.width = img.width; canvas.height = img.height; }
+                        window.addLayer({ type: 'image', imgElement: img, width: img.width, height: img.height, x: 0, y: 0 });
                     };
                     img.src = evt.target.result;
                 };
@@ -688,70 +568,33 @@
         const fileInput = document.getElementById('fileInput');
         fileInput.addEventListener('change', (e) => {
             const input = e.target;
-            if (input.files && input.files[0]) {
-                handleImageUpload(input.files[0]);
-                input.value = '';
-            }
+            if (input.files && input.files[0]) { handleImageUpload(input.files[0]); input.value = ''; }
         });
 
-        // Event Listeners para Drag & Drop en el Contenedor del Canvas
         const dropZone = document.getElementById('canvasContainer');
-
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropZone.classList.add('drag-over');
-        });
-
-        dropZone.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropZone.classList.remove('drag-over');
-        });
-
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); dropZone.classList.add('drag-over'); });
+        dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('drag-over'); });
         dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropZone.classList.remove('drag-over');
-
+            e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('drag-over');
             const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                const file = files[0];
-                if (file.type.startsWith('image/')) {
-                    handleImageUpload(file);
-                } else {
-                    alert('Por favor, arrastra solo archivos de imagen.');
-                }
-            }
+            if (files.length > 0 && files[0].type.startsWith('image/')) handleImageUpload(files[0]);
         });
-
-        // ----------------------------------------
 
         window.removeLayer = (id) => {
             layers = layers.filter(l => l.id !== id);
             if (selectedLayerId === id) selectedLayerId = null;
-            updateUI();
-            render();
+            updateUI(); render();
         };
 
         window.moveLayer = (dir) => {
             if (!selectedLayerId) return;
             const idx = layers.findIndex(l => l.id === selectedLayerId);
             if (idx === -1) return;
-            
             const newIdx = idx + dir;
-            if (newIdx >= 0 && newIdx < layers.length) {
-                [layers[idx], layers[newIdx]] = [layers[newIdx], layers[idx]];
-                updateUI();
-                render();
-            }
+            if (newIdx >= 0 && newIdx < layers.length) { [layers[idx], layers[newIdx]] = [layers[newIdx], layers[idx]]; updateUI(); render(); }
         };
 
-        window.selectLayer = (id) => {
-            selectedLayerId = id;
-            updateUI();
-            render();
-        };
+        window.selectLayer = (id) => { selectedLayerId = id; updateUI(); render(); };
 
         // ==========================================
         // UI UPDATES
@@ -768,12 +611,7 @@
                 let name = 'Capa';
                 if (layer.type === 'text') { icon = 'fa-font'; name = layer.content; }
                 if (layer.type === 'image') { icon = 'fa-image'; name = 'Imagen'; }
-                if (layer.type === 'shape') { 
-                    if (layer.shapeType === 'rect') { icon = 'fa-square'; name = 'Cuadro'; }
-                    else if (layer.shapeType === 'circle') { icon = 'fa-circle'; name = 'Círculo'; }
-                    else if (layer.shapeType === 'line') { icon = 'fa-minus'; name = 'Línea'; }
-                    else { icon = 'fa-shapes'; name = 'Forma'; }
-                }
+                if (layer.type === 'shape') { icon = 'fa-shapes'; name = 'Forma'; }
 
                 div.innerHTML = `
                     <i class="fas ${icon}"></i>
@@ -794,36 +632,19 @@
                 return;
             }
 
-            let html = `
-                <div class="control-group">
-                    <label>Opacidad</label>
-                    <input type="range" min="0" max="1" step="0.1" value="${selLayer.opacity !== undefined ? selLayer.opacity : 1}" oninput="updateProp('opacity', this.value)">
-                </div>
-            `;
+            let html = `<div class="control-group"><label>Opacidad</label><input type="range" min="0" max="1" step="0.1" value="${selLayer.opacity !== undefined ? selLayer.opacity : 1}" oninput="updateProp('opacity', this.value)"></div>`;
 
             if (selLayer.type === 'text') {
                 html += `
                     <div class="control-group"><label>Texto</label><input type="text" value="${selLayer.content}" oninput="updateProp('content', this.value)"></div>
                     <div class="control-group"><label>Tamaño</label><input type="number" value="${selLayer.fontSize}" oninput="updateProp('fontSize', this.value)"></div>
                     <div class="control-group"><label>Color</label><input type="color" value="${selLayer.color}" oninput="updateProp('color', this.value)"></div>
-                    <div class="control-group"><label>Fuente</label>
-                        <select onchange="updateProp('fontFamily', this.value)">
-                            <option value="Arial" ${selLayer.fontFamily === 'Arial' ? 'selected' : ''}>Arial</option>
-                            <option value="Georgia" ${selLayer.fontFamily === 'Georgia' ? 'selected' : ''}>Georgia</option>
-                            <option value="Courier New" ${selLayer.fontFamily === 'Courier New' ? 'selected' : ''}>Courier</option>
-                            <option value="Verdana" ${selLayer.fontFamily === 'Verdana' ? 'selected' : ''}>Verdana</option>
-                        </select>
-                    </div>
                 `;
             } else if (selLayer.type === 'shape') {
-                // Etiquetas dinámicas según si es línea o forma
-                const wLabel = selLayer.shapeType === 'line' ? 'Largo' : 'Ancho';
-                const hLabel = selLayer.shapeType === 'line' ? 'Grosor' : 'Alto';
-
                 html += `
                     <div class="control-group"><label>Color</label><input type="color" value="${selLayer.color}" oninput="updateProp('color', this.value)"></div>
-                    <div class="control-group"><label>${wLabel}</label><input type="number" value="${selLayer.width}" oninput="updateProp('width', this.value)"></div>
-                    <div class="control-group"><label>${hLabel}</label><input type="number" value="${selLayer.height}" oninput="updateProp('height', this.value)"></div>
+                    <div class="control-group"><label>Ancho</label><input type="number" value="${selLayer.width}" oninput="updateProp('width', this.value)"></div>
+                    <div class="control-group"><label>Alto</label><input type="number" value="${selLayer.height}" oninput="updateProp('height', this.value)"></div>
                 `;
             } else if (selLayer.type === 'image') {
                  html += `
@@ -831,27 +652,21 @@
                     <div class="control-group"><label>Alto</label><input type="number" value="${parseInt(selLayer.height)}" oninput="updateProp('height', this.value)"></div>
                 `;
             }
-
             propsPanel.innerHTML = html;
         }
 
         window.updateProp = (key, value) => {
             const layer = layers.find(l => l.id === selectedLayerId);
             if (layer) {
-                if (key === 'width' || key === 'height' || key === 'fontSize') value = parseInt(value);
+                if (['width','height','fontSize'].includes(key)) value = parseInt(value);
                 if (key === 'opacity') value = parseFloat(value);
-                layer[key] = value;
-                render();
+                layer[key] = value; render();
             }
         };
 
         window.toggleVis = (id) => {
             const layer = layers.find(l => l.id === id);
-            if (layer) {
-                layer.visible = !layer.visible;
-                updateUI();
-                render();
-            }
+            if (layer) { layer.visible = !layer.visible; updateUI(); render(); }
         };
 
         // ==========================================
@@ -859,374 +674,158 @@
         // ==========================================
         canvas.addEventListener('mousedown', (e) => {
             const pos = getMousePos(e);
-            const mouseX = pos.x;
-            const mouseY = pos.y;
-
             if (selectedLayerId) {
                 const layer = layers.find(l => l.id === selectedLayerId);
-                if (layer && isHandleClicked(layer, mouseX, mouseY)) {
-                    isResizing = true;
-                    isDragging = false;
-                    dragStart = { x: mouseX, y: mouseY };
-                    return;
+                if (layer && isHandleClicked(layer, pos.x, pos.y)) {
+                    isResizing = true; isDragging = false; dragStart = { x: pos.x, y: pos.y }; return;
                 }
             }
-
             let hit = false;
             for (let i = layers.length - 1; i >= 0; i--) {
                 const l = layers[i];
                 if (!l.visible) continue;
-                if (mouseX >= l.x && mouseX <= l.x + l.width && mouseY >= l.y && mouseY <= l.y + l.height) {
-                    selectedLayerId = l.id;
-                    isDragging = true;
-                    isResizing = false;
-                    dragStart = { x: mouseX - l.x, y: mouseY - l.y };
-                    hit = true;
-                    updateUI();
-                    render();
-                    break;
+                if (pos.x >= l.x && pos.x <= l.x + l.width && pos.y >= l.y && pos.y <= l.y + l.height) {
+                    selectedLayerId = l.id; isDragging = true; isResizing = false; dragStart = { x: pos.x - l.x, y: pos.y - l.y }; hit = true; updateUI(); render(); break;
                 }
             }
-            
-            if (!hit) {
-                selectedLayerId = null;
-                isDragging = false;
-                isResizing = false;
-                updateUI();
-                render();
-            }
+            if (!hit) { selectedLayerId = null; isDragging = false; updateUI(); render(); }
         });
 
         canvas.addEventListener('mousemove', (e) => {
             const pos = getMousePos(e);
-            const mouseX = pos.x;
-            const mouseY = pos.y;
-            
             let cursor = 'default';
-            if (isResizing) {
-                cursor = 'nwse-resize';
-            } else if (selectedLayerId) {
+            if (isResizing) cursor = 'nwse-resize';
+            else if (selectedLayerId) {
                 const layer = layers.find(l => l.id === selectedLayerId);
-                if (isHandleClicked(layer, mouseX, mouseY)) {
-                    cursor = 'nwse-resize';
-                } else if (mouseX >= layer.x && mouseX <= layer.x + layer.width && mouseY >= layer.y && mouseY <= layer.y + layer.height) {
-                    cursor = 'move';
-                }
+                if (isHandleClicked(layer, pos.x, pos.y)) cursor = 'nwse-resize';
+                else if (pos.x >= layer.x && pos.x <= layer.x + layer.width && pos.y >= layer.y && pos.y <= layer.y + layer.height) cursor = 'move';
             }
             canvas.style.cursor = cursor;
 
             if (isResizing && selectedLayerId) {
                 const layer = layers.find(l => l.id === selectedLayerId);
-                if (layer) {
-                    const newW = Math.max(20, mouseX - layer.x);
-                    const newH = Math.max(20, mouseY - layer.y);
-                    layer.width = newW;
-                    layer.height = newH;
-                    updateUI();
-                    render();
-                }
+                if (layer) { layer.width = Math.max(20, pos.x - layer.x); layer.height = Math.max(20, pos.y - layer.y); updateUI(); render(); }
             } else if (isDragging && selectedLayerId) {
                 const layer = layers.find(l => l.id === selectedLayerId);
-                if (layer) {
-                    layer.x = pos.x - dragStart.x;
-                    layer.y = pos.y - dragStart.y;
-                    render();
-                }
+                if (layer) { layer.x = pos.x - dragStart.x; layer.y = pos.y - dragStart.y; render(); }
             }
         });
 
-        window.addEventListener('mouseup', () => { 
-            isDragging = false; 
-            isResizing = false;
-        });
+        window.addEventListener('mouseup', () => { isDragging = false; isResizing = false; });
 
         // ==========================================
-        // AI FEATURES (Gemini)
+        // LOCAL AI - BACKGROUND REMOVAL (GRATIS)
         // ==========================================
         
-        // 1. Remove Background
         window.removeBackgroundOfSelected = async () => {
             let layer = layers.find(l => l.id === selectedLayerId);
             
-            // Auto-seleccionar la última capa de imagen si no hay nada seleccionado
             if (!layer || layer.type !== 'image') {
                 const imageLayers = layers.filter(l => l.type === 'image');
                 if (imageLayers.length > 0) {
                     layer = imageLayers[imageLayers.length - 1];
                     selectedLayerId = layer.id;
-                    updateUI();
-                    render();
+                    updateUI(); render();
                 } else {
-                    alert('Por favor, sube una imagen primero.');
+                    alert('Por favor, selecciona o sube una imagen primero.');
                     return;
                 }
             }
 
-            // Check API Key
-            if(!ai) {
-                const conf = confirm("API Key no detectada. ¿Deseas configurarla ahora?");
-                if(conf) window.requestApiKey();
-                return;
-            }
-
             const loader = document.getElementById('loader');
             loader.classList.add('active');
-            document.getElementById('loaderText').innerText = 'Paso 1/2: Generando máscara con IA...';
+            document.getElementById('loaderText').innerText = 'Procesando en tu navegador (Gratis)...';
 
             try {
-                // Get Base64 of original image via temp canvas
+                // Obtener el modelo local
+                const segmenter = await window.getSegmenter();
+                
+                // Preparar imagen
                 const tempC = document.createElement('canvas');
-                const MAX_DIM = 1024;
-                let srcW = layer.imgElement.naturalWidth;
-                let srcH = layer.imgElement.naturalHeight;
-                
-                // Downscale if needed to avoid payload limits and speed up
-                if(srcW > MAX_DIM || srcH > MAX_DIM) {
-                    const ratio = Math.min(MAX_DIM/srcW, MAX_DIM/srcH);
-                    srcW *= ratio;
-                    srcH *= ratio;
-                }
-                
-                tempC.width = srcW;
-                tempC.height = srcH;
+                tempC.width = layer.imgElement.naturalWidth;
+                tempC.height = layer.imgElement.naturalHeight;
                 const tempCtx = tempC.getContext('2d');
-                tempCtx.drawImage(layer.imgElement, 0, 0, srcW, srcH);
-                const base64Data = tempC.toDataURL('image/jpeg', 0.85).split(',')[1];
+                tempCtx.drawImage(layer.imgElement, 0, 0);
+                
+                // Ejecutar Transformers.js
+                // Pasamos la URL de datos de la imagen
+                const output = await segmenter(tempC.toDataURL());
+                
+                // El output es una máscara (RawImage o similar), necesitamos convertirla
+                // Transformers.js devuelve una máscara de segmentación.
+                
+                // Crear una imagen de la máscara
+                const mask = output[0].mask; // Dependiendo de la versión, puede ser output.mask o output[0].mask
+                
+                // Componer la imagen final
+                // 1. Convertir máscara a Canvas
+                const maskCanvas = document.createElement('canvas');
+                maskCanvas.width = mask.width;
+                maskCanvas.height = mask.height;
+                const maskCtx = maskCanvas.getContext('2d');
+                
+                // Put image data
+                const maskData = new ImageData(new Uint8ClampedArray(mask.data), mask.width, mask.height);
+                maskCtx.putImageData(maskData, 0, 0);
 
-                // Call Gemini
-                // We ask for a "Green Screen" version which is robust for extraction.
-                const prompt = "Retain the main subject of this image exactly as is. Replace the entire background with a pure bright green color (RGB 0, 255, 0). Ensure clean edges.";
+                // 2. Aplicar la máscara a la imagen original
+                const finalCanvas = document.createElement('canvas');
+                finalCanvas.width = tempC.width;
+                finalCanvas.height = tempC.height;
+                const finalCtx = finalCanvas.getContext('2d');
 
-                const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash-image',
-                    contents: {
-                        parts: [
-                            { inlineData: { mimeType: 'image/jpeg', data: base64Data } },
-                            { text: prompt }
-                        ]
-                    }
-                });
+                // Dibujar imagen original
+                finalCtx.drawImage(tempC, 0, 0, finalCanvas.width, finalCanvas.height);
+                
+                // Usar composición para aplicar la máscara alfa
+                finalCtx.globalCompositeOperation = 'destination-in';
+                // La máscara de RMBG suele ser escala de grises donde blanco es opaco y negro transparente
+                finalCtx.drawImage(maskCanvas, 0, 0, finalCanvas.width, finalCanvas.height);
 
-                let resultBase64 = null;
-                if(response.candidates?.[0]?.content?.parts) {
-                    for (const part of response.candidates[0].content.parts) {
-                        if (part.inlineData) {
-                            resultBase64 = part.inlineData.data;
-                            break;
-                        }
-                    }
-                }
-
-                if (!resultBase64) throw new Error("La IA no devolvió una imagen válida.");
-
-                document.getElementById('loaderText').innerText = 'Paso 2/2: Aplicando transparencia...';
-
-                // Chroma Key Processing (Green Screen Removal)
-                const resImg = new Image();
-                resImg.crossOrigin = "Anonymous"; // Safety
-                resImg.onload = () => {
-                    const procC = document.createElement('canvas');
-                    procC.width = resImg.width;
-                    procC.height = resImg.height;
-                    const procCtx = procC.getContext('2d');
-                    procCtx.drawImage(resImg, 0, 0);
-                    
-                    const imgData = procCtx.getImageData(0, 0, procC.width, procC.height);
-                    const data = imgData.data;
-                    
-                    // Target: Pure Green (0, 255, 0)
-                    const tR = 0;
-                    const tG = 255;
-                    const tB = 0;
-                    
-                    // Thresholds
-                    const similarityThreshold = 100; // Euclidean distance threshold
-                    const smoothness = 40; // Fade out range
-
-                    for (let i = 0; i < data.length; i += 4) {
-                        const r = data[i];
-                        const g = data[i + 1];
-                        const b = data[i + 2];
-                        
-                        // Calculate distance from pure green
-                        const dist = Math.sqrt(
-                            (r - tR) ** 2 + 
-                            (g - tG) ** 2 + 
-                            (b - tB) ** 2
-                        );
-
-                        if (dist < similarityThreshold) {
-                            // Total transparency
-                            data[i + 3] = 0; 
-                        } else if (dist < similarityThreshold + smoothness) {
-                            // Semi-transparency for antialiasing edges
-                            const alpha = (dist - similarityThreshold) / smoothness;
-                            data[i + 3] = Math.floor(255 * alpha);
-                        }
-                    }
-
-                    procCtx.putImageData(imgData, 0, 0);
-
-                    // Update Layer
-                    const finalImg = new Image();
-                    finalImg.onload = () => {
-                        layer.imgElement = finalImg;
-                        loader.classList.remove('active');
-                        render();
-                    };
-                    finalImg.src = procC.toDataURL();
+                // 3. Actualizar la capa
+                const finalImg = new Image();
+                finalImg.onload = () => {
+                    layer.imgElement = finalImg;
+                    loader.classList.remove('active');
+                    render();
                 };
-                resImg.src = `data:image/png;base64,${resultBase64}`;
+                finalImg.src = finalCanvas.toDataURL();
 
             } catch (error) {
-                handleAiError(error);
-            }
-        };
-
-        // 2. Generate Background
-        window.generateBackgroundAI = async () => {
-            if(!ai) {
-                const conf = confirm("API Key no detectada. ¿Deseas configurarla ahora?");
-                if(conf) window.requestApiKey();
-                return;
-            }
-            const prompt = document.getElementById('aiPrompt').value;
-            if (!prompt) { alert('Escribe una descripción para el fondo.'); return; }
-
-            const loader = document.getElementById('loader');
-            loader.classList.add('active');
-            document.getElementById('loaderText').innerText = 'Generando Fondo con IA...';
-
-            try {
-                const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash-image',
-                    contents: {
-                        parts: [{ text: prompt }]
-                    },
-                    config: {
-                        imageConfig: { aspectRatio: "4:3" }
-                    }
-                });
-
-                let base64Image = null;
-                if(response.candidates?.[0]?.content?.parts) {
-                    for (const part of response.candidates[0].content.parts) {
-                        if (part.inlineData) {
-                            base64Image = part.inlineData.data;
-                            break;
-                        }
-                    }
-                }
-
-                if (base64Image) {
-                    const img = new Image();
-                    img.onload = () => {
-                        const newLayer = {
-                            id: createId(),
-                            type: 'image',
-                            imgElement: img,
-                            x: 0, y: 0,
-                            width: canvas.width,
-                            height: canvas.height,
-                            visible: true,
-                            rotation: 0
-                        };
-                        layers.unshift(newLayer);
-                        updateUI();
-                        render();
-                        loader.classList.remove('active');
-                    };
-                    img.src = `data:image/png;base64,${base64Image}`;
-                } else {
-                    throw new Error('No se generó imagen.');
-                }
-
-            } catch (error) {
-                handleAiError(error);
-            }
-        };
-
-        // 3. Suggest Caption
-        window.suggestCaptionAI = async () => {
-            if(!ai) {
-                const conf = confirm("API Key no detectada. ¿Deseas configurarla ahora?");
-                if(conf) window.requestApiKey();
-                return;
-            }
-            const loader = document.getElementById('loader');
-            loader.classList.add('active');
-            document.getElementById('loaderText').innerText = 'Analizando diseño...';
-
-            try {
-                const currentDesign = canvas.toDataURL('image/jpeg').split(',')[1];
-
-                const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash',
-                    contents: {
-                        parts: [
-                            { inlineData: { mimeType: 'image/jpeg', data: currentDesign } },
-                            { text: "Suggest a short, catchy, professional title (max 5 words) for this design in Spanish. Just the text." }
-                        ]
-                    }
-                });
-
-                const text = response.text.trim().replace(/"/g, '');
-                window.addTextLayer(text);
+                console.error(error);
+                alert('Error al procesar localmente: ' + error.message);
                 loader.classList.remove('active');
-
-            } catch (error) {
-                handleAiError(error);
             }
         };
 
         // ==========================================
         // DOWNLOAD MODAL
         // ==========================================
-        window.openDownloadModal = () => {
-            document.getElementById('downloadModal').classList.add('active');
-        };
-
-        window.closeDownloadModal = () => {
-            document.getElementById('downloadModal').classList.remove('active');
-        };
-
+        window.openDownloadModal = () => document.getElementById('downloadModal').classList.add('active');
+        window.closeDownloadModal = () => document.getElementById('downloadModal').classList.remove('active');
         window.confirmDownload = () => {
             const fileName = document.getElementById('fileName').value || 'diseño_itd';
             const format = document.getElementById('fileFormat').value;
-            
             const currentSelection = selectedLayerId;
-            selectedLayerId = null;
-            render(); 
+            selectedLayerId = null; render(); 
             
+            const link = document.createElement('a');
             if (format === 'image/jpeg') {
                 const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = canvas.width;
-                tempCanvas.height = canvas.height;
+                tempCanvas.width = canvas.width; tempCanvas.height = canvas.height;
                 const tCtx = tempCanvas.getContext('2d');
-                
-                tCtx.fillStyle = '#ffffff';
-                tCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+                tCtx.fillStyle = '#ffffff'; tCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
                 tCtx.drawImage(canvas, 0, 0);
-                
-                const link = document.createElement('a');
-                link.download = `${fileName}.jpg`;
-                link.href = tempCanvas.toDataURL('image/jpeg', 0.9);
-                link.click();
+                link.download = `${fileName}.jpg`; link.href = tempCanvas.toDataURL('image/jpeg', 0.9);
             } else {
-                const link = document.createElement('a');
                 const ext = format === 'image/webp' ? 'webp' : 'png';
-                link.download = `${fileName}.${ext}`;
-                link.href = canvas.toDataURL(format);
-                link.click();
+                link.download = `${fileName}.${ext}`; link.href = canvas.toDataURL(format);
             }
-
-            selectedLayerId = currentSelection;
-            render();
-            closeDownloadModal();
+            link.click();
+            selectedLayerId = currentSelection; render(); closeDownloadModal();
         };
 
         render();
-
     </script>
 </body>
 </html>
