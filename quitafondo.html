@@ -127,6 +127,12 @@
             position: relative;
             overflow: hidden;
             padding: 20px;
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+
+        .canvas-area.drag-over {
+            background-color: #2a2a2a;
+            box-shadow: inset 0 0 0 4px var(--accent);
         }
 
         canvas {
@@ -298,9 +304,15 @@
         <div class="toolbar">
             <button class="tool-btn" onclick="document.getElementById('fileInput').click()" data-tooltip="Subir Imagen"><i class="fas fa-upload"></i></button>
             <button class="tool-btn" onclick="addTextLayer()" data-tooltip="Añadir Texto"><i class="fas fa-font"></i></button>
-            <button class="tool-btn" onclick="addShape('rect')" data-tooltip="Rectángulo"><i class="fas fa-vector-square"></i></button>
-            <button class="tool-btn" onclick="addShape('circle')" data-tooltip="Círculo"><i class="fas fa-circle"></i></button>
+            
             <div style="width: 30px; height: 1px; background: #555; margin: 5px 0;"></div>
+            
+            <button class="tool-btn" onclick="addShape('rect')" data-tooltip="Cuadro/Rectángulo"><i class="fas fa-vector-square"></i></button>
+            <button class="tool-btn" onclick="addShape('circle')" data-tooltip="Círculo"><i class="fas fa-circle"></i></button>
+            <button class="tool-btn" onclick="addShape('line')" data-tooltip="Línea"><i class="fas fa-minus"></i></button>
+            
+            <div style="width: 30px; height: 1px; background: #555; margin: 5px 0;"></div>
+            
             <button class="tool-btn active" id="toolSelect" onclick="setTool('select')" data-tooltip="Mover/Seleccionar"><i class="fas fa-mouse-pointer"></i></button>
             <button class="tool-btn" id="toolEraser" onclick="removeBackgroundOfSelected()" data-tooltip="IA: Quitar Fondo"><i class="fas fa-eraser" style="color: var(--accent);"></i></button>
         </div>
@@ -418,6 +430,7 @@
 
         // Función expuesta al window para el botón de configuración
         window.requestApiKey = async () => {
+            // Intento 1: Usar la integración de AI Studio
             if (window.aistudio) {
                 try {
                     const success = await window.aistudio.openSelectKey();
@@ -425,13 +438,28 @@
                         ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
                         document.getElementById('apiKeyBtn').style.display = 'none';
                         alert("API Key configurada correctamente.");
+                        return;
                     }
                 } catch(e) {
-                    console.error(e);
-                    alert("Error seleccionando la llave. Verifica la consola.");
+                    console.error("Fallo autenticación automática, intentando manual:", e);
                 }
-            } else {
-                alert("Para usar esta herramienta, asegúrate de correr en un entorno compatible con Google AI Studio o configurar process.env.API_KEY.");
+            }
+            
+            // Intento 2: Entrada Manual si falla lo anterior o no existe
+            const manualKey = prompt("Por favor, ingresa tu API Key de Google Gemini:", "");
+            if (manualKey) {
+                try {
+                    // Establecemos la key manualmente en el entorno para este caso
+                    if (!window.process) window.process = { env: {} };
+                    if (!window.process.env) window.process.env = {};
+                    window.process.env.API_KEY = manualKey;
+                    
+                    ai = new GoogleGenAI({ apiKey: manualKey });
+                    document.getElementById('apiKeyBtn').style.display = 'none';
+                    alert("API Key configurada manualmente.");
+                } catch (error) {
+                    alert("Error al configurar la llave: " + error.message);
+                }
             }
         };
 
@@ -507,6 +535,9 @@
                         ctx.beginPath();
                         ctx.ellipse(cx, cy, layer.width/2, layer.height/2, 0, 0, 2 * Math.PI);
                         ctx.fill();
+                    } else if (layer.shapeType === 'line') {
+                        // Lines are drawn as thin rectangles to allow easy rotation and selection
+                        ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
                     }
                 } else if (layer.type === 'text') {
                     ctx.font = `${layer.fontSize}px ${layer.fontFamily}`;
@@ -567,24 +598,37 @@
         };
 
         window.addShape = (shapeType) => {
+            let width = 150;
+            let height = 150;
+            
+            // Si es línea, dimensiones por defecto diferentes
+            if (shapeType === 'line') {
+                width = 200;
+                height = 5; // Grosor por defecto
+            }
+
             window.addLayer({
                 type: 'shape',
                 shapeType: shapeType,
                 color: '#1b396a',
-                width: 150, height: 150
+                width: width, 
+                height: height
             });
         };
 
-        const fileInput = document.getElementById('fileInput');
-        fileInput.addEventListener('change', (e) => {
-            const input = e.target;
-            if (input.files && input.files[0]) {
+        // --- MANEJO DE IMÁGENES Y DRAG & DROP ---
+
+        const handleImageUpload = (file) => {
+            if (file) {
                 const reader = new FileReader();
                 reader.onload = (evt) => {
                     const img = new Image();
                     img.onload = () => {
-                        canvas.width = img.width;
-                        canvas.height = img.height;
+                        // Ajustar tamaño del canvas si es la primera imagen
+                        if (layers.length === 0) {
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                        }
                         
                         window.addLayer({
                             type: 'image',
@@ -595,14 +639,54 @@
                             y: 0,
                             originalData: img.src 
                         });
-                        
-                        input.value = '';
                     };
                     img.src = evt.target.result;
                 };
-                reader.readAsDataURL(input.files[0]);
+                reader.readAsDataURL(file);
+            }
+        };
+
+        const fileInput = document.getElementById('fileInput');
+        fileInput.addEventListener('change', (e) => {
+            const input = e.target;
+            if (input.files && input.files[0]) {
+                handleImageUpload(input.files[0]);
+                input.value = '';
             }
         });
+
+        // Event Listeners para Drag & Drop en el Contenedor del Canvas
+        const dropZone = document.getElementById('canvasContainer');
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('drag-over');
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.type.startsWith('image/')) {
+                    handleImageUpload(file);
+                } else {
+                    alert('Por favor, arrastra solo archivos de imagen.');
+                }
+            }
+        });
+
+        // ----------------------------------------
 
         window.removeLayer = (id) => {
             layers = layers.filter(l => l.id !== id);
@@ -645,7 +729,12 @@
                 let name = 'Capa';
                 if (layer.type === 'text') { icon = 'fa-font'; name = layer.content; }
                 if (layer.type === 'image') { icon = 'fa-image'; name = 'Imagen'; }
-                if (layer.type === 'shape') { icon = 'fa-shapes'; name = 'Forma'; }
+                if (layer.type === 'shape') { 
+                    if (layer.shapeType === 'rect') { icon = 'fa-square'; name = 'Cuadro'; }
+                    else if (layer.shapeType === 'circle') { icon = 'fa-circle'; name = 'Círculo'; }
+                    else if (layer.shapeType === 'line') { icon = 'fa-minus'; name = 'Línea'; }
+                    else { icon = 'fa-shapes'; name = 'Forma'; }
+                }
 
                 div.innerHTML = `
                     <i class="fas ${icon}"></i>
@@ -688,10 +777,14 @@
                     </div>
                 `;
             } else if (selLayer.type === 'shape') {
+                // Etiquetas dinámicas según si es línea o forma
+                const wLabel = selLayer.shapeType === 'line' ? 'Largo' : 'Ancho';
+                const hLabel = selLayer.shapeType === 'line' ? 'Grosor' : 'Alto';
+
                 html += `
                     <div class="control-group"><label>Color</label><input type="color" value="${selLayer.color}" oninput="updateProp('color', this.value)"></div>
-                    <div class="control-group"><label>Ancho</label><input type="number" value="${selLayer.width}" oninput="updateProp('width', this.value)"></div>
-                    <div class="control-group"><label>Alto</label><input type="number" value="${selLayer.height}" oninput="updateProp('height', this.value)"></div>
+                    <div class="control-group"><label>${wLabel}</label><input type="number" value="${selLayer.width}" oninput="updateProp('width', this.value)"></div>
+                    <div class="control-group"><label>${hLabel}</label><input type="number" value="${selLayer.height}" oninput="updateProp('height', this.value)"></div>
                 `;
             } else if (selLayer.type === 'image') {
                  html += `
