@@ -446,19 +446,24 @@
             }
             
             // Intento 2: Entrada Manual si falla lo anterior o no existe
-            const manualKey = prompt("Por favor, ingresa tu API Key de Google Gemini:", "");
+            let manualKey = prompt("Por favor, ingresa tu API Key de Google Gemini (sin espacios extra):", "");
             if (manualKey) {
-                try {
-                    // Establecemos la key manualmente en el entorno para este caso
-                    if (!window.process) window.process = { env: {} };
-                    if (!window.process.env) window.process.env = {};
-                    window.process.env.API_KEY = manualKey;
-                    
-                    ai = new GoogleGenAI({ apiKey: manualKey });
-                    document.getElementById('apiKeyBtn').style.display = 'none';
-                    alert("API Key configurada manualmente.");
-                } catch (error) {
-                    alert("Error al configurar la llave: " + error.message);
+                manualKey = manualKey.trim(); // Eliminamos espacios en blanco accidentales
+                if (manualKey.length > 0) {
+                    try {
+                        // Establecemos la key manualmente en el entorno para este caso
+                        if (!window.process) window.process = { env: {} };
+                        if (!window.process.env) window.process.env = {};
+                        window.process.env.API_KEY = manualKey;
+                        
+                        ai = new GoogleGenAI({ apiKey: manualKey });
+                        document.getElementById('apiKeyBtn').style.display = 'none';
+                        alert("API Key configurada manualmente.");
+                    } catch (error) {
+                        alert("Error al configurar la llave: " + error.message);
+                    }
+                } else {
+                    alert("No se ingresó ninguna llave.");
                 }
             }
         };
@@ -1041,7 +1046,14 @@
 
             } catch (error) {
                 console.error(error);
-                alert('Error al procesar con IA: ' + (error.message || error));
+                if (error.toString().includes("API key not valid") || error.toString().includes("400") || (error.message && error.message.includes("400"))) {
+                    alert("La API Key ingresada no es válida. Se solicitará nuevamente.");
+                    ai = null; // Reset
+                    document.getElementById('apiKeyBtn').style.display = 'inline-flex';
+                    window.requestApiKey();
+                } else {
+                    alert('Error al procesar con IA: ' + (error.message || error));
+                }
                 loader.classList.remove('active');
             }
         };
@@ -1106,7 +1118,14 @@
 
             } catch (error) {
                 console.error(error);
-                alert('Error generando imagen: ' + error.message);
+                if (error.toString().includes("API key not valid") || error.toString().includes("400") || (error.message && error.message.includes("400"))) {
+                    alert("La API Key ingresada no es válida. Se solicitará nuevamente.");
+                    ai = null; 
+                    document.getElementById('apiKeyBtn').style.display = 'inline-flex';
+                    window.requestApiKey();
+                } else {
+                    alert('Error generando imagen: ' + error.message);
+                }
                 loader.classList.remove('active');
             }
         };
@@ -1141,7 +1160,14 @@
 
             } catch (error) {
                 console.error(error);
-                alert('Error: ' + error.message);
+                if (error.toString().includes("API key not valid") || error.toString().includes("400") || (error.message && error.message.includes("400"))) {
+                    alert("La API Key ingresada no es válida. Se solicitará nuevamente.");
+                    ai = null;
+                    document.getElementById('apiKeyBtn').style.display = 'inline-flex';
+                    window.requestApiKey();
+                } else {
+                    alert('Error: ' + error.message);
+                }
                 loader.classList.remove('active');
             }
         };
