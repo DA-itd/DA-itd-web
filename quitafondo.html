@@ -380,36 +380,47 @@
 
     <!-- TRANSFORMERS.JS MODULE -->
     <script type="module">
-        import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js';
+        // Importación corregida usando el alias del Import Map
+        import { pipeline, env } from '@xenova/transformers';
         
-        // Forzar descarga de HuggingFace ya que no tenemos servidor local de modelos
+        // Configuración para entorno de navegador
         env.allowLocalModels = false;
         env.useBrowserCache = true;
 
         let segmenter = null;
 
-        // Preload del modelo local
+        // Carga inicial del modelo
         window.initLocalModel = async () => {
             try {
-                console.log("Cargando modelo de segmentación...");
-                // Usamos RMBG-1.4 que es excelente para quitar fondos
-                segmenter = await pipeline('image-segmentation', 'briaai/RMBG-1.4');
-                console.log("Modelo cargado.");
+                console.log("Iniciando descarga del modelo IA...");
+                // IMPORTANTE: Usamos 'Xenova/RMBG-1.4' que contiene los pesos ONNX optimizados para web.
+                // El original 'briaai/RMBG-1.4' puede fallar si no tiene la estructura esperada por transformers.js
+                segmenter = await pipeline('image-segmentation', 'Xenova/RMBG-1.4');
+                console.log("Modelo IA cargado y listo.");
             } catch (e) {
-                console.error("Error cargando Transformers.js:", e);
+                console.error("Error crítico cargando Transformers.js:", e);
+                // Reseteamos a null para permitir reintentos
+                segmenter = null;
+                alert("Error al descargar los archivos del modelo IA. Por favor, verifica tu conexión a internet.");
             }
         }
         
-        // Iniciar carga en background
+        // Iniciar carga en segundo plano
         window.initLocalModel();
         
+        // Función segura para obtener el segmentador
         window.getSegmenter = async () => {
             if (!segmenter) {
-                document.getElementById('loaderText').innerText = 'Descargando modelo IA (solo la primera vez)...';
+                document.getElementById('loaderText').innerText = 'Descargando modelo IA (aprox 80MB, solo la primera vez)...';
                 document.getElementById('loader').classList.add('active');
                 await window.initLocalModel();
                 document.getElementById('loader').classList.remove('active');
             }
+            
+            if (!segmenter) {
+                throw new Error("El modelo de IA no se pudo inicializar. Intenta recargar la página.");
+            }
+            
             return segmenter;
         }
     </script>
@@ -737,7 +748,7 @@
             document.getElementById('loaderText').innerText = 'Procesando en tu navegador (Gratis)...';
 
             try {
-                // Obtener el modelo local
+                // Obtener el modelo local (asegura que esté cargado)
                 const segmenter = await window.getSegmenter();
                 
                 // Preparar imagen
@@ -747,15 +758,12 @@
                 const tempCtx = tempC.getContext('2d');
                 tempCtx.drawImage(layer.imgElement, 0, 0);
                 
-                // Ejecutar Transformers.js
-                // Pasamos la URL de datos de la imagen
+                // Ejecutar Transformers.js (Inferencia)
+                // Pasamos la URL de datos de la imagen (Base64)
                 const output = await segmenter(tempC.toDataURL());
                 
-                // El output es una máscara (RawImage o similar), necesitamos convertirla
-                // Transformers.js devuelve una máscara de segmentación.
-                
-                // Crear una imagen de la máscara
-                const mask = output[0].mask; // Dependiendo de la versión, puede ser output.mask o output[0].mask
+                // El output es una lista de máscaras. Tomamos la primera.
+                const mask = output[0].mask; 
                 
                 // Componer la imagen final
                 // 1. Convertir máscara a Canvas
@@ -764,7 +772,7 @@
                 maskCanvas.height = mask.height;
                 const maskCtx = maskCanvas.getContext('2d');
                 
-                // Put image data
+                // Convertir RawImage data a ImageData
                 const maskData = new ImageData(new Uint8ClampedArray(mask.data), mask.width, mask.height);
                 maskCtx.putImageData(maskData, 0, 0);
 
@@ -778,11 +786,11 @@
                 finalCtx.drawImage(tempC, 0, 0, finalCanvas.width, finalCanvas.height);
                 
                 // Usar composición para aplicar la máscara alfa
+                // 'destination-in' mantiene el contenido original donde la nueva imagen (máscara) es opaca
                 finalCtx.globalCompositeOperation = 'destination-in';
-                // La máscara de RMBG suele ser escala de grises donde blanco es opaco y negro transparente
                 finalCtx.drawImage(maskCanvas, 0, 0, finalCanvas.width, finalCanvas.height);
 
-                // 3. Actualizar la capa
+                // 3. Actualizar la capa con la nueva imagen sin fondo
                 const finalImg = new Image();
                 finalImg.onload = () => {
                     layer.imgElement = finalImg;
@@ -793,7 +801,7 @@
 
             } catch (error) {
                 console.error(error);
-                alert('Error al procesar localmente: ' + error.message);
+                alert('Error al procesar localmente: ' + (error.message || error));
                 loader.classList.remove('active');
             }
         };
