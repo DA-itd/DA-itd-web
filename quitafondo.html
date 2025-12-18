@@ -5,14 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Estudio de Diseño - ITD</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <!-- Import Map solo para dependencias necesarias -->
-    <script type="importmap">
-      {
-        "imports": {
-          "@xenova/transformers": "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js"
-        }
-      }
-    </script>
     <style>
         :root {
             --primary: #1b396a;
@@ -309,7 +301,8 @@
             <canvas id="mainCanvas"></canvas>
             <div class="loader" id="loader">
                 <div class="spinner"></div>
-                <p id="loaderText" style="margin-top: 15px;">Procesando con IA...</p>
+                <p id="loaderText" style="margin-top: 15px; text-align: center;">Iniciando IA...</p>
+                <p id="loaderProgress" style="font-size: 0.8rem; color: #aaa; margin-top: 5px;"></p>
             </div>
         </div>
 
@@ -343,7 +336,7 @@
                 <button class="btn-action local-ai" onclick="removeBackgroundOfSelected()">
                     <i class="fas fa-eraser"></i> Quitar Fondo
                 </button>
-                <p style="font-size: 0.7rem; color: #aaa; margin-top: 5px;">* Funciona en tu navegador, sin límites, sin costo.</p>
+                <p style="font-size: 0.7rem; color: #aaa; margin-top: 5px;">* Funciona en tu navegador. Primera vez requiere descarga (~80MB).</p>
             </div>
 
             <!-- EXPORT -->
@@ -380,47 +373,74 @@
 
     <!-- TRANSFORMERS.JS MODULE -->
     <script type="module">
-        // Importación corregida usando el alias del Import Map
-        import { pipeline, env } from '@xenova/transformers';
+        // Importación DIRECTA desde CDN para evitar problemas de Import Maps
+        import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js';
         
-        // Configuración para entorno de navegador
-        env.allowLocalModels = false;
-        env.useBrowserCache = true;
+        // Configuración crítica para entorno navegador
+        env.allowLocalModels = false; // Forzar descarga desde HuggingFace Hub
+        env.useBrowserCache = true;   // Usar caché para que la 2da vez sea rápido
 
         let segmenter = null;
+        let isDownloading = false;
 
-        // Carga inicial del modelo
         window.initLocalModel = async () => {
+            if (segmenter || isDownloading) return;
+            isDownloading = true;
+
+            const loader = document.getElementById('loader');
+            const progressText = document.getElementById('loaderProgress');
+            const mainText = document.getElementById('loaderText');
+            
             try {
                 console.log("Iniciando descarga del modelo IA...");
-                // IMPORTANTE: Usamos 'Xenova/RMBG-1.4' que contiene los pesos ONNX optimizados para web.
-                // El original 'briaai/RMBG-1.4' puede fallar si no tiene la estructura esperada por transformers.js
-                segmenter = await pipeline('image-segmentation', 'Xenova/RMBG-1.4');
+                
+                // Función de progreso
+                const progressCallback = (x) => {
+                    if (x.status === 'progress') {
+                        const pct = Math.round(x.progress);
+                        if (x.file.includes('onnx')) {
+                             mainText.innerText = `Descargando Motor IA...`;
+                             progressText.innerText = `${pct}% completado (${x.file})`;
+                             loader.classList.add('active');
+                        }
+                    } else if (x.status === 'initiate') {
+                        loader.classList.add('active');
+                        mainText.innerText = "Conectando con servidor de modelos...";
+                    } else if (x.status === 'done') {
+                         mainText.innerText = "Cargando en memoria...";
+                    }
+                };
+
+                // IMPORTANTE: Usamos 'Xenova/RMBG-1.4' explícitamente.
+                segmenter = await pipeline('image-segmentation', 'Xenova/RMBG-1.4', {
+                    progress_callback: progressCallback
+                });
+                
                 console.log("Modelo IA cargado y listo.");
+                loader.classList.remove('active');
+                
             } catch (e) {
                 console.error("Error crítico cargando Transformers.js:", e);
-                // Reseteamos a null para permitir reintentos
+                loader.classList.remove('active');
                 segmenter = null;
-                alert("Error al descargar los archivos del modelo IA. Por favor, verifica tu conexión a internet.");
+                // Mostrar el error real para depuración
+                alert("Error al cargar el modelo IA:\n" + e.message + "\n\nIntenta recargar la página.");
+            } finally {
+                isDownloading = false;
             }
         }
         
-        // Iniciar carga en segundo plano
-        window.initLocalModel();
+        // Intentar precargar (sin bloquear UI si falla silenciosamente al inicio)
+        window.initLocalModel().catch(e => console.log("Precarga background fallida, se intentará al usar el botón"));
         
-        // Función segura para obtener el segmentador
+        // Wrapper seguro
         window.getSegmenter = async () => {
             if (!segmenter) {
-                document.getElementById('loaderText').innerText = 'Descargando modelo IA (aprox 80MB, solo la primera vez)...';
-                document.getElementById('loader').classList.add('active');
                 await window.initLocalModel();
-                document.getElementById('loader').classList.remove('active');
             }
-            
             if (!segmenter) {
-                throw new Error("El modelo de IA no se pudo inicializar. Intenta recargar la página.");
+                throw new Error("No se pudo inicializar el motor de IA. Revisa tu conexión.");
             }
-            
             return segmenter;
         }
     </script>
@@ -745,12 +765,15 @@
 
             const loader = document.getElementById('loader');
             loader.classList.add('active');
-            document.getElementById('loaderText').innerText = 'Procesando en tu navegador (Gratis)...';
+            document.getElementById('loaderText').innerText = 'Procesando...';
+            document.getElementById('loaderProgress').innerText = '';
 
             try {
                 // Obtener el modelo local (asegura que esté cargado)
                 const segmenter = await window.getSegmenter();
                 
+                document.getElementById('loaderText').innerText = 'Analizando imagen...';
+
                 // Preparar imagen
                 const tempC = document.createElement('canvas');
                 tempC.width = layer.imgElement.naturalWidth;
@@ -759,7 +782,6 @@
                 tempCtx.drawImage(layer.imgElement, 0, 0);
                 
                 // Ejecutar Transformers.js (Inferencia)
-                // Pasamos la URL de datos de la imagen (Base64)
                 const output = await segmenter(tempC.toDataURL());
                 
                 // El output es una lista de máscaras. Tomamos la primera.
@@ -801,7 +823,7 @@
 
             } catch (error) {
                 console.error(error);
-                alert('Error al procesar localmente: ' + (error.message || error));
+                alert('Error al procesar: ' + (error.message || error));
                 loader.classList.remove('active');
             }
         };
