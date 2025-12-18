@@ -336,7 +336,7 @@
                 <button class="btn-action local-ai" onclick="removeBackgroundOfSelected()">
                     <i class="fas fa-eraser"></i> Quitar Fondo
                 </button>
-                <p style="font-size: 0.7rem; color: #aaa; margin-top: 5px;">* Funciona en tu navegador. Primera vez requiere descarga (~80MB).</p>
+                <p style="font-size: 0.7rem; color: #aaa; margin-top: 5px;">* Funciona en tu navegador. Modelo ModNet (~25MB).</p>
             </div>
 
             <!-- EXPORT -->
@@ -373,12 +373,12 @@
 
     <!-- TRANSFORMERS.JS MODULE -->
     <script type="module">
-        // Importación DIRECTA desde CDN para evitar problemas de Import Maps
+        // Importación DIRECTA desde CDN
         import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js';
         
-        // Configuración crítica para entorno navegador
-        env.allowLocalModels = false; // Forzar descarga desde HuggingFace Hub
-        env.useBrowserCache = true;   // Usar caché para que la 2da vez sea rápido
+        // Configuración crítica
+        env.allowLocalModels = false; 
+        env.useBrowserCache = true;   
 
         let segmenter = null;
         let isDownloading = false;
@@ -392,54 +392,51 @@
             const mainText = document.getElementById('loaderText');
             
             try {
-                console.log("Iniciando descarga del modelo IA...");
+                console.log("Iniciando descarga del modelo IA (ModNet)...");
                 
-                // Función de progreso
                 const progressCallback = (x) => {
                     if (x.status === 'progress') {
                         const pct = Math.round(x.progress);
                         if (x.file.includes('onnx')) {
-                             mainText.innerText = `Descargando Motor IA...`;
-                             progressText.innerText = `${pct}% completado (${x.file})`;
+                             mainText.innerText = `Descargando IA...`;
+                             progressText.innerText = `${pct}% completado`;
                              loader.classList.add('active');
                         }
                     } else if (x.status === 'initiate') {
                         loader.classList.add('active');
-                        mainText.innerText = "Conectando con servidor de modelos...";
+                        mainText.innerText = "Conectando...";
                     } else if (x.status === 'done') {
-                         mainText.innerText = "Cargando en memoria...";
+                         mainText.innerText = "Cargando...";
                     }
                 };
 
-                // IMPORTANTE: Usamos 'Xenova/RMBG-1.4' explícitamente.
-                segmenter = await pipeline('image-segmentation', 'Xenova/RMBG-1.4', {
+                // CAMBIO IMPORTANTE: Usamos 'image-matting' y 'Xenova/modnet'
+                // Este modelo es público, ligero y específico para quitar fondos
+                segmenter = await pipeline('image-matting', 'Xenova/modnet', {
                     progress_callback: progressCallback
                 });
                 
-                console.log("Modelo IA cargado y listo.");
+                console.log("Modelo ModNet cargado y listo.");
                 loader.classList.remove('active');
                 
             } catch (e) {
                 console.error("Error crítico cargando Transformers.js:", e);
                 loader.classList.remove('active');
                 segmenter = null;
-                // Mostrar el error real para depuración
-                alert("Error al cargar el modelo IA:\n" + e.message + "\n\nIntenta recargar la página.");
+                alert("Error al cargar el modelo IA:\n" + e.message + "\n\nVerifica tu conexión.");
             } finally {
                 isDownloading = false;
             }
         }
         
-        // Intentar precargar (sin bloquear UI si falla silenciosamente al inicio)
-        window.initLocalModel().catch(e => console.log("Precarga background fallida, se intentará al usar el botón"));
+        window.initLocalModel().catch(e => console.log("Precarga fallida"));
         
-        // Wrapper seguro
         window.getSegmenter = async () => {
             if (!segmenter) {
                 await window.initLocalModel();
             }
             if (!segmenter) {
-                throw new Error("No se pudo inicializar el motor de IA. Revisa tu conexión.");
+                throw new Error("No se pudo inicializar el motor de IA.");
             }
             return segmenter;
         }
@@ -782,11 +779,16 @@
                 tempCtx.drawImage(layer.imgElement, 0, 0);
                 
                 // Ejecutar Transformers.js (Inferencia)
+                // Para image-matting el output suele ser [{ mask: RawImage }]
                 const output = await segmenter(tempC.toDataURL());
                 
-                // El output es una lista de máscaras. Tomamos la primera.
-                const mask = output[0].mask; 
+                // Extraer la máscara
+                // Puede venir como output[0].mask o output.mask dependiendo de la versión exacta de la task.
+                // ModNet devuelve normalmente una máscara de transparencia.
+                let mask = output[0] ? output[0].mask : output.mask;
                 
+                if (!mask) throw new Error("No se pudo generar la máscara.");
+
                 // Componer la imagen final
                 // 1. Convertir máscara a Canvas
                 const maskCanvas = document.createElement('canvas');
@@ -809,6 +811,8 @@
                 
                 // Usar composición para aplicar la máscara alfa
                 // 'destination-in' mantiene el contenido original donde la nueva imagen (máscara) es opaca
+                // NOTA: Para ModNet, la máscara es blanca donde es primer plano, negra fondo.
+                // Funciona perfecto con destination-in.
                 finalCtx.globalCompositeOperation = 'destination-in';
                 finalCtx.drawImage(maskCanvas, 0, 0, finalCanvas.width, finalCanvas.height);
 
