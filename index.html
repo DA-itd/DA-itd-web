@@ -403,6 +403,7 @@
         .card:nth-child(1) { animation-delay: 0.1s; }
         .card:nth-child(2) { animation-delay: 0.2s; }
         .card:nth-child(3) { animation-delay: 0.3s; }
+        .card:nth-child(4) { animation-delay: 0.4s; }
 
         /* ===================================
            RESPONSIVE DESIGN
@@ -487,15 +488,6 @@
             border-width: 0;
         }
     </style>
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
-  }
-}
-</script>
 </head>
 
 <body>
@@ -532,7 +524,7 @@
         <div class="header-title">
             <div class="header-text">
                 <h1>Portal de Herramientas Digitales</h1>
-                <p class="subtitle">Desarrollo Académico — Instituto Tecnológico de Durango</p>
+                <p class="subtitle">Desarrollo Académico – Instituto Tecnológico de Durango</p>
             </div>
         </div>
     </header>
@@ -550,7 +542,7 @@
         <!-- Grid de herramientas -->
         <div class="cards-grid">
             
-            <!-- 1. Generador de Correos (Ahora primero) -->
+            <!-- 1. Generador de Correos -->
             <article class="card">
                 <span class="badge">Popular</span>
                 <div class="icon-box">
@@ -585,7 +577,25 @@
                 </a>
             </article>
 
-            <!-- 3. Gestor de Documentos (Próximamente) -->
+            <!-- 3. Completador de Emails -->
+            <article class="card">
+                <span class="badge">Nuevo</span>
+                <div class="icon-box">
+                    <i class="fas fa-user-check" aria-hidden="true"></i>
+                </div>
+                <div>
+                    <h3 class="card-title">Completador de Emails</h3>
+                    <p class="card-desc">
+                        Completa automáticamente emails faltantes en BD 2024 buscando coincidencias en BD 2025.
+                        Procesamiento inteligente de bases de datos Excel con normalización de nombres.
+                    </p>
+                </div>
+                <a href="completador.html" class="btn btn-primary" aria-label="Acceder al Completador de Emails">
+                    Ingresar <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                </a>
+            </article>
+
+            <!-- 4. Gestor de Documentos (Próximamente) -->
             <article class="card inactive">
                 <span class="badge badge-soon">Próximamente</span>
                 <div class="icon-box">
@@ -629,19 +639,17 @@
             
             <!-- Copyright -->
             <div class="footer-copy">
-                &copy; 2025 Instituto Tecnológico de Durango — Coordinación de Actualización Docente
+                &copy; 2025 Instituto Tecnológico de Durango – Coordinación de Actualización Docente
             </div>
         </div>
     </footer>
 
     <!-- ===================================
-         SCRIPTS (Opcional - Para futuras mejoras)
+         SCRIPTS
     =================================== -->
     <script>
-        // Console log para desarrollo
         console.log('Portal de Herramientas Digitales ITD - v1.0');
         
-        // Preload de imágenes para mejorar rendimiento
         const preloadImages = () => {
             const images = [
                 'https://raw.githubusercontent.com/DA-itd/A/main/tecnm1.jpg',
@@ -654,14 +662,12 @@
             });
         };
         
-        // Ejecutar cuando el DOM esté listo
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', preloadImages);
         } else {
             preloadImages();
         }
 
-        // Smooth scroll para enlaces internos (si los hay)
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
                 const href = this.getAttribute('href');
