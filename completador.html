@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Completador de Emails - ITD</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --itd-blue: #1b396a;
+            --itd-gold: #d4a017;
+            --maroon: #8B1538;
+            --white: #ffffff;
+            --gray-light: #f5f7fa;
+            --gray-medium: #c3cfe2;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--gray-light) 0%, var(--gray-medium) 100%);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: var(--white);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .header-logos {
+            background: var(--white);
+            padding: 2rem;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 2rem;
+        }
+
+        .logo-left img,
+        .logo-right img {
+            height: 100px;
+            width: auto;
+        }
+
+        .center-spacer {
+            flex: 1;
+        }
+
+        .maroon-line {
+            width: 100%;
+            height: 6px;
+            background: var(--maroon);
+        }
+
+        .header-title {
+            background: var(--itd-blue);
+            color: var(--white);
+            padding: 2rem 1rem;
+            text-align: center;
+        }
+
+        .header-title h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Contenedor principal */
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--white);
+            color: var(--itd-blue);
+            padding: 0.8rem 1.5rem;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        /* App container */
+        #app {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+            }
+            
+            .logo-left img,
+            .logo-right img {
+                height: 60px;
+            }
+            
+            .header-title h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-logos">
+            <div class="header-content">
+                <div class="logo-left">
+                    <img src="https://raw.githubusercontent.com/DA-itd/A/main/tecnm1.jpg" alt="TecNM">
+                </div>
+                <div class="center-spacer"></div>
+                <div class="logo-right">
+                    <img src="https://raw.githubusercontent.com/DA-itd/web/main/logo_itdurango.png" alt="ITD">
+                </div>
+            </div>
+        </div>
+        <div class="maroon-line"></div>
+        <div class="header-title">
+            <h1>Completador de Emails</h1>
+            <p>Herramienta de Desarrollo Académico</p>
+        </div>
+    </header>
+
+    <!-- Contenido -->
+    <div class="container">
+        <a href="index.html" class="back-btn">
+            <i class="fas fa-arrow-left"></i> Volver al Portal
+        </a>
+        
+        <div id="app"></div>
+    </div>
+
+    <script type="module">
+        import React, { useState } from 'https://esm.sh/react@18';
+        import ReactDOM from 'https://esm.sh/react-dom@18';
+
+        function EmailCompleter() {
+            const [bd2024, setBd2024] = useState(null);
+            const [bd2025, setBd2025] = useState(null);
+            const [result, setResult] = useState(null);
+            const [stats, setStats] = useState(null);
+            const [log, setLog] = useState([]);
+            const [columnas2024, setColumnas2024] = useState([]);
+            const [columnas2025, setColumnas2025] = useState([]);
+            const [colNombre2024, setColNombre2024] = useState('');
+            const [colEmail2024, setColEmail2024] = useState('');
+            const [colNombre2025, setColNombre2025] = useState('');
+            const [colEmail2025, setColEmail2025] = useState('');
+
+            const addLog = (message) => {
+                setLog(prev => [...prev, message]);
+                console.log(message);
+            };
+
+            const handleFileUpload = (e, year) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                addLog(`Cargando archivo ${year}...`);
+                const reader = new FileReader();
+                
+                reader.onload = (event) => {
+                    try {
+                        const data = new Uint8Array(event.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const sheetName = workbook.SheetNames[0];
+                        const sheet = workbook.Sheets[sheetName];
+                        const range = XLSX.utils.decode_range(sheet['!ref']);
+                        
+                        const headers = [];
+                        for (let col = range.s.c; col <= range.e.c; col++) {
+                            const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+                            const cell = sheet[cellAddress];
+                            const headerValue = cell ? String(cell.v || cell.w || `Columna_${col + 1}`).trim() : `Columna_${col + 1}`;
+                            headers.push(headerValue);
+                        }
+                        
+                        addLog(`Encabezados: ${headers.join(', ')}`);
+                        
+                        const jsonData = [];
+                        for (let row = range.s.r + 1; row <= range.e.r; row++) {
+                            const rowData = {};
+                            let hasData = false;
+                            
+                            for (let col = range.s.c; col <= range.e.c; col++) {
+                                const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+                                const cell = sheet[cellAddress];
+                                const value = cell ? (cell.v || cell.w || '') : '';
+                                rowData[headers[col]] = value;
+                                if (value) hasData = true;
+                            }
+                            
+                            if (hasData) jsonData.push(rowData);
+                        }
+                        
+                        if (year === 2024) {
+                            setBd2024(jsonData);
+                            setColumnas2024(headers);
+                            addLog(`✓ BD 2024: ${jsonData.length} registros`);
+                            const colNom = headers.find(c => c.toLowerCase().includes('nombre')) || headers[0];
+                            const colEm = headers.find(c => c.toLowerCase().includes('email') || c.toLowerCase().includes('correo'));
+                            setColNombre2024(colNom);
+                            setColEmail2024(colEm || '');
+                        } else {
+                            setBd2025(jsonData);
+                            setColumnas2025(headers);
+                            addLog(`✓ BD 2025: ${jsonData.length} registros`);
+                            const colNom = headers.find(c => c.toLowerCase().includes('nombre')) || headers[0];
+                            const colEm = headers.find(c => c.toLowerCase().includes('email') || c.toLowerCase().includes('correo'));
+                            setColNombre2025(colNom);
+                            setColEmail2025(colEm || '');
+                        }
+                    } catch (error) {
+                        addLog(`✗ Error: ${error.message}`);
+                    }
+                };
+                
+                reader.readAsArrayBuffer(file);
+            };
+
+            const normalizar = (texto) => {
+                if (!texto) return '';
+                return String(texto).toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            };
+
+            const procesarEmails = () => {
+                addLog('--- INICIANDO PROCESO ---');
+                if (!bd2024 || !bd2025 || !colEmail2024 || !colEmail2025) {
+                    alert('Verifica que hayas cargado ambos archivos y seleccionado las columnas');
+                    return;
+                }
+
+                const mapaEmails = {};
+                bd2025.forEach(fila => {
+                    const nombre = normalizar(fila[colNombre2025]);
+                    const email = fila[colEmail2025];
+                    if (nombre && email) mapaEmails[nombre] = email;
+                });
+
+                addLog(`Mapa: ${Object.keys(mapaEmails).length} emails`);
+
+                let completados = 0, yaExistian = 0, noEncontrados = 0;
+
+                const resultado = bd2024.map(fila => {
+                    const nuevaFila = { ...fila };
+                    const emailActual = fila[colEmail2024];
+
+                    if (emailActual && String(emailActual).trim() !== '') {
+                        yaExistian++;
+                        return nuevaFila;
+                    }
+
+                    const nombre = normalizar(fila[colNombre2024]);
+                    const emailEncontrado = mapaEmails[nombre];
+
+                    if (emailEncontrado) {
+                        nuevaFila[colEmail2024] = emailEncontrado;
+                        completados++;
+                    } else {
+                        nuevaFila[colEmail2024] = '';
+                        noEncontrados++;
+                    }
+
+                    return nuevaFila;
+                });
+
+                addLog(`✓ Completados: ${completados}`);
+                addLog('--- TERMINADO ---');
+
+                setResult(resultado);
+                setStats({ total: bd2024.length, completados, yaExistian, noEncontrados });
+            };
+
+            const descargar = () => {
+                if (!result) return;
+                const hoja = XLSX.utils.json_to_sheet(result);
+                const libro = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(libro, hoja, 'BD_2024_Completo');
+                XLSX.writeFile(libro, 'bd_2024_completado.xlsx');
+                addLog('✓ Descargado');
+            };
+
+            const limpiar = () => {
+                setBd2024(null);
+                setBd2025(null);
+                setResult(null);
+                setStats(null);
+                setLog([]);
+                setColumnas2024([]);
+                setColumnas2025([]);
+                setColNombre2024('');
+                setColEmail2024('');
+                setColNombre2025('');
+                setColEmail2025('');
+            };
+
+            return React.createElement('div', { style: styles.container },
+                React.createElement('div', { style: styles.header },
+                    React.createElement('h2', { style: styles.title }, 'Completador de Emails'),
+                    React.createElement('p', { style: styles.subtitle }, 'Completa emails de bd_2024 buscando en bd_2025'),
+                    (bd2024 || bd2025) && React.createElement('button', { onClick: limpiar, style: styles.btnClear }, '🗑️ Borrar')
+                ),
+
+                React.createElement('div', { style: styles.grid },
+                    React.createElement('div', { style: styles.uploadBox },
+                        React.createElement('label', { style: styles.label },
+                            React.createElement('div', { style: styles.uploadContent },
+                                React.createElement('div', { style: styles.icon }, '📁'),
+                                React.createElement('p', { style: styles.uploadTitle }, 'BD 2024'),
+                                React.createElement('p', { style: styles.uploadSubtitle }, 
+                                    bd2024 ? `${bd2024.length} registros ✓` : 'Clic para cargar'
+                                )
+                            ),
+                            React.createElement('input', { 
+                                type: 'file', 
+                                accept: '.xlsx,.xls,.csv', 
+                                onChange: (e) => handleFileUpload(e, 2024),
+                                style: { display: 'none' }
+                            })
+                        ),
+                        bd2024 && React.createElement('div', { style: styles.selects },
+                            React.createElement('div', null,
+                                React.createElement('label', { style: styles.selectLabel }, 'Columna NOMBRE:'),
+                                React.createElement('select', { 
+                                    value: colNombre2024, 
+                                    onChange: (e) => setColNombre2024(e.target.value),
+                                    style: styles.select
+                                }, columnas2024.map(col => React.createElement('option', { key: col, value: col }, col)))
+                            ),
+                            React.createElement('div', null,
+                                React.createElement('label', { style: styles.selectLabel }, 'Columna EMAIL:'),
+                                React.createElement('select', { 
+                                    value: colEmail2024, 
+                                    onChange: (e) => setColEmail2024(e.target.value),
+                                    style: styles.select
+                                }, 
+                                    React.createElement('option', { value: '' }, '-- Selecciona --'),
+                                    columnas2024.map(col => React.createElement('option', { key: col, value: col }, col))
+                                )
+                            )
+                        )
+                    ),
+
+                    React.createElement('div', { style: styles.uploadBox },
+                        React.createElement('label', { style: styles.label },
+                            React.createElement('div', { style: styles.uploadContent },
+                                React.createElement('div', { style: styles.icon }, '📁'),
+                                React.createElement('p', { style: styles.uploadTitle }, 'BD 2025'),
+                                React.createElement('p', { style: styles.uploadSubtitle }, 
+                                    bd2025 ? `${bd2025.length} registros ✓` : 'Clic para cargar'
+                                )
+                            ),
+                            React.createElement('input', { 
+                                type: 'file', 
+                                accept: '.xlsx,.xls,.csv', 
+                                onChange: (e) => handleFileUpload(e, 2025),
+                                style: { display: 'none' }
+                            })
+                        ),
+                        bd2025 && React.createElement('div', { style: styles.selects },
+                            React.createElement('div', null,
+                                React.createElement('label', { style: styles.selectLabel }, 'Columna NOMBRE:'),
+                                React.createElement('select', { 
+                                    value: colNombre2025, 
+                                    onChange: (e) => setColNombre2025(e.target.value),
+                                    style: styles.select
+                                }, columnas2025.map(col => React.createElement('option', { key: col, value: col }, col)))
+                            ),
+                            React.createElement('div', null,
+                                React.createElement('label', { style: styles.selectLabel }, 'Columna EMAIL:'),
+                                React.createElement('select', { 
+                                    value: colEmail2025, 
+                                    onChange: (e) => setColEmail2025(e.target.value),
+                                    style: styles.select
+                                }, 
+                                    React.createElement('option', { value: '' }, '-- Selecciona --'),
+                                    columnas2025.map(col => React.createElement('option', { key: col, value: col }, col))
+                                )
+                            )
+                        )
+                    )
+                ),
+
+                React.createElement('button', { 
+                    onClick: procesarEmails,
+                    disabled: !bd2024 || !bd2025 || !colEmail2024 || !colEmail2025,
+                    style: styles.btnProcess
+                }, 'COMPLETAR EMAILS'),
+
+                stats && React.createElement('div', { style: styles.results },
+                    React.createElement('h3', { style: styles.resultsTitle }, 'Resultados'),
+                    React.createElement('div', { style: styles.statsGrid },
+                        React.createElement('div', { style: styles.statBox },
+                            React.createElement('p', { style: styles.statNumber }, stats.total),
+                            React.createElement('p', { style: styles.statLabel }, 'Total')
+                        ),
+                        React.createElement('div', { style: {...styles.statBox, borderTop: '3px solid #10b981'} },
+                            React.createElement('p', { style: {...styles.statNumber, color: '#10b981'} }, stats.completados),
+                            React.createElement('p', { style: styles.statLabel }, 'Completados')
+                        ),
+                        React.createElement('div', { style: {...styles.statBox, borderTop: '3px solid #3b82f6'} },
+                            React.createElement('p', { style: {...styles.statNumber, color: '#3b82f6'} }, stats.yaExistian),
+                            React.createElement('p', { style: styles.statLabel }, 'Ya tenían')
+                        ),
+                        React.createElement('div', { style: {...styles.statBox, borderTop: '3px solid #f59e0b'} },
+                            React.createElement('p', { style: {...styles.statNumber, color: '#f59e0b'} }, stats.noEncontrados),
+                            React.createElement('p', { style: styles.statLabel }, 'No encontrados')
+                        )
+                    ),
+                    React.createElement('button', { onClick: descargar, style: styles.btnDownload }, 
+                        '⬇️ DESCARGAR ARCHIVO COMPLETADO'
+                    )
+                ),
+
+                log.length > 0 && React.createElement('div', { style: styles.log },
+                    React.createElement('h4', { style: styles.logTitle }, 'Registro de actividad:'),
+                    React.createElement('div', { style: styles.logContent },
+                        log.map((msg, i) => React.createElement('div', { key: i, style: styles.logLine }, msg))
+                    )
+                )
+            );
+        }
+
+        const styles = {
+            container: { maxWidth: '100%' },
+            header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' },
+            title: { fontSize: '2rem', color: '#1b396a', margin: 0 },
+            subtitle: { color: '#666', margin: '0.5rem 0 0 0' },
+            btnClear: { background: '#fee2e2', color: '#dc2626', border: 'none', padding: '0.8rem 1.5rem', borderRadius: '10px', cursor: 'pointer', fontWeight: '600' },
+            grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', marginBottom: '2rem' },
+            uploadBox: { border: '2px dashed #d1d5db', borderRadius: '12px', padding: '1.5rem', background: '#f9fafb' },
+            label: { display: 'block', cursor: 'pointer' },
+            uploadContent: { textAlign: 'center', marginBottom: '1rem' },
+            icon: { fontSize: '3rem', marginBottom: '1rem' },
+            uploadTitle: { fontWeight: '600', fontSize: '1.1rem', color: '#1b396a', margin: '0.5rem 0' },
+            uploadSubtitle: { fontSize: '0.9rem', color: '#666', margin: 0 },
+            selects: { display: 'flex', flexDirection: 'column', gap: '1rem' },
+            selectLabel: { display: 'block', fontWeight: '600', fontSize: '0.85rem', color: '#374151', marginBottom: '0.3rem' },
+            select: { width: '100%', padding: '0.6rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem' },
+            btnProcess: { width: '100%', background: 'linear-gradient(135deg, #8B1538, #1b396a)', color: 'white', border: 'none', padding: '1.2rem', borderRadius: '12px', fontSize: '1.1rem', fontWeight: '700', cursor: 'pointer', marginBottom: '2rem' },
+            results: { background: 'linear-gradient(135deg, #f0f9ff, #dbeafe)', borderRadius: '12px', padding: '2rem', marginBottom: '2rem' },
+            resultsTitle: { fontSize: '1.3rem', marginBottom: '1.5rem', color: '#1b396a' },
+            statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', marginBottom: '1.5rem' },
+            statBox: { background: 'white', padding: '1.5rem', borderRadius: '10px', textAlign: 'center', borderTop: '3px solid #6b7280' },
+            statNumber: { fontSize: '2rem', fontWeight: '700', color: '#1f2937', margin: 0 },
+            statLabel: { fontSize: '0.8rem', color: '#6b7280', margin: '0.3rem 0 0 0' },
+            btnDownload: { width: '100%', background: '#10b981', color: 'white', border: 'none', padding: '1.2rem', borderRadius: '12px', fontSize: '1.1rem', fontWeight: '700', cursor: 'pointer' },
+            log: { background: '#f9fafb', borderRadius: '12px', padding: '1.5rem', border: '1px solid #e5e7eb' },
+            logTitle: { fontSize: '0.9rem', fontWeight: '600', color: '#374151', marginBottom: '1rem' },
+            logContent: { fontSize: '0.75rem', fontFamily: 'monospace', color: '#6b7280', maxHeight: '200px', overflowY: 'auto' },
+            logLine: { padding: '0.2rem 0' }
+        };
+
+        ReactDOM.render(React.createElement(EmailCompleter), document.getElementById('app'));
+    </script>
+</body>
+</html>
