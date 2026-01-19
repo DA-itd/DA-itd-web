@@ -48,7 +48,7 @@
         import * as XLSX from 'xlsx';
         import { jsPDF } from 'jspdf';
         import autoTable from 'jspdf-autotable';
-        import { Database, Users, FileText, ArrowLeft, Loader2, Calendar, BookOpen, CheckSquare, FileSpreadsheet, Download } from 'lucide-react';
+        import { Database, Users, FileText, ArrowLeft, Loader2, Calendar, BookOpen, CheckSquare, FileSpreadsheet, Download, Printer } from 'lucide-react';
 
         // --- CONSTANTES Y CONFIGURACIÓN ---
         const ITD_COLORS = {
@@ -57,16 +57,19 @@
             maroon: '#8B1538',
         };
 
+        const LOGO_URL = "https://raw.githubusercontent.com/DA-itd/DA-itd-web/main/logo_itdurango.png";
+
         const HEADER_MAP_PARTICIPANTS = {
             'folio personal': 'FolioPersonal', 'folio': 'FolioPersonal',
-            'nombrecompleto': 'NombreCompleto', 'nombre completo': 'NombreCompleto', 'nombre': 'NombreCompleto', 'participante': 'NombreCompleto',
+            'nombrecompleto': 'NombreCompleto', 'nombre completo': 'NombreCompleto', 'nombre': 'NombreCompleto', 'participante': 'NombreCompleto', 'alumno': 'NombreCompleto',
             'curp': 'Curp', 'email': 'Email', 'correo': 'Email',
-            'departamento': 'Departamento', 'area': 'Departamento',
+            'rfc': 'Rfc', 'r.f.c.': 'Rfc',
+            'departamento': 'Departamento', 'area': 'Departamento', 'adscripcion': 'Departamento',
             'id_curso': 'Id_Curso', 'clave': 'Id_Curso', 'clave curso': 'Id_Curso',
             'curso': 'Curso', 'nombre del curso': 'Curso',
             'fechacurso': 'FechaCurso', 'fecha': 'FechaCurso', 'periodo': 'FechaCurso',
             'horario': 'Horario', 'hora': 'Horario',
-            'horas': 'Horas', 'tipo': 'Tipo', 'nivel': 'Nivel'
+            'horas': 'Horas', 'tipo': 'Tipo', 'nivel': 'Nivel', 'puesto': 'Puesto'
         };
 
         const HEADER_MAP_INSTRUCTORS = {
@@ -79,7 +82,9 @@
             'schedule': 'Horario',
             'type': 'Tipo',
             'departamento': 'Departamento',
-            'instructor': 'NombreInstructor'
+            'instructor': 'NombreInstructor',
+            'curp': 'CurpInstructor', 
+            'rfc': 'RfcInstructor'
         };
 
         // --- SERVICIOS ---
@@ -89,8 +94,12 @@
                 const newRow = {};
                 Object.keys(row).forEach(key => {
                     const cleanKey = key.trim().toLowerCase();
-                    const normalizedKey = map[cleanKey] || map[Object.keys(map).find(k => cleanKey.includes(k))] || key.trim();
-                    newRow[normalizedKey] = row[key];
+                    let normalizedKey = map[cleanKey];
+                    if (!normalizedKey) {
+                        const foundKey = Object.keys(map).find(k => cleanKey.includes(k));
+                        if (foundKey) normalizedKey = map[foundKey];
+                    }
+                    newRow[normalizedKey || key.trim()] = row[key];
                 });
                 return newRow;
             });
@@ -122,6 +131,23 @@
             });
         };
 
+        const getBase64ImageFromURL = async (url) => {
+            try {
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('Network response was not ok');
+                const blob = await res.blob();
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+            } catch (error) {
+                console.warn("No se pudo cargar el logo, se usará texto alternativo.", error);
+                return null;
+            }
+        };
+
         // --- COMPONENTES UI ---
 
         const LoadingOverlay = ({ isLoading, message }) => {
@@ -138,7 +164,7 @@
             <header className="bg-white shadow-md sticky top-0 z-20">
                 <div className="container mx-auto px-4 py-4 flex justify-between items-center">
                     <div className="flex items-center gap-4">
-                        <img src="https://raw.githubusercontent.com/DA-itd/web/main/logo_itdurango.png" alt="ITD Logo" className="h-12 w-auto object-contain" />
+                        <img src={LOGO_URL} alt="ITD Logo" className="h-12 w-auto object-contain" />
                         <div className="hidden md:block">
                             <h1 className="text-xl font-bold text-gray-800">Generador de Listas</h1>
                             <p className="text-sm text-gray-600">Herramientas Digitales ITD</p>
@@ -165,7 +191,6 @@
             const [selectedDate, setSelectedDate] = useState("");
             const [selectedCourseId, setSelectedCourseId] = useState("");
 
-            // 1. Manejo de Fechas (Uniendo ambos datasets)
             const availableDates = useMemo(() => {
                 const datesSet = new Set();
                 participantData.forEach(r => r.FechaCurso && datesSet.add(r.FechaCurso.trim()));
@@ -173,17 +198,12 @@
                 return Array.from(datesSet).sort();
             }, [participantData, instructorData]);
 
-            // 2. Manejo de Cursos (Prioridad al Maestro de Instructores)
             const availableCourses = useMemo(() => {
                 const coursesMap = new Map();
-                
-                // Base: Archivo de Instructores
                 instructorData.forEach(c => {
                     if (selectedDate && c.FechaCurso !== selectedDate) return;
                     coursesMap.set(c.Id_Curso, c.Curso);
                 });
-
-                // Complemento: Archivo de Alumnos
                 participantData.forEach(row => {
                     if (selectedDate && row.FechaCurso !== selectedDate) return;
                     const id = String(row.Id_Curso || row.Curso || "");
@@ -192,25 +212,18 @@
                         coursesMap.set(id, name);
                     }
                 });
-
                 return Array.from(coursesMap.entries())
                     .map(([id, name]) => ({ id, name }))
                     .sort((a, b) => a.name.localeCompare(b.name));
             }, [participantData, instructorData, selectedDate]);
 
-            // 3. Cruce de Datos (El núcleo de la lógica)
             const activeCourseData = useMemo(() => {
                 if (!selectedCourseId) return null;
-
-                // Buscar metadatos en el archivo de instructores
                 let meta = instructorData.find(c => String(c.Id_Curso) === selectedCourseId);
-                
-                // Filtrar alumnos
                 const students = participantData.filter(s => 
                     String(s.Id_Curso) === selectedCourseId || String(s.Curso) === selectedCourseId
                 );
 
-                // Si no hay metadatos en el archivo de instructores, intentar inferir del primer alumno
                 if (!meta && students.length > 0) {
                     const first = students[0];
                     meta = {
@@ -223,13 +236,13 @@
                         Horario: first.Horario || "",
                         Tipo: first.Tipo || "",
                         Departamento: first.Departamento || "",
-                        NombreInstructor: first.NombreInstructor || first.Instructor || "Por definir"
+                        NombreInstructor: first.NombreInstructor || first.Instructor || "Por definir",
+                        CurpInstructor: "",
+                        RfcInstructor: ""
                     };
                 }
-
                 if (!meta) return null;
 
-                // Fusionar metadatos en cada alumno para visualización
                 const mergedStudents = students.map(s => ({
                     ...s,
                     NombreInstructor: meta.NombreInstructor || s.NombreInstructor,
@@ -241,8 +254,6 @@
                 return { meta, students: mergedStudents };
             }, [selectedCourseId, participantData, instructorData]);
 
-            // --- MANEJADORES DE ARCHIVOS ---
-
             const handleParticipantUpload = async (e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
@@ -251,7 +262,6 @@
                     const data = await parseFile(file, HEADER_MAP_PARTICIPANTS);
                     setParticipantData(data);
                     
-                    // Inicializar campos
                     const fields = new Set();
                     data.forEach(r => Object.keys(r).forEach(k => fields.add(k)));
                     const fieldArray = Array.from(fields);
@@ -271,8 +281,6 @@
                 try {
                     const data = await parseFile(file, HEADER_MAP_INSTRUCTORS);
                     setInstructorData(data);
-                    
-                    // Agregar campos nuevos a la selección
                     setAllFields(prev => {
                         const combined = new Set([...prev, "NombreInstructor", "Lugar", "Horas", "Periodo", "Horario"]);
                         return Array.from(combined);
@@ -282,141 +290,255 @@
                 } finally { setLoading(false); }
             };
 
-            // --- GENERADORES DE REPORTES ---
-
-            const generateOfficialPDF = () => {
+            // --- GENERACIÓN PDF OFICIAL ---
+            const generateOfficialPDF = async (action = 'download') => {
                 if (!activeCourseData) return;
+                
+                // Manejo de ventana emergente para impresión (antes del await para evitar bloqueo)
+                let printWindow = null;
+                if (action === 'print') {
+                    printWindow = window.open('', '_blank');
+                    if (printWindow) {
+                        printWindow.document.write('<html><head><title>Imprimiendo...</title></head><body style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;"><h3>Generando documento para impresión... Por favor espere.</h3></body></html>');
+                    } else {
+                        alert("Por favor habilita las ventanas emergentes para poder imprimir directamente.");
+                        return;
+                    }
+                }
+
+                setLoading(true);
                 const { students, meta } = activeCourseData;
                 
                 try {
                     const doc = new jsPDF('landscape', 'mm', 'letter');
                     const width = doc.internal.pageSize.getWidth();
+                    const height = doc.internal.pageSize.getHeight();
+                    const logoBase64 = await getBase64ImageFromURL(LOGO_URL);
 
-                    // Encabezado
-                    doc.setLineWidth(0.5);
-                    doc.rect(10, 10, width - 20, 25);
-                    
-                    doc.setFontSize(8);
-                    doc.text("LOGO ITD", 20, 22);
-                    doc.line(40, 10, 40, 35);
-                    
-                    doc.setFontSize(10);
-                    doc.setFont("helvetica", "bold");
-                    doc.text("INSTITUTO TECNOLÓGICO DE DURANGO", width / 2, 15, { align: "center" });
-                    doc.setFontSize(9);
-                    doc.setFont("helvetica", "normal");
-                    doc.text("Nombre del documento: Formato de Lista de Asistencia", width / 2, 20, { align: "center" });
-                    doc.text("Referencias a la Norma NMX-CC-9001-IMNC-2008", width / 2, 25, { align: "center" });
-                    doc.text("6.2.2", width / 2, 30, { align: "center" });
+                    // Función auxiliar para dibujar el encabezado en cada página
+                    const drawHeader = (doc, pageNumber, totalPages) => {
+                         // Caja contenedora
+                        doc.setLineWidth(0.5);
+                        doc.setDrawColor(0);
+                        doc.setFillColor(255, 255, 255);
+                        doc.rect(10, 10, width - 20, 25, 'S'); // 'S' para stroke only
+                        
+                        // Logo (Ajustado a 17x18 según solicitud)
+                        if (logoBase64) {
+                            doc.addImage(logoBase64, 'PNG', 12, 12, 17, 18);
+                        } else {
+                            doc.setFontSize(8);
+                            doc.text("ITD", 20, 22);
+                        }
+                        doc.line(40, 10, 40, 35);
+                        
+                        // Textos Centrales
+                        doc.setFontSize(10);
+                        doc.setFont("helvetica", "bold");
+                        doc.text("INSTITUTO TECNOLÓGICO DE DURANGO", width / 2, 15, { align: "center" });
+                        doc.setFontSize(9);
+                        doc.setFont("helvetica", "normal");
+                        doc.text("Nombre del documento: Formato de Lista de Asistencia", width / 2, 20, { align: "center" });
+                        doc.text("Referencias a la Norma NMX-CC-9001-IMNC-2008", width / 2, 25, { align: "center" });
+                        doc.text("6.2.2", width / 2, 30, { align: "center" });
 
-                    doc.line(width - 60, 10, width - 60, 35);
-                    doc.setFontSize(8);
-                    doc.text("Código: ITD-AD-FO-8", width - 58, 14);
-                    doc.line(width - 60, 16, width - 10, 16);
-                    doc.text("Revisión: 1", width - 58, 20);
-                    doc.line(width - 60, 22, width - 10, 22);
-                    doc.text("Página 1 de 1", width - 58, 26);
-                    doc.line(width - 60, 28, width - 10, 28);
-                    doc.text("Fecha: 15/nov/2013", width - 58, 32);
+                        // Datos ISO (Derecha)
+                        doc.line(width - 60, 10, width - 60, 35);
+                        doc.setFontSize(8);
+                        doc.text("Código: ITD-AD-FO-8", width - 58, 14);
+                        doc.line(width - 60, 16, width - 10, 16);
+                        doc.text("Revisión: 1", width - 58, 20);
+                        doc.line(width - 60, 22, width - 10, 22);
+                        // Lógica para Hoja X de Y
+                        doc.text(`Página ${pageNumber} de ${totalPages}`, width - 58, 26);
+                        doc.line(width - 60, 28, width - 10, 28);
+                        doc.text("Fecha de emisión: 15/noviembre/2013", width - 58, 32);
 
-                    // Datos del Curso
-                    doc.setFont("helvetica", "bold");
-                    doc.setFontSize(12);
-                    doc.text("CURSO PRESENCIAL", width / 2, 45, { align: "center" });
+                        // Título y Clave
+                        doc.setFont("helvetica", "bold");
+                        doc.setFontSize(12);
+                        doc.text("CURSO PRESENCIAL", width / 2, 45, { align: "center" });
 
-                    doc.setDrawColor(0);
-                    doc.rect(width - 60, 40, 50, 8);
-                    doc.setFontSize(8);
-                    doc.text("CLAVE:", width - 58, 45);
-                    doc.setFont("helvetica", "normal");
-                    doc.text(String(meta.Id_Curso || ""), width - 40, 45);
+                        doc.setDrawColor(0);
+                        doc.rect(width - 60, 40, 50, 8);
+                        doc.setFontSize(8);
+                        doc.text("CLAVE:", width - 58, 45);
+                        doc.setFont("helvetica", "normal");
+                        doc.text(String(meta.Id_Curso || ""), width - 40, 45);
+                        
+                        // Hoja X de Y (repetido según formato visual)
+                        doc.setFontSize(8);
+                        doc.text(`Hoja:    ${pageNumber}    de    ${totalPages}`, width - 60, 53);
+                        doc.text("Folio: _________________", width - 60, 58);
 
-                    let currentY = 55;
-                    const leftMargin = 10;
-                    doc.setFontSize(9);
-                    doc.text(`Nombre del curso: ${meta.Curso || ''}`, leftMargin, currentY);
-                    currentY += 6;
-                    doc.text(`Nombre del instructor (a): ${meta.NombreInstructor || ''}`, leftMargin, currentY); 
-                    currentY += 6;
-                    
-                    doc.text(`Periodo: ${meta.FechaCurso || meta.Periodo || ''}`, leftMargin, currentY);
-                    doc.text(`Duración: ${meta.Horas || '30'} horas`, width / 2, currentY);
-                    doc.text(`Horario: ${meta.Horario || ''}`, width - 70, currentY);
+                        // Datos del Curso
+                        let infoY = 55;
+                        const leftMargin = 10;
+                        doc.setFontSize(9);
+                        doc.text(`Nombre del curso: ${meta.Curso || ''}`, leftMargin, infoY);
+                        infoY += 5;
+                        doc.text(`Nombre del instructor (a): ${meta.NombreInstructor || ''}`, leftMargin, infoY); 
+                        infoY += 5;
+                        
+                        doc.text(`Periodo: ${meta.FechaCurso || meta.Periodo || ''}`, leftMargin, infoY);
+                        doc.text(`Duración: ${meta.Horas || '30'} horas`, width / 2 - 20, infoY);
+                        doc.text(`Horario: ${meta.Horario || ''}`, width / 2 + 40, infoY);
+                    };
 
-                    // Tabla
-                    const tableBody = students.map((s, index) => [
-                        index + 1,
-                        s.NombreCompleto || '',
-                        s.Curp || '',
-                        // AQUI SE ELIMINÓ EL "Tipo" (Profesional) SOLO SE DEJA EL DEPARTAMENTO
-                        s.Departamento || '',
-                        '', '', '', '', '', '', ''
-                    ]);
+                    // Preparación de datos de tabla
+                    const tableBody = students.map((s, index) => {
+                        // Limpieza de nombre: quitar M, L, P aislados
+                        let nombre = s.NombreCompleto || s.Nombre || "Sin Nombre";
+                        nombre = nombre.replace(/\b[MLP]\b/gi, '').replace(/\s+/g, ' ').trim();
+                        
+                        const rfc = s.Rfc || s.Curp || ""; 
+                        
+                        // Abreviar "Departamento" a "Depto."
+                        let depto = s.Departamento || s.Area || "";
+                        depto = String(depto).replace(/Departamento/gi, 'Depto.');
+                        
+                        // Limpieza de Nivel: quitar M, L, P aislados
+                        let nivel = s.Nivel || s.Tipo || "";
+                        nivel = String(nivel).replace(/\b[MLP]\b/gi, '').replace(/\s+/g, ' ').trim();
 
+                        return [
+                            index + 1,
+                            nombre,
+                            rfc,
+                            depto,
+                            { content: nivel, colSpan: 2 },
+                            '', '', '', '', '', '' 
+                        ];
+                    });
+
+                    // Rellenar filas vacías para completar mínimo 15
                     while(tableBody.length < 15) {
-                        tableBody.push([tableBody.length + 1, '', '', '', '', '', '', '', '', '', '']);
+                        tableBody.push([tableBody.length + 1, '', '', '', { content: '', colSpan: 2 }, '', '', '', '', '', '']);
                     }
 
+                    // Variable placeholder para el total de páginas
+                    const totalPagesExp = "{total_pages_count_string}";
+
                     autoTable(doc, {
-                        startY: currentY + 5,
+                        startY: 75, // Espacio para el encabezado
                         head: [
                             [
                                 { content: 'No.', styles: { valign: 'middle', halign: 'center' }, rowSpan: 2 },
                                 { content: 'Nombre del Participante', styles: { valign: 'middle', halign: 'center' }, rowSpan: 2 },
                                 { content: 'R.F.C.', styles: { valign: 'middle', halign: 'center' }, rowSpan: 2 },
-                                { content: 'Puesto y depto', styles: { valign: 'middle', halign: 'center' }, rowSpan: 2 },
-                                { content: 'Nivel', styles: { valign: 'middle', halign: 'center' }, colSpan: 2 },
+                                { content: 'Puesto y departamento de adscripción', styles: { valign: 'middle', halign: 'center' }, rowSpan: 2 },
+                                { content: 'Nivel de Puesto', styles: { valign: 'middle', halign: 'center' }, colSpan: 2 },
                                 { content: 'Asistencia', styles: { valign: 'middle', halign: 'center' }, colSpan: 5 }
                             ],
                             ['FD', 'D', 'L', 'M', 'M', 'J', 'V']
                         ],
                         body: tableBody,
                         theme: 'grid',
-                        styles: { fontSize: 8, cellPadding: 1, lineColor: [0,0,0], lineWidth: 0.1, textColor: [0,0,0] },
+                        // Tamaño de fuente reducido a 6.5
+                        styles: { fontSize: 6.5, cellPadding: 0.6, lineColor: [0,0,0], lineWidth: 0.1, textColor: [0,0,0] },
                         headStyles: { fillColor: [255,255,255], textColor: [0,0,0], lineWidth: 0.1, lineColor: [0,0,0], fontStyle: 'bold' },
                         columnStyles: {
-                            0: { cellWidth: 10 }, 1: { cellWidth: 80 }, 2: { cellWidth: 35 }, 3: { cellWidth: 60 },
-                            4: { cellWidth: 8 }, 5: { cellWidth: 8 }, 6: { cellWidth: 8 }, 7: { cellWidth: 8 }, 8: { cellWidth: 8 }, 9: { cellWidth: 8 }, 10: { cellWidth: 8 }
+                            0: { cellWidth: 8 }, 
+                            1: { cellWidth: 75 }, // Aumentado (antes 65)
+                            2: { cellWidth: 35 }, 
+                            3: { cellWidth: 85 }, // Aumentado (antes 75)
+                            4: { cellWidth: 6 },  // Reducido (FD)
+                            5: { cellWidth: 6 },  // Reducido (D)
+                            6: { cellWidth: 8 }, 7: { cellWidth: 8 }, 8: { cellWidth: 8 }, 9: { cellWidth: 8 }, 10: { cellWidth: 8 }
                         },
-                        margin: { left: 10, right: 10 }
+                        margin: { top: 75, left: 10, right: 10, bottom: 40 }, // Margen inferior para firmas
+                        didDrawPage: function (data) {
+                            drawHeader(doc, data.pageNumber, totalPagesExp);
+                        }
                     });
 
+                    // --- PIE DE PÁGINA (FIRMAS) ---
+                    // Se dibujan en la última página generada
                     const finalY = doc.lastAutoTable.finalY || 150;
-                    doc.setFontSize(8);
-                    doc.text("FD = Funcionario docente        D = Docente", 10, finalY + 5);
-                    doc.line(50, finalY + 35, 120, finalY + 35);
-                    doc.text("Firma del instructor", 85, finalY + 39, { align: "center" });
-                    doc.line(160, finalY + 35, 230, finalY + 35);
-                    doc.text("Firma del coordinador", 195, finalY + 39, { align: "center" });
+                    let signY = finalY + 5; 
+                    
+                    // Asegurar que las firmas no se salgan de la página
+                    if (signY + 40 > height) {
+                        doc.addPage();
+                        // Al añadir página, didDrawPage se ejecuta automáticamente para el encabezado
+                        signY = 80; // Margen superior si nueva página
+                    }
 
-                    doc.save(`ITD_Oficial_${meta.Id_Curso.replace(/[^a-z0-9]/gi, '_')}.pdf`);
+                    doc.setFontSize(8);
+                    doc.text("FD = Funcionario docente        D = Docente", 10, signY);
+
+                    signY += 20; // Espacio para firmar
+
+                    // Firma Instructor
+                    doc.line(30, signY, 110, signY); 
+                    // NOMBRE SOBRE LA LINEA
+                    doc.setFont("helvetica", "bold");
+                    doc.text(String(meta.NombreInstructor || ""), 70, signY - 3, { align: "center" });
+                    doc.setFont("helvetica", "normal");
+                    doc.text("Nombre y firma del instructor (a)", 70, signY + 4, { align: "center" });
+
+                    const rfcInst = String(meta.RfcInstructor || meta.Rfc || "");
+                    const curpInst = String(meta.CurpInstructor || meta.Curp || "");
+                    doc.text("R.F.C. " + rfcInst, 30, signY + 10);
+                    doc.text("CURP " + curpInst, 30, signY + 15);
+                    if(!rfcInst) doc.line(40, signY + 10, 110, signY + 10);
+                    if(!curpInst) doc.line(40, signY + 15, 110, signY + 15);
+
+                    // Firma Coordinador
+                    doc.line(160, signY, 240, signY);
+                    // NOMBRE SOBRE LA LINEA
+                    doc.setFont("helvetica", "bold");
+                    doc.text("Alejandro Calderón Rentería", 200, signY - 3, { align: "center" });
+                    doc.setFont("helvetica", "normal");
+                    doc.text("Nombre y firma del coordinador (a)", 200, signY + 4, { align: "center" });
+
+                    // Pie de página estático
+                    const pageCount = doc.internal.getNumberOfPages();
+                    for(let i = 1; i <= pageCount; i++) {
+                        doc.setPage(i);
+                        doc.text("ITD-AD-FO-8", 10, height - 10);
+                        doc.text("Revisión: 1", width - 25, height - 10);
+                    }
+
+                    // Reemplazar el placeholder de páginas totales
+                    if (typeof doc.putTotalPages === 'function') {
+                        doc.putTotalPages(totalPagesExp);
+                    }
+                    
+                    if (action === 'print' && printWindow) {
+                        doc.autoPrint();
+                        const blob = doc.output('bloburl');
+                        printWindow.location.href = blob;
+                    } else {
+                        doc.save(`ITD_Oficial_${meta.Id_Curso.replace(/[^a-z0-9]/gi, '_')}.pdf`);
+                    }
+
                 } catch (e) {
                     console.error(e);
+                    if (printWindow) printWindow.close();
                     alert("Error generando PDF Oficial: " + e.message);
+                } finally {
+                    setLoading(false);
                 }
             };
 
             const generateCustomPDF = () => {
                 if (!activeCourseData) return;
                 const { students, meta } = activeCourseData;
-                
                 try {
                     const doc = new jsPDF('landscape');
-                    let startY = 30; // Ajustado ya que no hay imagen de encabezado
-
+                    let startY = 30;
                     doc.setFontSize(18);
                     doc.setTextColor(27, 57, 106);
                     doc.text(meta.Curso || "Reporte", 14, 15);
                     doc.setFontSize(10);
                     doc.setTextColor(100);
                     doc.text(`${meta.FechaCurso} | Generado: ${new Date().toLocaleDateString()}`, 14, 22);
-                    
                     const body = students.map((s, i) => {
                         const row = [i + 1];
                         selectedFields.forEach(f => row.push(String(s[f] || '')));
                         return row;
                     });
-
                     autoTable(doc, {
                         startY: startY,
                         head: [['No.', ...selectedFields]],
@@ -424,7 +546,6 @@
                         theme: 'striped',
                         headStyles: { fillColor: [27, 57, 106] },
                     });
-
                     doc.save(`Reporte_Custom_${meta.Id_Curso}.pdf`);
                 } catch (e) {
                     alert("Error generando PDF Custom: " + e.message);
@@ -434,19 +555,14 @@
             const generateExcel = () => {
                 if (!activeCourseData) return;
                 const { students, meta } = activeCourseData;
-
                 const dataToExport = students.map((s, i) => {
                     const row = { "No.": i + 1 };
                     selectedFields.forEach(f => row[f] = s[f]);
                     return row;
                 });
-
-                let workbook, worksheet;
-                // Lógica de plantilla eliminada, siempre genera libro nuevo
-                workbook = XLSX.utils.book_new();
-                worksheet = XLSX.utils.json_to_sheet(dataToExport);
+                let workbook = XLSX.utils.book_new();
+                let worksheet = XLSX.utils.json_to_sheet(dataToExport);
                 XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte");
-                
                 XLSX.writeFile(workbook, `Reporte_${meta.Id_Curso}.xlsx`);
             };
 
@@ -480,7 +596,7 @@
                                         <FileText className="text-yellow-700" size={20} />
                                         <label className="text-lg font-bold text-gray-800">1b. Instructores (Detalles)</label>
                                     </div>
-                                    <p className="text-xs text-gray-600 mb-2">Carga aquí el CSV con id, instructor, horario, etc.</p>
+                                    <p className="text-xs text-gray-600 mb-2">Carga aquí el CSV con id, instructor, horario, <strong>CURP</strong>, etc.</p>
                                     <input type="file" accept=".csv,.xlsx" onChange={handleInstructorUpload} 
                                         className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-yellow-600 file:text-white hover:file:bg-yellow-500 cursor-pointer bg-white border border-gray-300 rounded mb-2" />
                                     <p className="text-right text-sm font-bold text-yellow-800">{instructorData.length} cursos/instructores cargados</p>
@@ -530,7 +646,6 @@
                                             </label>
                                         ))}
                                     </div>
-                                    {/* SECCIÓN DE EXTRAS ELIMINADA */}
                                 </div>
                             )}
                         </div>
@@ -548,7 +663,10 @@
                                         </div>
                                     </div>
                                     <div className="flex flex-wrap gap-2">
-                                        <button onClick={generateOfficialPDF} className="bg-gray-800 text-white px-4 py-2 rounded shadow flex items-center text-sm hover:scale-105 transition">
+                                        <button onClick={() => generateOfficialPDF('print')} className="bg-blue-700 text-white px-4 py-2 rounded shadow flex items-center text-sm hover:scale-105 transition hover:bg-blue-800">
+                                            <Printer size={16} className="mr-2" /> Imprimir
+                                        </button>
+                                        <button onClick={() => generateOfficialPDF('download')} className="bg-gray-800 text-white px-4 py-2 rounded shadow flex items-center text-sm hover:scale-105 transition">
                                             <FileText size={16} className="mr-2" /> Oficial ITD
                                         </button>
                                         <button onClick={generateCustomPDF} style={{backgroundColor: ITD_COLORS.maroon}} className="text-white px-4 py-2 rounded shadow flex items-center text-sm hover:scale-105 transition">
