@@ -489,6 +489,17 @@
             border-width: 0;
         }
     </style>
+<script type="importmap">
+{
+  "imports": {
+    "xlsx": "https://esm.sh/xlsx@^0.18.5",
+    "react": "https://esm.sh/react@^19.2.3",
+    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
+    "react/": "https://esm.sh/react@^19.2.3/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
 </head>
 
 <body>
@@ -613,22 +624,22 @@
                 </a>
             </article>
 
-            <!-- 5. Gestor de Documentos (Próximamente) -->
-            <article class="card inactive">
-                <span class="badge badge-soon">Próximamente</span>
+            <!-- 5. Validador de Encuestas -->
+            <article class="card">
+                <span class="badge">Nuevo</span>
                 <div class="icon-box">
-                    <i class="fas fa-file-pdf" aria-hidden="true"></i>
+                    <i class="fas fa-check-double" aria-hidden="true"></i>
                 </div>
                 <div>
-                    <h3 class="card-title">Gestor de Documentos</h3>
+                    <h3 class="card-title">Validador de Encuestas</h3>
                     <p class="card-desc">
-                        Conversión y estandarización automática de documentos.
-                        Procesamiento de PDFs, Word y otros formatos oficiales con plantillas institucionales.
+                        Cruza datos de inscripciones y respuestas de encuestas para validar el estatus de cumplimiento.
+                        Conserva el orden original de los registros.
                     </p>
                 </div>
-                <button class="btn btn-disabled" disabled aria-label="Herramienta no disponible">
-                    No disponible
-                </button>
+                <a href="validaencuesta.html" class="btn btn-primary" aria-label="Acceder al Validador de Encuestas">
+                    Ingresar <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                </a>
             </article>
 
         </div>
@@ -702,5 +713,6 @@
             });
         });
     </script>
+<script type="module" src="/index.tsx"></script>
 </body>
 </html>

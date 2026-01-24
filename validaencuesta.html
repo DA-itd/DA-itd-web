@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validador de Encuestas - ITD</title>
+    
+    <!-- 1. Estilos: Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. Fuente: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- 3. Librería Excel: SheetJS -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    
+    <!-- 4. Librería Iconos: Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                },
+            },
+        }
+    </script>
+    
+    <style>
+        /* Animaciones simples */
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased min-h-screen">
+
+    <div class="p-4 md:p-12">
+        <div class="max-w-6xl mx-auto space-y-8">
+            
+            <!-- Botón Volver al Index -->
+            <div class="flex justify-start mb-4">
+                <a href="index.html" class="inline-flex items-center space-x-2 text-slate-600 hover:text-indigo-600 bg-white px-4 py-2 rounded-lg shadow-sm border border-slate-200 transition-all hover:-translate-x-1">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    <span class="font-medium">Volver al inicio</span>
+                </a>
+            </div>
+
+            <!-- Header -->
+            <header class="text-center space-y-6 mb-8">
+                <!-- Logo Responsivo -->
+                <div class="flex justify-center w-full">
+                    <img src="https://github.com/DA-itd/DA-itd-web/blob/main/logo_itdurango.png?raw=true" 
+                         alt="Logo Instituto Tecnológico de Durango" 
+                         class="h-24 md:h-32 object-contain hover:scale-105 transition-transform duration-300">
+                </div>
+
+                <!-- Título y Descripción -->
+                <div class="space-y-3">
+                    <div class="flex flex-col md:flex-row items-center justify-center gap-3">
+                        <div class="bg-indigo-600 p-2 rounded-lg shadow-lg shadow-indigo-200 inline-flex">
+                            <i data-lucide="file-spreadsheet" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <h1 class="text-2xl md:text-4xl font-bold text-slate-900 tracking-tight">
+                            Validador de Encuestas
+                        </h1>
+                    </div>
+                    <p class="text-slate-500 max-w-2xl mx-auto text-base md:text-lg px-2">
+                        Herramienta para cruzar datos de inscripciones y encuestas, manteniendo el orden original del archivo.
+                    </p>
+                </div>
+            </header>
+
+            <!-- Input Area -->
+            <div id="input-section" class="grid grid-cols-1 md:grid-cols-2 gap-6 fade-in">
+                
+                <!-- File 1: Enrollment -->
+                <div id="dropzone-enrollment" class="relative border-2 border-dashed border-slate-300 bg-white hover:border-slate-400 rounded-xl p-6 md:p-8 transition-all duration-200 cursor-pointer flex flex-col items-center justify-center text-center h-full min-h-[220px]" onclick="document.getElementById('file-enrollment').click()">
+                    <input type="file" id="file-enrollment" class="hidden" accept=".csv, .xlsx, .xls" onchange="handleFileSelect('enrollment', this.files[0])">
+                    
+                    <div id="content-enrollment-empty">
+                        <div class="p-4 rounded-full bg-slate-100 mb-4 inline-block">
+                            <i data-lucide="upload" class="w-8 h-8 text-slate-400"></i>
+                        </div>
+                        <h3 class="font-semibold text-slate-800 text-lg mb-2">1. Lista de Inscripciones</h3>
+                        <p class="text-sm text-slate-500 max-w-[200px] mx-auto">Archivo maestro. Se mantendrá el orden original.</p>
+                        <p class="text-xs text-slate-400 mt-4">Soporta CSV, Excel</p>
+                    </div>
+
+                    <div id="content-enrollment-selected" class="hidden w-full">
+                        <i data-lucide="check-circle" class="w-12 h-12 mb-4 text-blue-600 mx-auto"></i>
+                        <h3 id="name-enrollment" class="font-semibold text-slate-800 text-lg mb-1 truncate px-2 w-full"></h3>
+                        <p id="size-enrollment" class="text-sm text-slate-500"></p>
+                        <span class="mt-4 text-xs font-medium text-slate-400 underline block">Cambiar archivo</span>
+                    </div>
+                </div>
+
+                <!-- File 2: Survey -->
+                <div id="dropzone-survey" class="relative border-2 border-dashed border-slate-300 bg-white hover:border-slate-400 rounded-xl p-6 md:p-8 transition-all duration-200 cursor-pointer flex flex-col items-center justify-center text-center h-full min-h-[220px]" onclick="document.getElementById('file-survey').click()">
+                    <input type="file" id="file-survey" class="hidden" accept=".csv, .xlsx, .xls" onchange="handleFileSelect('survey', this.files[0])">
+                    
+                    <div id="content-survey-empty">
+                        <div class="p-4 rounded-full bg-slate-100 mb-4 inline-block">
+                            <i data-lucide="upload" class="w-8 h-8 text-slate-400"></i>
+                        </div>
+                        <h3 class="font-semibold text-slate-800 text-lg mb-2">2. Registro de Encuestas</h3>
+                        <p class="text-sm text-slate-500 max-w-[200px] mx-auto">Datos para cruzar (Forms).</p>
+                        <p class="text-xs text-slate-400 mt-4">Soporta CSV, Excel</p>
+                    </div>
+
+                    <div id="content-survey-selected" class="hidden w-full">
+                        <i data-lucide="check-circle" class="w-12 h-12 mb-4 text-emerald-600 mx-auto"></i>
+                        <h3 id="name-survey" class="font-semibold text-slate-800 text-lg mb-1 truncate px-2 w-full"></h3>
+                        <p id="size-survey" class="text-sm text-slate-500"></p>
+                        <span class="mt-4 text-xs font-medium text-slate-400 underline block">Cambiar archivo</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="flex flex-col md:flex-row justify-center pt-4 fade-in gap-4">
+                <!-- Process Button -->
+                <button id="btn-process" onclick="processData()" disabled class="w-full md:w-auto group flex items-center justify-center space-x-2 px-8 py-4 rounded-xl font-semibold text-lg transition-all shadow-xl bg-slate-200 text-slate-400 cursor-not-allowed disabled:opacity-70">
+                    <i data-lucide="play" class="w-5 h-5 fill-current"></i>
+                    <span>Comparar Archivos</span>
+                </button>
+
+                <!-- Processing Spinner (Hidden by default) -->
+                <button id="btn-loading" class="w-full md:w-auto hidden flex items-center justify-center space-x-2 px-8 py-4 rounded-xl font-semibold text-lg bg-indigo-600 text-white cursor-wait">
+                    <i data-lucide="loader-2" class="w-5 h-5 spinner"></i>
+                    <span>Procesando...</span>
+                </button>
+
+                <!-- Action Buttons (Hidden by default) -->
+                <div id="action-buttons" class="hidden flex flex-col md:flex-row gap-4 w-full md:w-auto">
+                    <button onclick="downloadResults()" class="flex items-center justify-center space-x-2 px-8 py-4 rounded-xl font-semibold text-lg bg-emerald-600 text-white hover:bg-emerald-700 shadow-xl shadow-emerald-200 hover:-translate-y-1 transition-all">
+                        <i data-lucide="download" class="w-5 h-5"></i>
+                        <span>Descargar Resultado</span>
+                    </button>
+                    <button onclick="resetApp()" class="flex items-center justify-center space-x-2 px-6 py-4 rounded-xl font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-all">
+                        <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                        <span>Reiniciar</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Error Message -->
+            <div id="error-message" class="hidden bg-red-50 border border-red-200 rounded-xl p-4 flex items-start space-x-3 max-w-2xl mx-auto fade-in">
+                <i data-lucide="alert-circle" class="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0"></i>
+                <p id="error-text" class="text-red-700"></p>
+            </div>
+
+            <!-- Results Section -->
+            <div id="results-section" class="hidden space-y-6 fade-in">
+                
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <p class="text-sm font-medium text-slate-500 uppercase tracking-wider">Total Registros</p>
+                        <p id="stat-total" class="text-3xl font-bold text-slate-800 mt-2">0</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border-l-4 border-emerald-500 shadow-sm">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="text-sm font-medium text-slate-500 uppercase tracking-wider">Activos</p>
+                                <p id="stat-active" class="text-3xl font-bold text-emerald-600 mt-2">0</p>
+                            </div>
+                            <div class="bg-emerald-100 p-2 rounded-full">
+                                <i data-lucide="check" class="w-6 h-6 text-emerald-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border-l-4 border-red-500 shadow-sm">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="text-sm font-medium text-slate-500 uppercase tracking-wider">Inactivos</p>
+                                <p id="stat-inactive" class="text-3xl font-bold text-red-600 mt-2">0</p>
+                            </div>
+                            <div class="bg-red-100 p-2 rounded-full">
+                                <i data-lucide="alert-circle" class="w-6 h-6 text-red-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preview Table -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+                        <h3 class="font-semibold text-slate-800">Vista Previa (Primeros 10 registros)</h3>
+                        <span class="text-xs text-slate-500 italic">Orden original preservado</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
+                                <tr>
+                                    <th class="px-6 py-3 whitespace-nowrap">Nombre</th>
+                                    <th class="px-6 py-3 whitespace-nowrap">Email</th>
+                                    <th class="px-6 py-3 whitespace-nowrap">Curso</th>
+                                    <th class="px-6 py-3 text-center whitespace-nowrap">Estado Encuesta</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body" class="divide-y divide-slate-100">
+                                <!-- Filas generadas por JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        // --- State ---
+        let fileEnrollment = null;
+        let fileSurvey = null;
+        let processedData = null;
+        let outputHeaders = null;
+
+        // --- Constants ---
+        // Nombres posibles para las columnas (case insensitive)
+        const KEYS_EMAIL = ['Email', 'Correo', 'E-mail', 'Dirección de correo electrónico'];
+        const KEYS_COURSE = ['Curso', 'Nombre del curso', 'NombreCurso', 'Taller'];
+        const KEYS_NAME = ['Nombre', 'NombreCompleto', 'Name'];
+        const KEYS_TARGET = ['Encuesta', 'Estatus', 'EstadoEncuesta'];
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            setupDragAndDrop('dropzone-enrollment', 'enrollment', 'blue');
+            setupDragAndDrop('dropzone-survey', 'survey', 'emerald');
+        });
+
+        // --- Helper Functions ---
+        
+        // Configurar eventos de Drag & Drop
+        function setupDragAndDrop(elementId, type, colorName) {
+            const dropzone = document.getElementById(elementId);
+            const activeClass = colorName === 'blue' 
+                ? ['border-blue-500', 'bg-blue-50'] 
+                : ['border-emerald-500', 'bg-emerald-50'];
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropzone.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            dropzone.addEventListener('dragover', () => {
+                dropzone.classList.add(...activeClass);
+            });
+
+            dropzone.addEventListener('dragleave', () => {
+                dropzone.classList.remove(...activeClass);
+            });
+
+            dropzone.addEventListener('drop', (e) => {
+                dropzone.classList.remove(...activeClass);
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files.length > 0) {
+                    handleFileSelect(type, files[0]);
+                }
+            });
+        }
+
+        // Manejar selección de archivos
+        function handleFileSelect(type, file) {
+            if (type === 'enrollment') fileEnrollment = file;
+            if (type === 'survey') fileSurvey = file;
+
+            updateFileUI(type, file);
+            checkReadyToProcess();
+        }
+
+        // Actualizar UI del archivo
+        function updateFileUI(type, file) {
+            const emptyDiv = document.getElementById(`content-${type}-empty`);
+            const selectedDiv = document.getElementById(`content-${type}-selected`);
+            const dropzone = document.getElementById(`dropzone-${type}`);
+            
+            // Actualizar estilo de borde
+            const baseBorder = 'border-slate-300';
+            const activeBorder = type === 'enrollment' ? 'border-blue-200' : 'border-emerald-200';
+            const activeBg = type === 'enrollment' ? 'bg-blue-50' : 'bg-emerald-50';
+
+            if (file) {
+                emptyDiv.classList.add('hidden');
+                selectedDiv.classList.remove('hidden');
+                
+                document.getElementById(`name-${type}`).textContent = file.name;
+                document.getElementById(`size-${type}`).textContent = (file.size / 1024).toFixed(1) + ' KB';
+                
+                dropzone.classList.remove(baseBorder, 'bg-white');
+                dropzone.classList.add(activeBorder, activeBg);
+            } else {
+                emptyDiv.classList.remove('hidden');
+                selectedDiv.classList.add('hidden');
+                dropzone.classList.add(baseBorder, 'bg-white');
+                dropzone.classList.remove(activeBorder, activeBg);
+            }
+        }
+
+        // Habilitar botón de procesar
+        function checkReadyToProcess() {
+            const btn = document.getElementById('btn-process');
+            if (fileEnrollment && fileSurvey) {
+                btn.disabled = false;
+                btn.classList.remove('bg-slate-200', 'text-slate-400', 'cursor-not-allowed');
+                btn.classList.add('bg-indigo-600', 'text-white', 'hover:bg-indigo-700', 'hover:shadow-indigo-200', 'hover:-translate-y-1');
+            } else {
+                btn.disabled = true;
+                btn.classList.add('bg-slate-200', 'text-slate-400', 'cursor-not-allowed');
+                btn.classList.remove('bg-indigo-600', 'text-white', 'hover:bg-indigo-700', 'hover:shadow-indigo-200', 'hover:-translate-y-1');
+            }
+        }
+
+        // --- Logic: Read Excel ---
+        function readExcelFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = e.target.result;
+                        const workbook = XLSX.read(data, { type: 'binary' });
+                        const sheetName = workbook.SheetNames[0];
+                        const sheet = workbook.Sheets[sheetName];
+                        // defval: "" ensures that if a row has empty cells for columns present in header,
+                        // they are present as "" in the object. This preserves object shape for all rows.
+                        const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+                        resolve(jsonData);
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                reader.onerror = (error) => reject(error);
+                reader.readAsBinaryString(file);
+            });
+        }
+
+        function normalize(str) {
+            if (!str) return '';
+            return String(str).trim().toLowerCase();
+        }
+
+        function findKey(row, candidates) {
+            const keys = Object.keys(row);
+            for (const candidate of candidates) {
+                const found = keys.find(k => k.toLowerCase().trim() === candidate.toLowerCase());
+                if (found) return found;
+            }
+            return undefined;
+        }
+
+        // --- Main Process Logic ---
+        async function processData() {
+            // UI States
+            document.getElementById('btn-process').classList.add('hidden');
+            document.getElementById('btn-loading').classList.remove('hidden');
+            document.getElementById('error-message').classList.add('hidden');
+            document.getElementById('results-section').classList.add('hidden');
+
+            try {
+                // 1. Read files
+                // Note: readExcelFile now uses {defval: ""} to prevent sparse objects
+                const enrollmentData = await readExcelFile(fileEnrollment);
+                const surveyData = await readExcelFile(fileSurvey);
+
+                if (enrollmentData.length === 0) throw new Error("El archivo de inscripciones está vacío.");
+                if (surveyData.length === 0) throw new Error("El archivo de encuestas está vacío.");
+
+                // 2. Identify Keys
+                const e_emailKey = findKey(enrollmentData[0], KEYS_EMAIL);
+                const e_courseKey = findKey(enrollmentData[0], KEYS_COURSE);
+                const e_targetKey = findKey(enrollmentData[0], KEYS_TARGET) || 'Encuesta';
+
+                const s_emailKey = findKey(surveyData[0], KEYS_EMAIL);
+                const s_courseKey = findKey(surveyData[0], KEYS_COURSE);
+
+                if (!e_emailKey || !e_courseKey) throw new Error("No se encontraron las columnas 'Email' o 'Curso' en el archivo de Inscripciones.");
+                if (!s_emailKey || !s_courseKey) throw new Error("No se encontraron las columnas 'Email' o 'Curso' en el archivo de Encuestas.");
+
+                // 3. Create Lookup
+                const surveySet = new Set();
+                surveyData.forEach(row => {
+                    const email = normalize(row[s_emailKey]);
+                    const course = normalize(row[s_courseKey]);
+                    if (email && course) {
+                        surveySet.add(`${email}|${course}`);
+                    }
+                });
+
+                // 4. Compare
+                let activeCount = 0;
+                let inactiveCount = 0;
+
+                // Process data mapping over original enrollmentData to preserve order exactly
+                processedData = enrollmentData.map(row => {
+                    const email = normalize(row[e_emailKey]);
+                    const course = normalize(row[e_courseKey]);
+                    const key = `${email}|${course}`;
+                    
+                    const isFound = surveySet.has(key);
+                    
+                    if (isFound) activeCount++;
+                    else inactiveCount++;
+
+                    // Update or Add status column
+                    // Using spread operator preserves existing keys order
+                    return {
+                        ...row,
+                        [e_targetKey]: isFound ? 'Activo' : 'Inactivo'
+                    };
+                });
+
+                // Store headers to ensure output column order matches input
+                // If the input was consistent, Object.keys(processedData[0]) will contain all headers in order + new status
+                if (processedData.length > 0) {
+                    outputHeaders = Object.keys(processedData[0]);
+                }
+
+                // 5. Update Stats UI
+                document.getElementById('stat-total').textContent = processedData.length;
+                document.getElementById('stat-active').textContent = activeCount;
+                document.getElementById('stat-inactive').textContent = inactiveCount;
+
+                // 6. Generate Table HTML
+                const tableBody = document.getElementById('table-body');
+                tableBody.innerHTML = '';
+                
+                processedData.slice(0, 10).forEach(row => {
+                    const nameKey = findKey(row, KEYS_NAME) || Object.keys(row)[0];
+                    const emailKey = findKey(row, KEYS_EMAIL) || Object.keys(row)[1];
+                    const courseKey = findKey(row, KEYS_COURSE) || Object.keys(row)[2];
+                    const status = row[e_targetKey];
+                    
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50 transition-colors";
+                    
+                    const statusClass = status === 'Activo' 
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
+                        : 'bg-red-100 text-red-800 border border-red-200';
+
+                    tr.innerHTML = `
+                        <td class="px-6 py-3 font-medium text-slate-700 whitespace-nowrap">${row[nameKey] || '-'}</td>
+                        <td class="px-6 py-3 text-slate-600 whitespace-nowrap">${row[emailKey] || '-'}</td>
+                        <td class="px-6 py-3 text-slate-600 truncate max-w-xs whitespace-nowrap">${row[courseKey] || '-'}</td>
+                        <td class="px-6 py-3 text-center whitespace-nowrap">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}">
+                                ${status}
+                            </span>
+                        </td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+
+                // 7. Show Results
+                document.getElementById('btn-loading').classList.add('hidden');
+                document.getElementById('action-buttons').classList.remove('hidden');
+                document.getElementById('results-section').classList.remove('hidden');
+
+            } catch (error) {
+                console.error(error);
+                document.getElementById('error-text').textContent = error.message || "Error al procesar archivos.";
+                document.getElementById('error-message').classList.remove('hidden');
+                
+                document.getElementById('btn-process').classList.remove('hidden');
+                document.getElementById('btn-loading').classList.add('hidden');
+            }
+        }
+
+        // --- Download ---
+        function downloadResults() {
+            if (!processedData) return;
+            
+            // Explicitly pass headers to ensure column order is preserved exactly as processed
+            const ws = XLSX.utils.json_to_sheet(processedData, { header: outputHeaders });
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Resultados");
+            XLSX.writeFile(wb, "reporte_encuestas_procesado.xlsx");
+        }
+
+        // --- Reset ---
+        function resetApp() {
+            fileEnrollment = null;
+            fileSurvey = null;
+            processedData = null;
+            outputHeaders = null;
+
+            // Reset UI Inputs
+            ['enrollment', 'survey'].forEach(type => {
+                document.getElementById(`file-${type}`).value = '';
+                updateFileUI(type, null);
+            });
+
+            // Toggle Buttons
+            document.getElementById('action-buttons').classList.add('hidden');
+            document.getElementById('btn-process').classList.remove('hidden');
+            document.getElementById('results-section').classList.add('hidden');
+            document.getElementById('error-message').classList.add('hidden');
+            
+            checkReadyToProcess();
+        }
+
+    </script>
+</body>
+</html>
