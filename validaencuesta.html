@@ -36,6 +36,16 @@
         
         .spinner { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        
+        /* Custom Checkbox */
+        .custom-checkbox:checked + div {
+            background-color: #eff6ff; /* blue-50 */
+            border-color: #3b82f6; /* blue-500 */
+            color: #1e40af; /* blue-800 */
+        }
+        .custom-checkbox:checked + div .check-icon {
+            opacity: 1;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 antialiased min-h-screen">
@@ -117,8 +127,34 @@
                         <i data-lucide="check-circle" class="w-12 h-12 mb-4 text-emerald-600 mx-auto"></i>
                         <h3 id="name-survey" class="font-semibold text-slate-800 text-lg mb-1 truncate px-2 w-full"></h3>
                         <p id="size-survey" class="text-sm text-slate-500"></p>
+                        <div id="survey-analyzing" class="hidden mt-2 text-xs text-indigo-500 flex items-center justify-center gap-1">
+                            <i data-lucide="loader-2" class="w-3 h-3 spinner"></i> Analizando fechas...
+                        </div>
                         <span class="mt-4 text-xs font-medium text-slate-400 underline block">Cambiar archivo</span>
                     </div>
+                </div>
+            </div>
+
+            <!-- Date Filter Section (Hidden initially) -->
+            <div id="date-filter-section" class="hidden fade-in bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-indigo-100 p-2 rounded-lg">
+                            <i data-lucide="calendar" class="w-5 h-5 text-indigo-600"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-slate-800 text-lg">Filtrar por Fecha</h3>
+                            <p class="text-sm text-slate-500">Selecciona los días que deseas incluir en la validación.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="toggleAllDates(true)" class="text-xs px-3 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium transition-colors">Todas</button>
+                        <button onclick="toggleAllDates(false)" class="text-xs px-3 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium transition-colors">Ninguna</button>
+                    </div>
+                </div>
+                
+                <div id="date-checkboxes" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 max-h-64 overflow-y-auto p-1 custom-scrollbar">
+                    <!-- Checkboxes generated here -->
                 </div>
             </div>
 
@@ -222,6 +258,10 @@
         let fileSurvey = null;
         let processedData = null;
         let outputHeaders = null;
+        
+        // Cache for survey data to avoid re-reading
+        let cachedSurveyData = null;
+        let surveyDateKey = null;
 
         // --- Constants ---
         // Nombres posibles para las columnas (case insensitive)
@@ -229,6 +269,7 @@
         const KEYS_COURSE = ['Curso', 'Nombre del curso', 'NombreCurso', 'Taller'];
         const KEYS_NAME = ['Nombre', 'NombreCompleto', 'Name'];
         const KEYS_TARGET = ['Encuesta', 'Estatus', 'EstadoEncuesta'];
+        const KEYS_DATE = ['Marca temporal', 'Timestamp', 'Fecha', 'Date', 'Time'];
 
         // --- Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -274,12 +315,108 @@
         }
 
         // Manejar selección de archivos
-        function handleFileSelect(type, file) {
+        async function handleFileSelect(type, file) {
             if (type === 'enrollment') fileEnrollment = file;
-            if (type === 'survey') fileSurvey = file;
+            if (type === 'survey') {
+                fileSurvey = file;
+                // Reset survey analysis
+                cachedSurveyData = null;
+                surveyDateKey = null;
+                document.getElementById('date-filter-section').classList.add('hidden');
+                document.getElementById('date-checkboxes').innerHTML = '';
+            }
 
             updateFileUI(type, file);
+            
+            // If survey, try to analyze dates immediately
+            if (type === 'survey' && file) {
+                document.getElementById('survey-analyzing').classList.remove('hidden');
+                try {
+                    const data = await readExcelFile(file);
+                    cachedSurveyData = data;
+                    analyzeDates(data);
+                } catch (e) {
+                    console.error("Error analyzing survey dates", e);
+                } finally {
+                    document.getElementById('survey-analyzing').classList.add('hidden');
+                }
+            }
+
             checkReadyToProcess();
+        }
+
+        // Analizar fechas en el archivo de encuestas
+        function analyzeDates(data) {
+            if (!data || data.length === 0) return;
+
+            // Find date key
+            const firstRow = data[0];
+            surveyDateKey = findKey(firstRow, KEYS_DATE);
+
+            if (!surveyDateKey) return; // No date column found
+
+            // Extract unique dates
+            const dates = new Set();
+            data.forEach(row => {
+                const rawDate = row[surveyDateKey];
+                if (rawDate) {
+                    const normalized = normalizeDate(rawDate);
+                    if (normalized) dates.add(normalized);
+                }
+            });
+
+            if (dates.size === 0) return;
+
+            // Render checkboxes
+            const container = document.getElementById('date-checkboxes');
+            container.innerHTML = '';
+            
+            // Sort dates (newest first)
+            const sortedDates = Array.from(dates).sort((a, b) => {
+                // simple comparison string YYYY-MM-DD works, 
+                // but let's just sort as strings usually works for ISO or "DD/MM/YYYY" if formatted
+                return a.localeCompare(b);
+            });
+
+            sortedDates.forEach(dateStr => {
+                const label = document.createElement('label');
+                label.className = "flex items-center cursor-pointer group";
+                label.innerHTML = `
+                    <input type="checkbox" class="hidden custom-checkbox" value="${dateStr}" checked>
+                    <div class="flex-1 flex items-center justify-between px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 group-hover:bg-white group-hover:border-slate-300 transition-all">
+                        <span class="text-sm font-medium text-slate-700">${dateStr}</span>
+                        <i data-lucide="check" class="w-4 h-4 text-white opacity-0 transition-opacity check-icon"></i>
+                    </div>
+                `;
+                container.appendChild(label);
+            });
+            
+            lucide.createIcons();
+            document.getElementById('date-filter-section').classList.remove('hidden');
+        }
+
+        function normalizeDate(val) {
+            // Handles various date formats found in Excel/CSV
+            if (!val) return null;
+            
+            // If it's a string like "27/02/2025 10:20:00", just split by space
+            if (typeof val === 'string') {
+                const parts = val.trim().split(' ');
+                if (parts.length > 0) return parts[0];
+            }
+            
+            // If it's a JS Date object (unlikely with current read logic but possible if changed)
+            if (val instanceof Date) {
+                return val.toLocaleDateString();
+            }
+            
+            // Fallback
+            return String(val).split(' ')[0];
+        }
+
+        function toggleAllDates(checked) {
+            const boxes = document.querySelectorAll('#date-checkboxes input[type="checkbox"]');
+            boxes.forEach(box => box.checked = checked);
         }
 
         // Actualizar UI del archivo
@@ -371,9 +508,10 @@
 
             try {
                 // 1. Read files
-                // Note: readExcelFile now uses {defval: ""} to prevent sparse objects
                 const enrollmentData = await readExcelFile(fileEnrollment);
-                const surveyData = await readExcelFile(fileSurvey);
+                
+                // Use cached survey data if available, otherwise read
+                const surveyData = cachedSurveyData || await readExcelFile(fileSurvey);
 
                 if (enrollmentData.length === 0) throw new Error("El archivo de inscripciones está vacío.");
                 if (surveyData.length === 0) throw new Error("El archivo de encuestas está vacío.");
@@ -389,9 +527,25 @@
                 if (!e_emailKey || !e_courseKey) throw new Error("No se encontraron las columnas 'Email' o 'Curso' en el archivo de Inscripciones.");
                 if (!s_emailKey || !s_courseKey) throw new Error("No se encontraron las columnas 'Email' o 'Curso' en el archivo de Encuestas.");
 
+                // 2b. Identify Date Filters
+                let selectedDates = null;
+                const dateSection = document.getElementById('date-filter-section');
+                if (!dateSection.classList.contains('hidden') && surveyDateKey) {
+                    const checkboxes = document.querySelectorAll('#date-checkboxes input:checked');
+                    selectedDates = new Set(Array.from(checkboxes).map(cb => cb.value));
+                }
+
                 // 3. Create Lookup
                 const surveySet = new Set();
                 surveyData.forEach(row => {
+                    // Filter check
+                    if (selectedDates) {
+                        const rowDate = normalizeDate(row[surveyDateKey]);
+                        if (!rowDate || !selectedDates.has(rowDate)) {
+                            return; // Skip this row as it's not in selected dates
+                        }
+                    }
+
                     const email = normalize(row[s_emailKey]);
                     const course = normalize(row[s_courseKey]);
                     if (email && course) {
@@ -495,12 +649,18 @@
             fileSurvey = null;
             processedData = null;
             outputHeaders = null;
+            cachedSurveyData = null;
+            surveyDateKey = null;
 
             // Reset UI Inputs
             ['enrollment', 'survey'].forEach(type => {
                 document.getElementById(`file-${type}`).value = '';
                 updateFileUI(type, null);
             });
+            
+            // Hide filters
+            document.getElementById('date-filter-section').classList.add('hidden');
+            document.getElementById('date-checkboxes').innerHTML = '';
 
             // Toggle Buttons
             document.getElementById('action-buttons').classList.add('hidden');
