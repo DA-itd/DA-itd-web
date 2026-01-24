@@ -106,6 +106,9 @@
                         <i data-lucide="check-circle" class="w-12 h-12 mb-4 text-blue-600 mx-auto"></i>
                         <h3 id="name-enrollment" class="font-semibold text-slate-800 text-lg mb-1 truncate px-2 w-full"></h3>
                         <p id="size-enrollment" class="text-sm text-slate-500"></p>
+                        <div id="enrollment-analyzing" class="hidden mt-2 text-xs text-indigo-500 flex items-center justify-center gap-1">
+                            <i data-lucide="loader-2" class="w-3 h-3 spinner"></i> Analizando fechas...
+                        </div>
                         <span class="mt-4 text-xs font-medium text-slate-400 underline block">Cambiar archivo</span>
                     </div>
                 </div>
@@ -127,9 +130,6 @@
                         <i data-lucide="check-circle" class="w-12 h-12 mb-4 text-emerald-600 mx-auto"></i>
                         <h3 id="name-survey" class="font-semibold text-slate-800 text-lg mb-1 truncate px-2 w-full"></h3>
                         <p id="size-survey" class="text-sm text-slate-500"></p>
-                        <div id="survey-analyzing" class="hidden mt-2 text-xs text-indigo-500 flex items-center justify-center gap-1">
-                            <i data-lucide="loader-2" class="w-3 h-3 spinner"></i> Analizando fechas...
-                        </div>
                         <span class="mt-4 text-xs font-medium text-slate-400 underline block">Cambiar archivo</span>
                     </div>
                 </div>
@@ -143,8 +143,8 @@
                             <i data-lucide="calendar" class="w-5 h-5 text-indigo-600"></i>
                         </div>
                         <div>
-                            <h3 class="font-semibold text-slate-800 text-lg">Filtrar por Fecha</h3>
-                            <p class="text-sm text-slate-500">Selecciona los días que deseas incluir en la validación.</p>
+                            <h3 class="font-semibold text-slate-800 text-lg">Filtrar por Fecha del Curso</h3>
+                            <p class="text-sm text-slate-500">Selecciona los periodos que deseas procesar (tomados de la columna "FechaCurso").</p>
                         </div>
                     </div>
                     <div class="flex gap-2">
@@ -153,7 +153,7 @@
                     </div>
                 </div>
                 
-                <div id="date-checkboxes" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 max-h-64 overflow-y-auto p-1 custom-scrollbar">
+                <div id="date-checkboxes" class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-64 overflow-y-auto p-1 custom-scrollbar">
                     <!-- Checkboxes generated here -->
                 </div>
             </div>
@@ -235,8 +235,8 @@
                             <thead class="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
                                 <tr>
                                     <th class="px-6 py-3 whitespace-nowrap">Nombre</th>
-                                    <th class="px-6 py-3 whitespace-nowrap">Email</th>
                                     <th class="px-6 py-3 whitespace-nowrap">Curso</th>
+                                    <th class="px-6 py-3 whitespace-nowrap">Fecha Curso</th>
                                     <th class="px-6 py-3 text-center whitespace-nowrap">Estado Encuesta</th>
                                 </tr>
                             </thead>
@@ -259,9 +259,9 @@
         let processedData = null;
         let outputHeaders = null;
         
-        // Cache for survey data to avoid re-reading
-        let cachedSurveyData = null;
-        let surveyDateKey = null;
+        // Cache data
+        let cachedEnrollmentData = null;
+        let enrollmentDateKey = null;
 
         // --- Constants ---
         // Nombres posibles para las columnas (case insensitive)
@@ -269,7 +269,8 @@
         const KEYS_COURSE = ['Curso', 'Nombre del curso', 'NombreCurso', 'Taller'];
         const KEYS_NAME = ['Nombre', 'NombreCompleto', 'Name'];
         const KEYS_TARGET = ['Encuesta', 'Estatus', 'EstadoEncuesta'];
-        const KEYS_DATE = ['Marca temporal', 'Timestamp', 'Fecha', 'Date', 'Time'];
+        // New constant for Course Date in Enrollment file
+        const KEYS_COURSE_DATE = ['FechaCurso', 'Fecha del curso', 'Periodo', 'Fechas', 'Fecha'];
 
         // --- Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -280,7 +281,6 @@
 
         // --- Helper Functions ---
         
-        // Configurar eventos de Drag & Drop
         function setupDragAndDrop(elementId, type, colorName) {
             const dropzone = document.getElementById(elementId);
             const activeClass = colorName === 'blue' 
@@ -314,53 +314,55 @@
             });
         }
 
-        // Manejar selección de archivos
         async function handleFileSelect(type, file) {
-            if (type === 'enrollment') fileEnrollment = file;
-            if (type === 'survey') {
-                fileSurvey = file;
-                // Reset survey analysis
-                cachedSurveyData = null;
-                surveyDateKey = null;
+            if (type === 'enrollment') {
+                fileEnrollment = file;
+                // Reset enrollment analysis when file changes
+                cachedEnrollmentData = null;
+                enrollmentDateKey = null;
                 document.getElementById('date-filter-section').classList.add('hidden');
                 document.getElementById('date-checkboxes').innerHTML = '';
+            }
+            if (type === 'survey') {
+                fileSurvey = file;
             }
 
             updateFileUI(type, file);
             
-            // If survey, try to analyze dates immediately
-            if (type === 'survey' && file) {
-                document.getElementById('survey-analyzing').classList.remove('hidden');
+            // Analyze Enrollment file for dates immediately upon selection
+            if (type === 'enrollment' && file) {
+                document.getElementById('enrollment-analyzing').classList.remove('hidden');
                 try {
                     const data = await readExcelFile(file);
-                    cachedSurveyData = data;
-                    analyzeDates(data);
+                    cachedEnrollmentData = data;
+                    analyzeEnrollmentDates(data);
                 } catch (e) {
-                    console.error("Error analyzing survey dates", e);
+                    console.error("Error analyzing enrollment dates", e);
                 } finally {
-                    document.getElementById('survey-analyzing').classList.add('hidden');
+                    document.getElementById('enrollment-analyzing').classList.add('hidden');
                 }
             }
 
             checkReadyToProcess();
         }
 
-        // Analizar fechas en el archivo de encuestas
-        function analyzeDates(data) {
+        // Analizar fechas en el archivo de INSCRIPCIONES
+        function analyzeEnrollmentDates(data) {
             if (!data || data.length === 0) return;
 
-            // Find date key
+            // Find date key in enrollment file
             const firstRow = data[0];
-            surveyDateKey = findKey(firstRow, KEYS_DATE);
+            enrollmentDateKey = findKey(firstRow, KEYS_COURSE_DATE);
 
-            if (!surveyDateKey) return; // No date column found
+            if (!enrollmentDateKey) return; // No date column found in enrollment
 
-            // Extract unique dates
+            // Extract unique dates/periods
             const dates = new Set();
             data.forEach(row => {
-                const rawDate = row[surveyDateKey];
+                const rawDate = row[enrollmentDateKey];
                 if (rawDate) {
-                    const normalized = normalizeDate(rawDate);
+                    // Normalize spacing, trimming, etc.
+                    const normalized = String(rawDate).trim();
                     if (normalized) dates.add(normalized);
                 }
             });
@@ -371,21 +373,17 @@
             const container = document.getElementById('date-checkboxes');
             container.innerHTML = '';
             
-            // Sort dates (newest first)
-            const sortedDates = Array.from(dates).sort((a, b) => {
-                // simple comparison string YYYY-MM-DD works, 
-                // but let's just sort as strings usually works for ISO or "DD/MM/YYYY" if formatted
-                return a.localeCompare(b);
-            });
+            // Sort dates alphabetically (or logic can be added for chronological if needed)
+            const sortedDates = Array.from(dates).sort();
 
             sortedDates.forEach(dateStr => {
                 const label = document.createElement('label');
                 label.className = "flex items-center cursor-pointer group";
                 label.innerHTML = `
                     <input type="checkbox" class="hidden custom-checkbox" value="${dateStr}" checked>
-                    <div class="flex-1 flex items-center justify-between px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 group-hover:bg-white group-hover:border-slate-300 transition-all">
-                        <span class="text-sm font-medium text-slate-700">${dateStr}</span>
-                        <i data-lucide="check" class="w-4 h-4 text-white opacity-0 transition-opacity check-icon"></i>
+                    <div class="flex-1 flex items-center justify-between px-4 py-3 rounded-lg border border-slate-200 bg-slate-50 group-hover:bg-white group-hover:border-slate-300 transition-all">
+                        <span class="text-sm font-medium text-slate-700 break-words">${dateStr}</span>
+                        <i data-lucide="check" class="w-5 h-5 text-white opacity-0 transition-opacity check-icon bg-blue-500 rounded-full p-0.5 ml-2"></i>
                     </div>
                 `;
                 container.appendChild(label);
@@ -395,37 +393,16 @@
             document.getElementById('date-filter-section').classList.remove('hidden');
         }
 
-        function normalizeDate(val) {
-            // Handles various date formats found in Excel/CSV
-            if (!val) return null;
-            
-            // If it's a string like "27/02/2025 10:20:00", just split by space
-            if (typeof val === 'string') {
-                const parts = val.trim().split(' ');
-                if (parts.length > 0) return parts[0];
-            }
-            
-            // If it's a JS Date object (unlikely with current read logic but possible if changed)
-            if (val instanceof Date) {
-                return val.toLocaleDateString();
-            }
-            
-            // Fallback
-            return String(val).split(' ')[0];
-        }
-
         function toggleAllDates(checked) {
             const boxes = document.querySelectorAll('#date-checkboxes input[type="checkbox"]');
             boxes.forEach(box => box.checked = checked);
         }
 
-        // Actualizar UI del archivo
         function updateFileUI(type, file) {
             const emptyDiv = document.getElementById(`content-${type}-empty`);
             const selectedDiv = document.getElementById(`content-${type}-selected`);
             const dropzone = document.getElementById(`dropzone-${type}`);
             
-            // Actualizar estilo de borde
             const baseBorder = 'border-slate-300';
             const activeBorder = type === 'enrollment' ? 'border-blue-200' : 'border-emerald-200';
             const activeBg = type === 'enrollment' ? 'bg-blue-50' : 'bg-emerald-50';
@@ -447,7 +424,6 @@
             }
         }
 
-        // Habilitar botón de procesar
         function checkReadyToProcess() {
             const btn = document.getElementById('btn-process');
             if (fileEnrollment && fileSurvey) {
@@ -461,7 +437,6 @@
             }
         }
 
-        // --- Logic: Read Excel ---
         function readExcelFile(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -471,8 +446,6 @@
                         const workbook = XLSX.read(data, { type: 'binary' });
                         const sheetName = workbook.SheetNames[0];
                         const sheet = workbook.Sheets[sheetName];
-                        // defval: "" ensures that if a row has empty cells for columns present in header,
-                        // they are present as "" in the object. This preserves object shape for all rows.
                         const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
                         resolve(jsonData);
                     } catch (error) {
@@ -507,11 +480,9 @@
             document.getElementById('results-section').classList.add('hidden');
 
             try {
-                // 1. Read files
-                const enrollmentData = await readExcelFile(fileEnrollment);
-                
-                // Use cached survey data if available, otherwise read
-                const surveyData = cachedSurveyData || await readExcelFile(fileSurvey);
+                // 1. Read files (Use cached enrollment if available)
+                const enrollmentData = cachedEnrollmentData || await readExcelFile(fileEnrollment);
+                const surveyData = await readExcelFile(fileSurvey);
 
                 if (enrollmentData.length === 0) throw new Error("El archivo de inscripciones está vacío.");
                 if (surveyData.length === 0) throw new Error("El archivo de encuestas está vacío.");
@@ -520,6 +491,8 @@
                 const e_emailKey = findKey(enrollmentData[0], KEYS_EMAIL);
                 const e_courseKey = findKey(enrollmentData[0], KEYS_COURSE);
                 const e_targetKey = findKey(enrollmentData[0], KEYS_TARGET) || 'Encuesta';
+                // Note: enrollmentDateKey is already found by analyzeEnrollmentDates, but check again just in case processing happens without initial analysis
+                if (!enrollmentDateKey) enrollmentDateKey = findKey(enrollmentData[0], KEYS_COURSE_DATE);
 
                 const s_emailKey = findKey(surveyData[0], KEYS_EMAIL);
                 const s_courseKey = findKey(surveyData[0], KEYS_COURSE);
@@ -527,25 +500,19 @@
                 if (!e_emailKey || !e_courseKey) throw new Error("No se encontraron las columnas 'Email' o 'Curso' en el archivo de Inscripciones.");
                 if (!s_emailKey || !s_courseKey) throw new Error("No se encontraron las columnas 'Email' o 'Curso' en el archivo de Encuestas.");
 
-                // 2b. Identify Date Filters
+                // 2b. Identify Date Filters (from Enrollment UI)
                 let selectedDates = null;
                 const dateSection = document.getElementById('date-filter-section');
-                if (!dateSection.classList.contains('hidden') && surveyDateKey) {
+                
+                // Only filter if the section is visible and we found a date key
+                if (!dateSection.classList.contains('hidden') && enrollmentDateKey) {
                     const checkboxes = document.querySelectorAll('#date-checkboxes input:checked');
                     selectedDates = new Set(Array.from(checkboxes).map(cb => cb.value));
                 }
 
-                // 3. Create Lookup
+                // 3. Create Lookup from Survey Data
                 const surveySet = new Set();
                 surveyData.forEach(row => {
-                    // Filter check
-                    if (selectedDates) {
-                        const rowDate = normalizeDate(row[surveyDateKey]);
-                        if (!rowDate || !selectedDates.has(rowDate)) {
-                            return; // Skip this row as it's not in selected dates
-                        }
-                    }
-
                     const email = normalize(row[s_emailKey]);
                     const course = normalize(row[s_courseKey]);
                     if (email && course) {
@@ -553,12 +520,27 @@
                     }
                 });
 
-                // 4. Compare
+                // 4. Filter and Compare Enrollment Data
                 let activeCount = 0;
                 let inactiveCount = 0;
+                
+                // Create a temporary array to hold processed rows
+                const tempProcessed = [];
 
-                // Process data mapping over original enrollmentData to preserve order exactly
-                processedData = enrollmentData.map(row => {
+                enrollmentData.forEach(row => {
+                    // --- Filter Logic ---
+                    if (selectedDates && enrollmentDateKey) {
+                        const rawDate = row[enrollmentDateKey];
+                        // Normalize the row date exactly how we normalized the checkbox values (trim)
+                        const rowDateStr = rawDate ? String(rawDate).trim() : "";
+                        
+                        // If selectedDates has entries but doesn't have this row's date, skip it
+                        if (!selectedDates.has(rowDateStr)) {
+                            return; // Skip this student entirely
+                        }
+                    }
+                    // --------------------
+
                     const email = normalize(row[e_emailKey]);
                     const course = normalize(row[e_courseKey]);
                     const key = `${email}|${course}`;
@@ -568,19 +550,21 @@
                     if (isFound) activeCount++;
                     else inactiveCount++;
 
-                    // Update or Add status column
-                    // Using spread operator preserves existing keys order
-                    return {
+                    // Add row to result
+                    tempProcessed.push({
                         ...row,
                         [e_targetKey]: isFound ? 'Activo' : 'Inactivo'
-                    };
+                    });
                 });
 
-                // Store headers to ensure output column order matches input
-                // If the input was consistent, Object.keys(processedData[0]) will contain all headers in order + new status
-                if (processedData.length > 0) {
-                    outputHeaders = Object.keys(processedData[0]);
+                processedData = tempProcessed;
+
+                if (processedData.length === 0) {
+                    throw new Error("No se encontraron registros que coincidan con los filtros seleccionados.");
                 }
+
+                // Store headers
+                outputHeaders = Object.keys(processedData[0]);
 
                 // 5. Update Stats UI
                 document.getElementById('stat-total').textContent = processedData.length;
@@ -593,8 +577,8 @@
                 
                 processedData.slice(0, 10).forEach(row => {
                     const nameKey = findKey(row, KEYS_NAME) || Object.keys(row)[0];
-                    const emailKey = findKey(row, KEYS_EMAIL) || Object.keys(row)[1];
                     const courseKey = findKey(row, KEYS_COURSE) || Object.keys(row)[2];
+                    const dateKey = enrollmentDateKey || Object.keys(row)[3] || "";
                     const status = row[e_targetKey];
                     
                     const tr = document.createElement('tr');
@@ -606,8 +590,8 @@
 
                     tr.innerHTML = `
                         <td class="px-6 py-3 font-medium text-slate-700 whitespace-nowrap">${row[nameKey] || '-'}</td>
-                        <td class="px-6 py-3 text-slate-600 whitespace-nowrap">${row[emailKey] || '-'}</td>
                         <td class="px-6 py-3 text-slate-600 truncate max-w-xs whitespace-nowrap">${row[courseKey] || '-'}</td>
+                        <td class="px-6 py-3 text-slate-500 text-xs whitespace-nowrap">${row[dateKey] || '-'}</td>
                         <td class="px-6 py-3 text-center whitespace-nowrap">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}">
                                 ${status}
@@ -632,25 +616,21 @@
             }
         }
 
-        // --- Download ---
         function downloadResults() {
             if (!processedData) return;
-            
-            // Explicitly pass headers to ensure column order is preserved exactly as processed
             const ws = XLSX.utils.json_to_sheet(processedData, { header: outputHeaders });
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Resultados");
-            XLSX.writeFile(wb, "reporte_encuestas_procesado.xlsx");
+            XLSX.writeFile(wb, "reporte_encuestas_filtrado.xlsx");
         }
 
-        // --- Reset ---
         function resetApp() {
             fileEnrollment = null;
             fileSurvey = null;
             processedData = null;
             outputHeaders = null;
-            cachedSurveyData = null;
-            surveyDateKey = null;
+            cachedEnrollmentData = null;
+            enrollmentDateKey = null;
 
             // Reset UI Inputs
             ['enrollment', 'survey'].forEach(type => {
@@ -662,7 +642,6 @@
             document.getElementById('date-filter-section').classList.add('hidden');
             document.getElementById('date-checkboxes').innerHTML = '';
 
-            // Toggle Buttons
             document.getElementById('action-buttons').classList.add('hidden');
             document.getElementById('btn-process').classList.remove('hidden');
             document.getElementById('results-section').classList.add('hidden');
