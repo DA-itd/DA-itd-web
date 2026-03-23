@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Generador de Reportes — ITD Desarrollo Académico</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+
+<!-- ── LIBRERÍAS ── -->
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/docx@9.5.3/build/index.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+<style>
+/* ── RESET ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0D2340;--blue:#1A4A8A;--sky:#2E75B6;--accent:#E8A020;
+  --green:#1D8A5C;--red:#C0392B;--bg:#F4F6FA;--surface:#fff;
+  --border:#D8DFE8;--text:#1A2535;--muted:#6B7A8D;
+  --font:'Sora',sans-serif;--mono:'IBM Plex Mono',monospace;
+  --shadow:0 2px 12px rgba(13,35,64,.08),0 1px 3px rgba(13,35,64,.06);
+}
+html{font-family:var(--font);background:var(--bg);color:var(--text);font-size:15px}
+body{min-height:100vh}
+
+/* ── HEADER ── */
+.app-header{background:var(--navy);border-bottom:3px solid var(--accent);padding:0 2rem;position:sticky;top:0;z-index:100}
+.header-inner{max-width:960px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:68px}
+.header-brand{display:flex;align-items:center;gap:12px}
+.header-logo-img{height:44px;width:auto;object-fit:contain;background:#fff;border-radius:6px;padding:3px 6px}
+.header-text{display:flex;flex-direction:column;gap:2px;margin-left:4px}
+.header-inst{font-size:13px;font-weight:600;color:#fff}
+.header-dept{font-size:11px;color:rgba(255,255,255,.55)}
+.header-badge{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.75);font-size:11px;font-weight:500;padding:4px 10px;border-radius:20px;letter-spacing:.04em}
+
+/* ── MAIN ── */
+.app-main{max-width:960px;margin:0 auto;padding:2.5rem 1.5rem 4rem;display:flex;flex-direction:column;gap:1.5rem}
+
+/* ── STEP CARD ── */
+.step-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:2rem 2.25rem;box-shadow:var(--shadow)}
+.step-number{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--accent);letter-spacing:.1em;margin-bottom:.5rem}
+.step-title{font-size:1.2rem;font-weight:600;margin-bottom:.4rem;color:var(--navy)}
+.step-desc{font-size:.9rem;color:var(--muted);margin-bottom:1.5rem}
+.step-desc strong{color:var(--text)}
+
+/* ── UPLOAD ── */
+.upload-zone{border:2px dashed var(--border);border-radius:10px;padding:2.5rem 2rem;text-align:center;cursor:pointer;background:var(--bg);transition:border-color .2s,background .2s}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--sky);background:#EBF2FA}
+.upload-icon{font-size:2rem;margin-bottom:.75rem;opacity:.45}
+.upload-label{font-size:.95rem;color:var(--text);margin-bottom:.35rem}
+.upload-hint{font-size:.8rem;color:var(--muted)}
+.link-btn{background:none;border:none;color:var(--sky);font:inherit;cursor:pointer;text-decoration:underline;padding:0}
+
+.file-info{display:flex;align-items:center;gap:10px;padding:.75rem 1rem;margin-top:1rem;background:#EBF7F1;border:1px solid #A8DEC7;border-radius:10px}
+.file-name{font-weight:500;flex:1;font-size:.9rem}
+.file-rows{font-size:.8rem;color:var(--green);font-family:var(--mono)}
+.icon-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:1rem;padding:2px 6px;border-radius:4px;transition:background .15s}
+.icon-btn:hover{background:rgba(0,0,0,.07)}
+
+.survey-badge{font-size:.78rem;font-weight:600;padding:3px 10px;border-radius:12px;white-space:nowrap}
+.badge-opinion{background:#EBF2FA;color:#1A4A8A}
+.badge-eficacia{background:#EBF7F1;color:#1D6A4A}
+
+.compat-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:1.25rem}
+.compat-chip{display:flex;align-items:center;gap:7px;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:.8rem;color:var(--muted)}
+.compat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-opinion{background:#1A4A8A}
+.dot-eficacia{background:#1D9E75}
+
+/* ── FORM ── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group.full{grid-column:1/-1}
+.form-group label{font-size:.82rem;font-weight:500;color:var(--muted);letter-spacing:.03em}
+.form-group input{border:1px solid var(--border);border-radius:7px;padding:8px 12px;font:inherit;font-size:.9rem;background:var(--bg);color:var(--text);transition:border-color .2s,box-shadow .2s}
+.form-group input:focus{outline:none;border-color:var(--sky);box-shadow:0 0 0 3px rgba(46,117,182,.12)}
+
+/* ── BUTTONS ── */
+.primary-btn{display:flex;align-items:center;gap:8px;background:var(--blue);color:#fff;border:none;border-radius:8px;padding:11px 22px;font:inherit;font-size:.95rem;font-weight:600;cursor:pointer;transition:background .2s,transform .1s}
+.primary-btn:hover{background:var(--navy)}
+.primary-btn:active{transform:scale(.98)}
+.btn-arrow{font-size:1.1rem;transition:transform .2s}
+.primary-btn:hover .btn-arrow{transform:translateX(4px)}
+
+/* ── METRICS ── */
+.metrics-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem}
+.metric-card{background:var(--bg);border-radius:10px;padding:1rem 1.25rem;border-left:3px solid var(--sky)}
+.metric-val{font-size:1.8rem;font-weight:700;color:var(--navy);line-height:1}
+.metric-lbl{font-size:.78rem;color:var(--muted);margin-top:4px}
+
+/* ── CHARTS GRID ── */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.75rem}
+.chart-box{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:1.25rem}
+.chart-box.wide{grid-column:1/-1}
+.chart-box h3{font-size:.85rem;font-weight:600;color:var(--navy);margin-bottom:.2rem}
+.chart-box p{font-size:.75rem;color:var(--muted);margin-bottom:.9rem}
+.chart-wrap{position:relative}
+
+/* ── DOWNLOAD BUTTONS ── */
+.download-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+.download-btn{display:flex;align-items:center;gap:14px;border:1.5px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;background:var(--surface);cursor:pointer;font:inherit;text-align:left;transition:border-color .2s,box-shadow .2s,transform .1s}
+.download-btn:hover{box-shadow:0 4px 20px rgba(46,117,182,.12);transform:translateY(-1px)}
+.download-btn:active{transform:scale(.99)}
+.download-chart:hover{border-color:var(--green)}
+.download-word:hover{border-color:var(--blue)}
+.dl-icon{font-size:1.75rem;flex-shrink:0}
+.dl-text{display:flex;flex-direction:column;flex:1;gap:3px}
+.dl-title{font-size:.95rem;font-weight:600;color:var(--navy)}
+.dl-sub{font-size:.78rem;color:var(--muted)}
+.dl-arrow{font-size:1.2rem;color:var(--muted)}
+.download-btn.loading .dl-arrow{animation:spin .8s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.reset-btn{background:none;border:none;color:var(--muted);font:inherit;font-size:.85rem;cursor:pointer;padding:.5rem;border-radius:6px;transition:color .15s,background .15s}
+.reset-btn:hover{color:var(--text);background:var(--bg)}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:.75rem 1.5rem;border-radius:100px;font-size:.875rem;font-weight:500;box-shadow:0 4px 24px rgba(0,0,0,.2);z-index:999;white-space:nowrap;animation:slideUp .3s ease}
+.toast.error{background:var(--red)}
+.toast.success{background:var(--green)}
+@keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(12px)}}
+.hidden{display:none!important}
+
+/* ── RESPONSIVE ── */
+@media(max-width:620px){
+  .metrics-row{grid-template-columns:1fr 1fr}
+  .charts-grid{grid-template-columns:1fr}
+  .download-row{grid-template-columns:1fr}
+  .form-grid{grid-template-columns:1fr}
+  .step-card{padding:1.5rem 1.25rem}
+  .header-logo-img{height:34px}
+}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-inner">
+    <div class="header-brand">
+      <img class="header-logo-img"
+           src="https://raw.githubusercontent.com/DA-itd/DA-itd-web/main/TecNM.jpg"
+           alt="TecNM" onerror="this.style.display='none'"/>
+      <img class="header-logo-img"
+           src="https://raw.githubusercontent.com/DA-itd/DA-itd-web/main/logo_itdurango.png"
+           alt="ITD" onerror="this.style.display='none'"/>
+      <div class="header-text">
+        <span class="header-inst">Instituto Tecnológico de Durango</span>
+        <span class="header-dept">Coordinación de Actualización Docente</span>
+      </div>
+    </div>
+    <div class="header-badge">Desarrollo Académico</div>
+  </div>
+</header>
+
+<main class="app-main">
+
+  <!-- PASO 1 -->
+  <section class="step-card" id="step-upload">
+    <div class="step-number">01</div>
+    <h2 class="step-title">Cargar archivo Excel</h2>
+    <p class="step-desc">Compatible con <strong>Encuesta de Opinión</strong> y <strong>Encuesta de Eficacia</strong> — el tipo se detecta automáticamente</p>
+    <div class="upload-zone" id="upload-zone">
+      <input type="file" id="file-input" accept=".xlsx,.xls" hidden/>
+      <div class="upload-icon">⬆</div>
+      <p class="upload-label">Arrastra tu archivo aquí o <button class="link-btn" onclick="document.getElementById('file-input').click()">selecciónalo</button></p>
+      <p class="upload-hint">Formato: respuestas exportadas desde Google Forms (.xlsx)</p>
+    </div>
+    <div class="file-info hidden" id="file-info">
+      <span class="file-icon">📊</span>
+      <span class="file-name" id="file-name-label"></span>
+      <span class="file-rows" id="file-rows-label"></span>
+      <span class="survey-badge hidden" id="survey-type-badge"></span>
+      <button class="icon-btn" id="remove-file" title="Quitar archivo">✕</button>
+    </div>
+    <div class="compat-row">
+      <div class="compat-chip"><span class="compat-dot dot-opinion"></span><span>Encuesta de Opinión — 18 preguntas con facilitador</span></div>
+      <div class="compat-chip"><span class="compat-dot dot-eficacia"></span><span>Encuesta de Eficacia — 8 preguntas por departamento</span></div>
+    </div>
+  </section>
+
+  <!-- PASO 2 -->
+  <section class="step-card hidden" id="step-portada">
+    <div class="step-number">02</div>
+    <h2 class="step-title">Datos de portada</h2>
+    <p class="step-desc">Esta información aparecerá en la portada de ambos reportes</p>
+    <div class="form-grid">
+      <div class="form-group"><label>Período / Mes</label><input type="text" id="f-periodo" placeholder="Ej: Enero 2026"/></div>
+      <div class="form-group"><label>Institución</label><input type="text" id="f-inst" value="Instituto Tecnológico de Durango"/></div>
+      <div class="form-group"><label>Dirección / División</label><input type="text" id="f-dir" value="Desarrollo Académico"/></div>
+      <div class="form-group"><label>Área responsable</label><input type="text" id="f-area" value="Coordinación de Actualización Docente"/></div>
+      <div class="form-group full"><label>Elaboró</label><input type="text" id="f-autor" placeholder="Nombre de quien genera el reporte"/></div>
+    </div>
+    <button class="primary-btn" id="btn-procesar"><span>Procesar datos</span><span class="btn-arrow">→</span></button>
+  </section>
+
+  <!-- PASO 3 -->
+  <section class="step-card hidden" id="step-results">
+    <div class="step-number">03</div>
+    <h2 class="step-title">Resultados y descarga</h2>
+    <div class="metrics-row" id="metrics-row"></div>
+    <div class="charts-grid" id="charts-grid"></div>
+    <div class="download-row">
+      <button class="download-btn download-chart" id="btn-download-chart">
+        <div class="dl-icon">📊</div>
+        <div class="dl-text"><span class="dl-title">Reporte Gráfico</span><span class="dl-sub">HTML imprimible con gráficas y portada institucional</span></div>
+        <span class="dl-arrow">↓</span>
+      </button>
+      <button class="download-btn download-word" id="btn-download-word">
+        <div class="dl-icon">📄</div>
+        <div class="dl-text"><span class="dl-title">Reporte Word</span><span class="dl-sub">Documento .docx con tablas, análisis y portada</span></div>
+        <span class="dl-arrow">↓</span>
+      </button>
+    </div>
+    <button class="reset-btn" id="btn-reset">↺ Cargar otro archivo</button>
+  </section>
+
+</main>
+<div class="toast hidden" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════
+const LOGO_TECNM = 'https://raw.githubusercontent.com/DA-itd/DA-itd-web/main/TecNM.jpg'
+const LOGO_ITD   = 'https://raw.githubusercontent.com/DA-itd/DA-itd-web/main/logo_itdurango.png'
+
+const CANONICAL_MAP = {
+  'AARON CUAUHTEMOC VARGAS FIERRO':'Aaron Cuauhtemoc Vargas Fierro','ALBERTO RAMIREZ MARQUEZ':'Alberto Ramírez Márquez',
+  'ALEJANDRO MENDOZA':'Alejandro Mendoza Ramírez','ALEJANDRO MENDOZA RAMIREZ':'Alejandro Mendoza Ramírez',
+  'ANTONIO MARTINEZ LOPEZ':'José Antonio Martínez López','JOSE ANTONIO MARTINEZ LOPEZ':'José Antonio Martínez López',
+  'ANUAR SELEME':'Jaime Anuar Seleme Ocampo','ANUAR SELEME OCAMPO':'Jaime Anuar Seleme Ocampo',
+  'JAIME ANUAR SELEME':'Jaime Anuar Seleme Ocampo','JAIME ANUAR SELEME OCAMPO':'Jaime Anuar Seleme Ocampo',
+  'ARMANDO ORTIZ ARAGON':'Armando Ortiz Aragón',
+  'ESDRAS ALVAREZ ARREOLA':'Arq. Esdras Álvarez Arreola','ESDRAS ALVAREZ':'Arq. Esdras Álvarez Arreola',
+  'ESDRAS ALVARES ARREOLA':'Arq. Esdras Álvarez Arreola','ARQ, ESDRAS ALVAREZ':'Arq. Esdras Álvarez Arreola',
+  'ESTEBAN BERMUDEZ':'Esteban Bermúdez Ramírez','ESTEBAN BERMUDEZ RAMIREZ':'Esteban Bermúdez Ramírez',
+  'ARQ. ESTEBAN BERMUDEZ RAMIREZ':'Esteban Bermúdez Ramírez','ARQUITECTO ESTEBAN BERMUDEZ':'Esteban Bermúdez Ramírez',
+  'CELIDA CORDOVA NAVARRO Y HECTOR ARGAIZ MARTINEZ':'Celida Córdova Navarro y Héctor Argaiz Martinez',
+  'DOC IVAN LAZALDE':'Dr. Iván González Lazalde','DR. IVAN GONZALEZ LAZALDE':'Dr. Iván González Lazalde',
+  'DR.IVAN GONZALEZ LAZALDE':'Dr. Iván González Lazalde','EDEL PEREZ ESPARZA':'Edel Pérez Esparza',
+  'FABIOLA GONZALEZ CARDENAS OMAR ISRAEL RODRIGUEZ RAMIREZ':'Psic. Omar Rodríguez & Psic. Fabiola González',
+  'OMAR ISRAEL RODRIGUEZ RAMIREZ/FABIOLA GONZALEZ CARDENAS':'Psic. Omar Rodríguez & Psic. Fabiola González',
+  'PSIC. OMAR ISRAEL RODRIGUEZ RAMIREZ & PSIC. FABIOLA GONZALES CARDENAS':'Psic. Omar Rodríguez & Psic. Fabiola González',
+  'GEORGE WILLIAM GUTIERREZ LOPEZ':'George William Gutiérrez López',
+  'HECTOR GANDARA':'Héctor Gerardo Rodríguez Gándara','HECTOR GERARDO RODRIGUEZ GANDARA':'Héctor Gerardo Rodríguez Gándara',
+  'ING. HECTOR RODRIGUEZ GANDARA':'Héctor Gerardo Rodríguez Gándara',
+  'HECTOR GARCIA CAMACHO':'Héctor García Camacho',
+  'HECTOR GARCIA CAMACHO Y VICTOR MANUEL REVELES CASTANEDA':'Héctor García Camacho',
+  'HECTOR GARCIA CAMACHO Y VICTOR REVELES':'Héctor García Camacho','M.C. HECTOR GARCIA CAMACHO':'Héctor García Camacho',
+  'HECTOR MARTINEZ ARGAIZ':'Héctor Martínez Argaiz',
+  'ING. VICTOR MANUEL REVELES CASTANEDA':'Víctor Manuel Reveles Castañeda','VICTOR MANUEL REVELES':'Víctor Manuel Reveles Castañeda',
+  'ISIDRO AMARO RODRIGUEZ':'Isidro Amaro Rodríguez','JOSE ALEJANDRO ALE BURGOS':'Jose Alejandro Ale Burgos',
+  'LAURA GUADALUPE BUTZMANN ALVAREZ':'Laura Guadalupe Butzmann Álvarez',
+  'LUIS FERNANDO GALINDO VARGAS':'Luis Fernando Galindo Vargas','MARIA LUISA ORTIZ PARGA':'María Luisa Ortiz Parga',
+  'MAYELA DEL RAYO LECHUGA NEVAREZ':'Mayela del Rayo Lechuga Nevárez',
+  'MIGUEL ANGEL SALAZAR':'Miguel Ángel Salazar Lozano','MIGUEL ANGEL SALAZAR LOZANO':'Miguel Ángel Salazar Lozano',
+  'MONICA ROSALES PEREZ':'Mónica Rosales Pérez','NELLIE CECILIA SALAZAR CANO':'Nellie Cecilia Salazar Cano',
+  'OBED ANTONIO GARCIA CANO':'Obed Antonio García Cano',
+  'PAULA FERNANADA HERNANDEZ AVITIA':'Paula Fernanda Hernández Avitia','PAULA FERNANDA HERNANDEZ AVITIA':'Paula Fernanda Hernández Avitia',
+  'PEDRO ANTONIO VELAZQUEZ VENTURA':'Pedro Antonio Velázquez Ventura','PEDRO VELAZQUEZ':'Pedro Antonio Velázquez Ventura',
+  'SERGIO VALDEZ HERNANDEZ':'Sergio Valdez Hernández',
+}
+const PRUEBA_RE = /^(ALEX|PRUEBA|ALEXXX|YOXX|TO2|ALE$|S$|ALEX2)/
+
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+let parsedData = null
+let logoTecNMb64 = null, logoITDb64 = null
+let previewCharts = []
+
+// Pre-fetch logos
+;(async()=>{
+  const toB64 = url => fetch(url).then(r=>r.ok?r.blob():null).then(b=>b?new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.readAsDataURL(b)}):null).catch(()=>null)
+  ;[logoTecNMb64, logoITDb64] = await Promise.all([toB64(LOGO_TECNM), toB64(LOGO_ITD)])
+})()
+
+// ═══════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════
+const fmt = v => parseFloat(v).toFixed(2)
+const avg = (rows,cols) => { const v=rows.flatMap(r=>cols.map(c=>parseFloat(r[c])).filter(x=>!isNaN(x))); return v.length?v.reduce((a,b)=>a+b,0)/v.length:0 }
+const cleanDept = s => String(s||'Sin departamento').trim().replace(/^DEPARTAMENTO DE /i,'').replace(/^DIVISIÓN DE /i,'').replace(/^DIVISION DE /i,'')
+const stripAccents = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+function normName(raw){let n=String(raw).trim().toUpperCase();n=stripAccents(n);n=n.replace(/^(ARQ\.|ARQ,|ING\.|PSIC\.|DR\.|M\.C\.|LIC\.|ARQUITECTO|DOCTOR|LICENCIADO)\s*/g,'');return n.replace(/\s+/g,' ').trim()}
+const canonical = n => CANONICAL_MAP[n]||n.replace(/\b\w/g,c=>c.toUpperCase())
+
+function toast(msg,type=''){
+  const el=document.getElementById('toast')
+  el.textContent=msg;el.className=`toast${type?' '+type:''}`;el.classList.remove('hidden')
+  clearTimeout(el._t);el._t=setTimeout(()=>el.classList.add('hidden'),3400)
+}
+function getPortada(){
+  return{
+    periodo:document.getElementById('f-periodo').value.trim()||'Sin período',
+    institucion:document.getElementById('f-inst').value.trim()||'Instituto Tecnológico de Durango',
+    direccion:document.getElementById('f-dir').value.trim()||'Desarrollo Académico',
+    area:document.getElementById('f-area').value.trim()||'Coordinación de Actualización Docente',
+    autor:document.getElementById('f-autor').value.trim()
+  }
+}
+function dlFile(content,mime,name){
+  const blob=content instanceof Blob?content:new Blob([content],{type:mime+';charset=utf-8'})
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click()
+  setTimeout(()=>URL.revokeObjectURL(url),1000)
+}
+const metricCard=(v,l)=>`<div class="metric-card"><div class="metric-val">${v}</div><div class="metric-lbl">${l}</div></div>`
+
+// ═══════════════════════════════════════════════════════════════
+// PARSER
+// ═══════════════════════════════════════════════════════════════
+function parseExcel(buffer){
+  const wb=XLSX.read(buffer,{type:'array'})
+  const ws=wb.Sheets[wb.SheetNames[0]]
+  const raw=XLSX.utils.sheet_to_json(ws,{defval:null})
+  if(!raw.length) throw new Error('El archivo está vacío')
+  const keys=Object.keys(raw[0])
+  const numCols=keys.filter(k=>/^\d/.test(k))
+  if(numCols.length<6) throw new Error('No se encontraron preguntas numéricas')
+  const hasFac=keys.some(k=>k.toLowerCase().includes('facilitador'))
+  return (hasFac&&numCols.length>=14) ? parseOpinion(raw,keys,numCols) : parseEficacia(raw,keys,numCols)
+}
+
+function parseOpinion(raw,keys,numCols){
+  const fC=numCols.slice(0,7),mC=numCols.slice(7,10),pC=numCols.slice(10,14),iC=numCols.slice(14,18)
+  const facKey=keys.find(k=>k.toLowerCase().includes('facilitador'))
+  const deptKey=keys.find(k=>k.toLowerCase().includes('departamento'))
+  const commKey=keys.find(k=>k.toLowerCase().includes('comentario')||k.toLowerCase().includes('sugerencia'))
+  const rows=raw.map(r=>{const n=normName(String(r[facKey]||''));return{...r,_c:canonical(n),_n:n}})
+    .filter(r=>!PRUEBA_RE.test(r._n)&&r._n.length>1)
+  const catAvgs={facilitador:avg(rows,fC),material:avg(rows,mC),programa:avg(rows,pC),instalaciones:avg(rows,iC),global:avg(rows,numCols)}
+  const perQuestion=numCols.map(col=>({label:col,avg:avg(rows,[col])}))
+  const facMap={};rows.forEach(r=>{if(!facMap[r._c])facMap[r._c]=[];facMap[r._c].push(r)})
+  const facilitadores=Object.entries(facMap).filter(([,rs])=>rs.length>=3)
+    .map(([name,rs])=>({name,n:rs.length,general:avg(rs,numCols),facilitador:avg(rs,fC),instalaciones:avg(rs,iC)}))
+    .sort((a,b)=>b.general-a.general)
+  const deptMap={};rows.forEach(r=>{const d=cleanDept(r[deptKey]);if(!deptMap[d])deptMap[d]=[];deptMap[d].push(r)})
+  const departamentos=Object.entries(deptMap).map(([dept,rs])=>({dept,n:rs.length,facilitador:avg(rs,fC),material:avg(rs,mC),programa:avg(rs,pC),instalaciones:avg(rs,iC),general:avg(rs,numCols)})).sort((a,b)=>b.facilitador-a.facilitador)
+  const comentarios=rows.filter(r=>r[commKey]&&String(r[commKey]).trim().length>3).filter(r=>!/prueba|listo|xxxx/i.test(String(r[commKey]))).map(r=>({dept:cleanDept(r[deptKey]),text:String(r[commKey]).trim()}))
+  return{tipo:'opinion',totalRows:rows.length,catAvgs,perQuestion,facilitadores,departamentos,comentarios}
+}
+
+function parseEficacia(raw,keys,numCols){
+  const deptKey=keys.find(k=>k.toLowerCase().includes('departamento'))
+  const commKey=keys.find(k=>k.toLowerCase().includes('sugerencia')||k.toLowerCase().includes('tiene usted')||k.toLowerCase().includes('comentario'))
+  const impC=[0,1,4,7].map(i=>numCols[i]).filter(Boolean)
+  const devC=[2,3,5,6].map(i=>numCols[i]).filter(Boolean)
+  const rows=raw.filter(r=>String(r[deptKey]||'').trim().length>0)
+  const catAvgs={impacto:avg(rows,impC),desarrollo:avg(rows,devC),global:avg(rows,numCols)}
+  const perQuestion=numCols.map(col=>({label:col,avg:avg(rows,[col])}))
+  const deptMap={};rows.forEach(r=>{const d=cleanDept(r[deptKey]);if(!deptMap[d])deptMap[d]=[];deptMap[d].push(r)})
+  const departamentos=Object.entries(deptMap).map(([dept,rs])=>({dept,n:rs.length,impacto:avg(rs,impC),desarrollo:avg(rs,devC),general:avg(rs,numCols)})).sort((a,b)=>b.general-a.general)
+  const comentarios=!commKey?[]:rows.filter(r=>r[commKey]&&String(r[commKey]).trim().length>3).map(r=>({dept:cleanDept(r[deptKey]),text:String(r[commKey]).trim()}))
+  return{tipo:'eficacia',totalRows:rows.length,catAvgs,perQuestion,facilitadores:[],departamentos,comentarios}
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UI EVENTS
+// ═══════════════════════════════════════════════════════════════
+const uploadZone=document.getElementById('upload-zone')
+const fileInput=document.getElementById('file-input')
+uploadZone.addEventListener('dragover',e=>{e.preventDefault();uploadZone.classList.add('drag-over')})
+uploadZone.addEventListener('dragleave',()=>uploadZone.classList.remove('drag-over'))
+uploadZone.addEventListener('drop',e=>{e.preventDefault();uploadZone.classList.remove('drag-over');handleFile(e.dataTransfer.files[0])})
+uploadZone.addEventListener('click',()=>fileInput.click())
+fileInput.addEventListener('change',e=>handleFile(e.target.files[0]))
+
+async function handleFile(file){
+  if(!file)return
+  if(!/\.(xlsx|xls)$/i.test(file.name)){toast('Solo se aceptan archivos .xlsx o .xls','error');return}
+  try{
+    const buf=await file.arrayBuffer()
+    parsedData=parseExcel(new Uint8Array(buf))
+    document.getElementById('file-name-label').textContent=file.name
+    document.getElementById('file-rows-label').textContent=`${parsedData.totalRows} respuestas`
+    const badge=document.getElementById('survey-type-badge')
+    const isOp=parsedData.tipo==='opinion'
+    badge.textContent=isOp?'📋 Encuesta de Opinión':'📊 Encuesta de Eficacia'
+    badge.className=`survey-badge ${isOp?'badge-opinion':'badge-eficacia'}`
+    badge.classList.remove('hidden')
+    document.getElementById('file-info').classList.remove('hidden')
+    uploadZone.classList.add('hidden')
+    document.getElementById('step-portada').classList.remove('hidden')
+    const m=file.name.match(/(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)[_\s-]*(\d{4})/i)
+    if(m)document.getElementById('f-periodo').value=m[1].charAt(0).toUpperCase()+m[1].slice(1).toLowerCase()+' '+m[2]
+    toast(`✓ ${isOp?'Encuesta de Opinión':'Encuesta de Eficacia'} — ${parsedData.totalRows} respuestas`,'success')
+  }catch(err){toast('Error: '+err.message,'error')}
+}
+
+document.getElementById('remove-file').addEventListener('click',()=>{
+  parsedData=null;fileInput.value=''
+  document.getElementById('file-info').classList.add('hidden')
+  document.getElementById('survey-type-badge').classList.add('hidden')
+  uploadZone.classList.remove('hidden')
+  document.getElementById('step-portada').classList.add('hidden')
+  document.getElementById('step-results').classList.add('hidden')
+})
+
+document.getElementById('btn-procesar').addEventListener('click',()=>{
+  if(!parsedData){toast('Primero carga un archivo Excel','error');return}
+  if(!document.getElementById('f-periodo').value.trim()){toast('Ingresa el período','error');return}
+  renderPreview()
+  document.getElementById('step-results').classList.remove('hidden')
+  document.getElementById('step-results').scrollIntoView({behavior:'smooth',block:'start'})
+  toast('✓ Datos procesados','success')
+})
+
+document.getElementById('btn-reset').addEventListener('click',()=>{
+  parsedData=null;fileInput.value=''
+  document.getElementById('file-info').classList.add('hidden')
+  document.getElementById('survey-type-badge').classList.add('hidden')
+  uploadZone.classList.remove('hidden')
+  document.getElementById('step-portada').classList.add('hidden')
+  document.getElementById('step-results').classList.add('hidden')
+  previewCharts.forEach(c=>c.destroy());previewCharts=[]
+  window.scrollTo({top:0,behavior:'smooth'})
+})
+
+// ═══════════════════════════════════════════════════════════════
+// PREVIEW CHARTS
+// ═══════════════════════════════════════════════════════════════
+function renderPreview(){
+  previewCharts.forEach(c=>c.destroy());previewCharts=[]
+  const tc='#6B7A8D',gc='rgba(0,0,0,0.07)'
+  if(parsedData.tipo==='opinion') renderOpinionPreview(tc,gc)
+  else renderEficaciaPreview(tc,gc)
+}
+
+function renderOpinionPreview(tc,gc){
+  const{catAvgs,perQuestion,facilitadores,departamentos}=parsedData
+  document.getElementById('metrics-row').innerHTML=[
+    [String(parsedData.totalRows),'Respuestas'],[fmt(catAvgs.global),'Promedio global'],
+    [String(departamentos.length),'Departamentos'],[fmt(catAvgs.facilitador),'Facilitador']
+  ].map(([v,l])=>metricCard(v,l)).join('')
+  const qL=perQuestion.map(q=>{const m=q.label.match(/^(\d+)/);return(m?m[1]+'.':'')+q.label.replace(/^\d+[-.\s]+/,'').slice(0,38)})
+  const qV=perQuestion.map(q=>parseFloat(q.avg).toFixed(2))
+  const qC=qV.map(v=>parseFloat(v)>=4.85?'#1A4A8A':parseFloat(v)>=4.5?'#E8A020':'#C0392B')
+  const top8=facilitadores.slice(0,8)
+  document.getElementById('charts-grid').innerHTML=`
+    <div class="chart-box"><h3>Promedio por categoría</h3><p>4 dimensiones</p><div class="chart-wrap" style="height:190px"><canvas id="p-cat"></canvas></div></div>
+    <div class="chart-box"><h3>Top facilitadores</h3><p>3+ evaluaciones</p><div class="chart-wrap" style="height:190px"><canvas id="p-fac"></canvas></div></div>
+    <div class="chart-box wide"><h3>Resultados por pregunta</h3><p>Verde ≥4.85 · Amarillo 4.50–4.84 · Rojo &lt;4.50</p><div class="chart-wrap" style="height:${Math.max(240,perQuestion.length*22)}px"><canvas id="p-q"></canvas></div></div>`
+  previewCharts.push(new Chart(document.getElementById('p-cat'),{type:'bar',data:{labels:['Facilitador','Programa','Material','Instalaciones'],datasets:[{data:[catAvgs.facilitador,catAvgs.programa,catAvgs.material,catAvgs.instalaciones].map(v=>parseFloat(v).toFixed(2)),backgroundColor:['#1A4A8A','#534AB7','#1D9E75','#D85A30'],borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:tc,font:{size:11}},grid:{display:false},border:{color:'transparent'}},y:{min:4,max:5,ticks:{color:tc,font:{size:10},stepSize:.2},grid:{color:gc},border:{color:'transparent'}}}}}))
+  previewCharts.push(new Chart(document.getElementById('p-q'),{type:'bar',indexAxis:'y',data:{labels:qL,datasets:[{data:qV,backgroundColor:qC,borderRadius:3,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{min:3.5,max:5,ticks:{color:tc,font:{size:10}},grid:{color:gc},border:{color:'transparent'}},y:{ticks:{color:tc,font:{size:10}},grid:{display:false},border:{color:'transparent'}}}}}))
+  previewCharts.push(new Chart(document.getElementById('p-fac'),{type:'bar',indexAxis:'y',data:{labels:top8.map(f=>f.name.length>24?f.name.slice(0,22)+'…':f.name),datasets:[{data:top8.map(f=>parseFloat(f.general).toFixed(2)),backgroundColor:top8.map(f=>parseFloat(f.general)>=4.85?'#1A4A8A':parseFloat(f.general)>=4.5?'#E8A020':'#C0392B'),borderRadius:3,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{min:3,max:5,ticks:{color:tc,font:{size:9}},grid:{color:gc},border:{color:'transparent'}},y:{ticks:{color:tc,font:{size:9}},grid:{display:false},border:{color:'transparent'}}}}}))
+}
+
+function renderEficaciaPreview(tc,gc){
+  const{catAvgs,perQuestion,departamentos}=parsedData
+  document.getElementById('metrics-row').innerHTML=[
+    [String(parsedData.totalRows),'Respuestas'],[fmt(catAvgs.global),'Promedio global'],
+    [String(departamentos.length),'Departamentos'],[fmt(catAvgs.impacto),'Impacto Docente']
+  ].map(([v,l])=>metricCard(v,l)).join('')
+  const qL=perQuestion.map(q=>{const m=q.label.match(/^(\d+)/);return(m?m[1]+'.':'')+q.label.replace(/^\d+[-.\s]+/,'').slice(0,44)})
+  const qV=perQuestion.map(q=>parseFloat(q.avg).toFixed(2))
+  const qC=qV.map(v=>parseFloat(v)>=4.5?'#1D9E75':parseFloat(v)>=3.8?'#E8A020':'#C0392B')
+  document.getElementById('charts-grid').innerHTML=`
+    <div class="chart-box"><h3>Promedio por dimensión</h3><p>2 dimensiones de eficacia</p><div class="chart-wrap" style="height:190px"><canvas id="p-dim"></canvas></div></div>
+    <div class="chart-box"><h3>Promedio por departamento</h3><p>General 8 preguntas</p><div class="chart-wrap" style="height:190px"><canvas id="p-dept"></canvas></div></div>
+    <div class="chart-box wide"><h3>Resultados por pregunta</h3><p>Verde ≥4.50 · Amarillo 3.80–4.49 · Rojo &lt;3.80</p><div class="chart-wrap" style="height:${Math.max(200,perQuestion.length*28)}px"><canvas id="p-q"></canvas></div></div>`
+  previewCharts.push(new Chart(document.getElementById('p-dim'),{type:'bar',data:{labels:['Impacto Docente','Desarrollo y Colaboración'],datasets:[{data:[catAvgs.impacto,catAvgs.desarrollo].map(v=>parseFloat(v).toFixed(2)),backgroundColor:['#1A4A8A','#1D9E75'],borderRadius:8,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:tc,font:{size:11}},grid:{display:false},border:{color:'transparent'}},y:{min:3,max:5,ticks:{color:tc,font:{size:10},stepSize:.5},grid:{color:gc},border:{color:'transparent'}}}}}))
+  previewCharts.push(new Chart(document.getElementById('p-dept'),{type:'bar',indexAxis:'y',data:{labels:departamentos.map(d=>d.dept.length>20?d.dept.slice(0,18)+'…':d.dept),datasets:[{data:departamentos.map(d=>parseFloat(d.general).toFixed(2)),backgroundColor:departamentos.map(d=>parseFloat(d.general)>=4.5?'#1A4A8A':parseFloat(d.general)>=3.8?'#E8A020':'#C0392B'),borderRadius:3,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{min:2.5,max:5,ticks:{color:tc,font:{size:9}},grid:{color:gc},border:{color:'transparent'}},y:{ticks:{color:tc,font:{size:9}},grid:{display:false},border:{color:'transparent'}}}}}))
+  previewCharts.push(new Chart(document.getElementById('p-q'),{type:'bar',indexAxis:'y',data:{labels:qL,datasets:[{data:qV,backgroundColor:qC,borderRadius:3,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{min:2.5,max:5,ticks:{color:tc,font:{size:10}},grid:{color:gc},border:{color:'transparent'}},y:{ticks:{color:tc,font:{size:10}},grid:{display:false},border:{color:'transparent'}}}}}))
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CHART HTML REPORT
+// ═══════════════════════════════════════════════════════════════
+function logoBlockHtml(portada){
+  const{institucion,direccion,area}=portada
+  return`<div style="display:flex;align-items:center;justify-content:center;gap:28px;margin-bottom:1.5rem">
+    ${logoTecNMb64?`<img src="${logoTecNMb64}" style="height:80px;object-fit:contain"/>`:''}
+    <div style="text-align:center;flex:1;max-width:380px">
+      <div style="font-size:1.2rem;font-weight:700;color:#0D2340">${institucion}</div>
+      <div style="font-size:.95rem;color:#1A4A8A;margin:.2rem 0">${direccion}</div>
+      <div style="font-size:.88rem;color:#2E75B6">${area}</div>
+    </div>
+    ${logoITDb64?`<img src="${logoITDb64}" style="height:80px;object-fit:contain"/>`:''}
+  </div>`
+}
+
+function coverCardsHtml(items){
+  return`<div style="display:grid;grid-template-columns:repeat(${items.length},1fr);gap:1rem;width:100%;max-width:700px;margin-bottom:2.5rem">
+    ${items.map(([v,l])=>`<div style="background:#fff;border-top:4px solid #2E75B6;border-radius:10px;padding:1.25rem;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.07)"><div style="font-size:2.2rem;font-weight:700;color:#0D2340;line-height:1">${v}</div><div style="font-size:.75rem;color:#6B7A8D;margin-top:5px">${l}</div></div>`).join('')}
+  </div>`
+}
+
+const BASE_CSS=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Sora',sans-serif;background:#fff;color:#1A2535;font-size:14px}@media print{.no-print{display:none!important}.pb{page-break-before:always}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}.pbtn{position:fixed;top:20px;right:20px;background:#1A4A8A;color:#fff;border:none;border-radius:8px;padding:10px 22px;font:600 14px 'Sora',sans-serif;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.2);z-index:999}.pbtn:hover{background:#0D2340}.cover{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem 2.5rem;background:linear-gradient(155deg,#F4F6FA 55%,#E2EBF6 100%)}.dvd{width:72px;height:4px;background:#E8A020;border-radius:2px;margin:0 auto 1.75rem}.ct{font-size:2rem;font-weight:700;color:#0D2340;text-align:center;margin-bottom:.4rem}.cp{font-size:1.3rem;color:#1A4A8A;font-weight:500;text-align:center;margin-bottom:2.5rem}.ca{font-size:.85rem;color:#6B7A8D}.sec{padding:2.5rem 3rem;max-width:1100px;margin:0 auto}.st{font-size:1.25rem;font-weight:700;color:#0D2340;padding-bottom:.5rem;border-bottom:3px solid #1A4A8A;margin-bottom:.3rem}.ss{font-size:.8rem;color:#6B7A8D;margin-bottom:1.4rem}.two{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem}.cc{background:#F4F6FA;border-radius:10px;padding:1.2rem}.cc h3{font-size:.875rem;font-weight:600;color:#0D2340;margin-bottom:.2rem}.cc p{font-size:.75rem;color:#6B7A8D;margin-bottom:.85rem}table{width:100%;border-collapse:collapse}th{background:#1A4A8A;color:#fff;font-size:12px;font-weight:600;padding:8px 10px;text-align:center}th:first-child{text-align:left}tr:nth-child(even) td{background:#F8FAFB}.lgd{display:flex;gap:14px;margin-top:8px;font-size:11px;color:#6B7A8D;flex-wrap:wrap}.ld{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:3px;vertical-align:middle}.cht{font-size:.9rem;font-weight:600;padding:.6rem 0 .3rem}.ctab{width:100%;border-collapse:collapse;margin-bottom:1rem}.ctab td{padding:6px 10px;vertical-align:top;border-bottom:1px solid #E8EDF5}`
+
+function buildChartHtml(){
+  const portada=getPortada()
+  const{tipo,totalRows,catAvgs,perQuestion,facilitadores,departamentos,comentarios}=parsedData
+  const hBg=v=>parseFloat(v)>=(tipo==='eficacia'?4.5:4.85)?'#C0DD97':parseFloat(v)>=(tipo==='eficacia'?3.8:4.5)?'#FAC775':'#F09595'
+  const hTx=v=>parseFloat(v)>=(tipo==='eficacia'?4.5:4.85)?'#1A4A00':parseFloat(v)>=(tipo==='eficacia'?3.8:4.5)?'#5C3000':'#6A0E0E'
+  const qL=perQuestion.map(q=>{const m=q.label.match(/^(\d+)/);return(m?m[1]+'.':'')+q.label.replace(/^\d+[-.\s]+/,'').slice(0,44)})
+  const qV=perQuestion.map(q=>parseFloat(q.avg).toFixed(2))
+  const qC=qV.map(v=>parseFloat(v)>=(tipo==='eficacia'?4.5:4.85)?'#1D9E75':parseFloat(v)>=(tipo==='eficacia'?3.8:4.5)?'#E8A020':'#C0392B')
+
+  let body=''
+
+  if(tipo==='opinion'){
+    const topFac=facilitadores.slice(0,14)
+    const dL=departamentos.map(d=>d.dept.length>22?d.dept.slice(0,20)+'…':d.dept)
+    const heatRows=departamentos.map(d=>`<tr><td style="padding:7px 10px;font-size:12px;font-weight:500">${d.dept}</td><td style="padding:7px 10px;text-align:center;font-size:12px;color:#6B7A8D">${d.n}</td>${[d.facilitador,d.material,d.programa,d.instalaciones].map(v=>`<td style="padding:7px 6px;text-align:center;font-size:13px;font-weight:700;background:${hBg(v)};color:${hTx(v)}">${fmt(v)}</td>`).join('')}</tr>`).join('')
+    const commPos=comentarios.filter(c=>/excelente|muy bien|felicit|dominio|superó/i.test(c.text)).slice(0,7)
+    const commNeg=comentarios.filter(c=>/cafeter|sanitario|baño|falt|mejorar|deficiente|no hubo/i.test(c.text)).slice(0,7)
+    const cRow=(c,col)=>`<tr><td style="padding:6px 10px;font-size:11px;font-weight:600;color:${col};width:180px;vertical-align:top">${c.dept}</td><td style="padding:6px 10px;font-size:12px;border-left:3px solid ${col};vertical-align:top">${c.text}</td></tr>`
+    body=`
+    <div class="sec pb"><div class="st">1. Promedios por Categoría</div><div class="ss">Escala 1–5 · 4 dimensiones</div>
+      <div class="two">
+        <div class="cc"><h3>Comparativa</h3><p>Promedio de cada dimensión</p><div style="position:relative;height:210px"><canvas id="c1"></canvas></div></div>
+        <div class="cc"><h3>Radar</h3><p>Perfil del período</p><div style="position:relative;height:210px"><canvas id="c2"></canvas></div></div>
+      </div></div>
+    <div class="sec pb"><div class="st">2. Resultados por Pregunta</div><div class="ss">Verde ≥4.85 · Amarillo 4.50–4.84 · Rojo &lt;4.50</div>
+      <div class="cc"><h3>Las 18 preguntas</h3><p></p><div style="position:relative;height:${Math.max(320,perQuestion.length*28)}px"><canvas id="c3"></canvas></div></div></div>
+    <div class="sec pb"><div class="st">3. Facilitadores</div><div class="ss">Con 3 o más evaluaciones</div>
+      <div class="cc"><h3>Ranking</h3><p></p><div style="position:relative;height:${Math.max(280,topFac.length*32)}px"><canvas id="c4"></canvas></div></div></div>
+    <div class="sec pb"><div class="st">4. Departamento × Categoría</div><div class="ss">Mapa de calor</div>
+      <table><thead><tr><th style="text-align:left">Departamento</th><th>Resp.</th><th>Facilitador</th><th>Material</th><th>Programa</th><th>Instalaciones</th></tr></thead><tbody>${heatRows}</tbody></table>
+      <div class="lgd"><span><span class="ld" style="background:#C0DD97"></span>≥4.85</span><span><span class="ld" style="background:#FAC775"></span>4.50–4.84</span><span><span class="ld" style="background:#F09595"></span>&lt;4.50</span></div>
+      <br/><div class="cc"><h3>Barras agrupadas</h3><p></p><div style="position:relative;height:${Math.max(280,departamentos.length*34)}px"><canvas id="c5"></canvas></div></div></div>
+    ${(commPos.length||commNeg.length)?`<div class="sec pb"><div class="st">5. Comentarios</div>
+      ${commPos.length?`<div class="cht" style="color:#1D8A5C">✓ Positivos</div><table class="ctab">${commPos.map(c=>cRow(c,'#1D8A5C')).join('')}</table>`:''}
+      ${commNeg.length?`<div class="cht" style="color:#C0392B">⚠ Áreas de mejora</div><table class="ctab">${commNeg.map(c=>cRow(c,'#C0392B')).join('')}</table>`:''}
+    </div>`:''}
+    <script>
+    const tc='#6B7A8D',gc='rgba(0,0,0,0.06)'
+    new Chart(document.getElementById('c1'),{type:'bar',data:{labels:['Facilitador','Programa','Material','Instalaciones'],datasets:[{data:[${[catAvgs.facilitador,catAvgs.programa,catAvgs.material,catAvgs.instalaciones].map(v=>parseFloat(v).toFixed(2))}],backgroundColor:['#1A4A8A','#534AB7','#1D9E75','#D85A30'],borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:tc,font:{size:11}},grid:{display:false},border:{color:'transparent'}},y:{min:4,max:5,ticks:{color:tc,font:{size:10},stepSize:.2},grid:{color:gc},border:{color:'transparent'}}}}})
+    new Chart(document.getElementById('c2'),{type:'radar',data:{labels:['Facilitador','Programa','Material','Instalaciones'],datasets:[{data:[${[catAvgs.facilitador,catAvgs.programa,catAvgs.material,catAvgs.instalaciones].map(v=>parseFloat(v).toFixed(2))}],fill:true,backgroundColor:'rgba(26,74,138,.15)',borderColor:'#1A4A8A',pointBackgroundColor:'#1A4A8A',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{r:{min:3.5,max:5,ticks:{stepSize:.5,font:{size:9},color:tc},grid:{color:gc},pointLabels:{font:{size:11},color:tc}}}}})
+    new Chart(document.getElementById('c3'),{type:'bar',indexAxis:'y',data:{labels:${JSON.stringify(qL)},datasets:[{data:${JSON.stringify(qV)},backgroundColor:${JSON.stringify(qC)},borderRadius:3,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{min:3.5,max:5,ticks:{color:tc,font:{size:10}},grid:{color:gc},border:{color:'transparent'}},y:{ticks:{color:tc,font:{size:10}},grid:{display:false},border:{color:'transparent'}}}}})
+    new Chart(document.getElementById('c4'),{type:'bar',indexAxis:'y',data:{labels:${JSON.stringify(topFac.map(f=>f.name.length>32?f.name.slice(0,30)+'…':f.name))},datasets:[{data:${JSON.stringify(topFac.map(f=>parseFloat(f.general).toFixed(2)))},backgroundColor:${JSON.stringify(topFac.map(f=>parseFloat(f.general)>=4.85?'#1A4A8A':parseFloat(f.general)>=4.5?'#E8A020':'#C0392B'))},borderRadius:3,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{min:2.5,max:5,ticks:{color:tc,font:{size:10}},grid:{color:gc},border:{color:'transparent'}},y:{ticks:{color:tc,font:{size:10}},grid:{display:false},border:{color:'transparent'}}}}})
+    new Chart(document.getElementById('c5'),{type:'bar',indexAxis:'y',data:{labels:${JSON.stringify(dL)},datasets:[{label:'Facilitador',data:${JSON.stringify(departamentos.map(d=>parseFloat(d.facilitador).toFixed(2)))},backgroundColor:'#1A4A8A',borderRadius:2},{label:'Material',data:${JSON.stringify(departamentos.map(d=>parseFloat(d.material).toFixed(2)))},backgroundColor:'#1D9E75',borderRadius:2},{label:'Programa',data:${JSON.stringify(departamentos.map(d=>parseFloat(d.programa).toFixed(2)))},backgroundColor:'#534AB7',borderRadius:2},{label:'Instalac.',data:${JSON.stringify(departamentos.map(d=>parseFloat(d.instalaciones).toFixed(2)))},backgroundColor:'#D85A30',borderRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:11},color:tc,boxWidth:12,padding:12}}},scales:{x:{min:3.5,max:5,ticks:{color:tc,font:{size:10}},grid:{color:gc},border:{color:'transparent'}},y:{ticks:{color:tc,font:{size:10}},grid:{display:false},border:{color:'transparent'}}}}})
+    <\/script>`
+  } else {
+    const cRow=(c,col)=>`<tr><td style="padding:6px 10px;font-size:11px;font-weight:600;color:${col};width:180px;vertical-align:top">${c.dept}</td><td style="padding:6px 10px;font-size:12px;border-left:3px solid ${col};vertical-align:top">${c.text}</td></tr>`
+    const heatRows=departamentos.map(d=>`<tr><td style="padding:7px 10px;font-size:12px;font-weight:500">${d.dept}</td><td style="padding:7px 10px;text-align:center;font-size:12px;color:#6B7A8D">${d.n}</td>${[d.impacto,d.desarrollo,d.general].map(v=>`<td style="padding:7px 8px;text-align:center;font-size:13px;font-weight:700;background:${hBg(v)};color:${hTx(v)}">${fmt(v)}</td>`).join('')}</tr>`).join('')
+    body=`
+    <div class="sec pb"><div class="st">1. Promedios por Dimensión</div><div class="ss">Escala 1–5 · 2 dimensiones de eficacia</div>
+      <div class="two">
+        <div class="cc"><h3>Impacto Docente vs Desarrollo</h3><p>Q1,Q2,Q5,Q8 vs Q3,Q4,Q6,Q7</p><div style="position:relative;height:220px"><canvas id="c1"></canvas></div></div>
+        <div class="cc"><h3>Radar</h3><p>Perfil de las 2 dimensiones</p><div style="position:relative;height:220px"><canvas id="c2"></canvas></div></div>
+      </div></div>
+    <div class="sec pb"><div class="st">2. Resultados por Pregunta</div><div class="ss">Verde ≥4.50 · Amarillo 3.80–4.49 · Rojo &lt;3.80</div>
+      <div class="cc"><h3>Las 8 preguntas</h3><p></p><div style="position:relative;height:${Math.max(240,perQuestion.length*32)}px"><canvas id="c3"></canvas></div></div></div>
+    <div class="sec pb"><div class="st">3. Resultados por Departamento</div><div class="ss">Mapa de calor · Verde ≥4.50 · Amarillo 3.80–4.49 · Rojo &lt;3.80</div>
+      <table><thead><tr><th style="text-align:left">Departamento</th><th>Resp.</th><th>Impacto Docente</th><th>Desarrollo y Col.</th><th>General</th></tr></thead><tbody>${heatRows}</tbody></table>
+      <div class="lgd"><span><span class="ld" style="background:#C0DD97"></span>≥4.50</span><span><span class="ld" style="background:#FAC775"></span>3.80–4.49</span><span><span class="ld" style="background:#F09595"></span>&lt;3.80</span></div>
+      <br/><div class="cc"><h3>Comparativa por departamento</h3><p></p><div style="position:relative;height:${Math.max(280,departamentos.length*34)}px"><canvas id="c4"></canvas></div></div></div>
+    ${comentarios.length?`<div class="sec pb"><div class="st">4. Sugerencias</div><table class="ctab">${comentarios.slice(0,12).map(c=>cRow(c,'#1A4A8A')).join('')}</table></div>`:''}
+    <script>
+    const tc='#6B7A8D',gc='rgba(0,0,0,0.06)'
+    new Chart(document.getElementById('c1'),{type:'bar',data:{labels:['Impacto Docente','Desarrollo y Colaboración'],datasets:[{data:[${fmt(catAvgs.impacto)},${fmt(catAvgs.desarrollo)}],backgroundColor:['#1A4A8A','#1D9E75'],borderRadius:8,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:tc,font:{size:12}},grid:{display:false},border:{color:'transparent'}},y:{min:3,max:5,ticks:{color:tc,font:{size:10},stepSize:.5},grid:{color:gc},border:{color:'transparent'}}}}})
+    new Chart(document.getElementById('c2'),{type:'radar',data:{labels:['Impacto Docente','Desarrollo y Col.'],datasets:[{data:[${fmt(catAvgs.impacto)},${fmt(catAvgs.desarrollo)}],fill:true,backgroundColor:'rgba(29,158,117,.15)',borderColor:'#1D9E75',pointBackgroundColor:'#1D9E75',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{r:{min:3,max:5,ticks:{stepSize:.5,font:{size:9},color:tc},grid:{color:gc},pointLabels:{font:{size:12},color:tc}}}}})
+    new Chart(document.getElementById('c3'),{type:'bar',indexAxis:'y',data:{labels:${JSON.stringify(qL)},datasets:[{data:${JSON.stringify(qV)},backgroundColor:${JSON.stringify(qC)},borderRadius:3,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{min:2.5,max:5,ticks:{color:tc,font:{size:10}},grid:{color:gc},border:{color:'transparent'}},y:{ticks:{color:tc,font:{size:10}},grid:{display:false},border:{color:'transparent'}}}}})
+    new Chart(document.getElementById('c4'),{type:'bar',indexAxis:'y',data:{labels:${JSON.stringify(departamentos.map(d=>d.dept.length>22?d.dept.slice(0,20)+'…':d.dept))},datasets:[{label:'Impacto Docente',data:${JSON.stringify(departamentos.map(d=>fmt(d.impacto)))},backgroundColor:'#1A4A8A',borderRadius:2},{label:'Desarrollo y Col.',data:${JSON.stringify(departamentos.map(d=>fmt(d.desarrollo)))},backgroundColor:'#1D9E75',borderRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:11},color:tc,boxWidth:12,padding:12}}},scales:{x:{min:2.5,max:5,ticks:{color:tc,font:{size:10}},grid:{color:gc},border:{color:'transparent'}},y:{ticks:{color:tc,font:{size:10}},grid:{display:false},border:{color:'transparent'}}}}})
+    <\/script>`
+  }
+
+  const titulo=tipo==='opinion'?'Reporte de Encuesta de Opinión':'Reporte de Encuesta de Eficacia'
+  return`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/>
+<title>${titulo} — ${portada.periodo}</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"><\/script>
+<style>${BASE_CSS}<\/style></head><body>
+<button class="pbtn no-print" onclick="window.print()">🖨 Imprimir / Guardar PDF</button>
+<div class="cover">
+  ${logoBlockHtml(portada)}
+  <div class="dvd"></div>
+  <div class="ct">${titulo}</div>
+  <div class="cp">${portada.periodo}</div>
+  ${coverCardsHtml([[String(totalRows),'Respuestas'],[fmt(catAvgs.global),'Promedio global'],[String(departamentos.length),'Departamentos'],[String(comentarios.length),tipo==='eficacia'?'Sugerencias':'Comentarios']])}
+  ${portada.autor?`<div class="ca">Elaboró: ${portada.autor}</div>`:''}
+</div>
+${body}
+</body></html>`
+}
+
+// ═══════════════════════════════════════════════════════════════
+// WORD REPORT
+// ═══════════════════════════════════════════════════════════════
+async function buildWordDoc(){
+  const{Document,Packer,Paragraph,TextRun,Table,TableRow,TableCell,AlignmentType,HeadingLevel,BorderStyle,WidthType,ShadingType,LevelFormat,PageNumber,PageBreak,Header,Footer,ImageRun}=docx
+  const portada=getPortada()
+  const{tipo,totalRows,catAvgs,perQuestion,facilitadores,departamentos,comentarios}=parsedData
+  const{periodo,institucion,direccion,area,autor}=portada
+  const W=9360
+  const bd={style:BorderStyle.SINGLE,size:1,color:'CCCCCC'}
+  const bds={top:bd,bottom:bd,left:bd,right:bd}
+  const nb={style:BorderStyle.NONE}
+  const nbd={top:nb,bottom:nb,left:nb,right:nb}
+  const isEf=tipo==='eficacia'
+  const hc=v=>{const f=parseFloat(v);return isEf?(f>=4.5?'C0DD97':f>=3.8?'FAC775':'F09595'):(f>=4.85?'C0DD97':f>=4.5?'FAC775':'F09595')}
+
+  const sp=()=>new Paragraph({children:[new TextRun('')],spacing:{before:80,after:80}})
+  const h1=t=>new Paragraph({heading:HeadingLevel.HEADING_1,children:[new TextRun(t)]})
+  const h2=t=>new Paragraph({heading:HeadingLevel.HEADING_2,children:[new TextRun(t)]})
+  const pr=(t,opts={})=>new Paragraph({alignment:AlignmentType.LEFT,spacing:{before:60,after:60},children:[new TextRun({text:t,size:22,bold:opts.bold||false,color:opts.color||'222222'})]})
+  const bl=t=>new Paragraph({numbering:{reference:'bullets',level:0},children:[new TextRun({text:t,size:22})]})
+  const hRow=(labels,widths,color='1F5C99')=>new TableRow({tableHeader:true,children:labels.map((lbl,i)=>new TableCell({borders:bds,width:{size:widths[i],type:WidthType.DXA},shading:{fill:color,type:ShadingType.CLEAR},margins:{top:80,bottom:80,left:120,right:120},children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:lbl,size:20,bold:true,color:'FFFFFF'})]})]}))})
+  const dRow=(cells,widths,i=0)=>{const fill=i%2===0?'FFFFFF':'F2F7FC';return new TableRow({children:cells.map((cell,j)=>new TableCell({borders:bds,width:{size:widths[j],type:WidthType.DXA},shading:{fill,type:ShadingType.CLEAR},margins:{top:70,bottom:70,left:120,right:120},children:[new Paragraph({alignment:j===0?AlignmentType.LEFT:AlignmentType.CENTER,children:[new TextRun({text:String(cell),size:20,color:'222222'})]})]}))})}
+  const htRow=(cells,widths,hC=[])=>new TableRow({children:cells.map((cell,i)=>new TableCell({borders:bds,width:{size:widths[i],type:WidthType.DXA},shading:{fill:hC.includes(i)?hc(cell):'FFFFFF',type:ShadingType.CLEAR},margins:{top:70,bottom:70,left:100,right:100},children:[new Paragraph({alignment:i===0?AlignmentType.LEFT:AlignmentType.CENTER,children:[new TextRun({text:String(cell),size:20,bold:hC.includes(i),color:hC.includes(i)?'1A3A5C':'222222'})]})]}))})
+
+  // Fetch logos as ArrayBuffer for Word
+  const fetchBuf=async url=>{try{const r=await fetch(url);return r.ok?await r.arrayBuffer():null}catch{return null}}
+  const[tnBuf,itdBuf]=await Promise.all([fetchBuf(LOGO_TECNM),fetchBuf(LOGO_ITD)])
+  const mkImg=(buf,ext,w,h)=>{if(!buf)return null;try{return new ImageRun({data:buf,transformation:{width:w,height:h},type:ext})}catch{return null}}
+  const imgTN=mkImg(tnBuf,'jpg',110,55)
+  const imgIT=mkImg(itdBuf,'png',110,55)
+
+  const logoRow=new Table({width:{size:W,type:WidthType.DXA},columnWidths:[W/3,W/3,W/3],rows:[new TableRow({children:[
+    new TableCell({borders:nbd,width:{size:W/3,type:WidthType.DXA},margins:{top:0,bottom:0,left:0,right:0},children:[new Paragraph({alignment:AlignmentType.CENTER,children:imgTN?[imgTN]:[new TextRun({text:'TecNM',size:24,bold:true,color:'1A4A8A'})]})]}),
+    new TableCell({borders:nbd,width:{size:W/3,type:WidthType.DXA},margins:{top:0,bottom:0,left:120,right:120},children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:institucion.toUpperCase(),size:22,bold:true,color:'0D2340'})]}),new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:40},children:[new TextRun({text:direccion,size:20,color:'1A4A8A'})]}),new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:20},children:[new TextRun({text:area,size:20,color:'2E75B6'})]})]}),
+    new TableCell({borders:nbd,width:{size:W/3,type:WidthType.DXA},margins:{top:0,bottom:0,left:0,right:0},children:[new Paragraph({alignment:AlignmentType.CENTER,children:imgIT?[imgIT]:[new TextRun({text:'ITD',size:24,bold:true,color:'1A4A8A'})]})]}),
+  ]})]})
+
+  const summTable=items=>new Table({width:{size:W,type:WidthType.DXA},columnWidths:items.map(()=>Math.floor(W/items.length)),rows:[new TableRow({children:items.map(([val,lbl])=>new TableCell({borders:{top:{style:BorderStyle.SINGLE,size:6,color:'2E75B6'},bottom:bd,left:bd,right:bd},width:{size:Math.floor(W/items.length),type:WidthType.DXA},shading:{fill:'F2F7FC',type:ShadingType.CLEAR},margins:{top:160,bottom:160,left:120,right:120},children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:val,size:52,bold:true,color:'1F5C99'})]}),new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:lbl,size:18,color:'666666'})]})]}))]})]})
+
+  const docHdr=new Header({children:[new Paragraph({border:{bottom:{style:BorderStyle.SINGLE,size:4,color:'1F5C99',space:4}},tabStops:[{type:'right',position:9360}],children:[new TextRun({text:`${institucion} — ${periodo}`,size:18,color:'1F5C99'}),new TextRun({text:'\t',size:18}),new TextRun({text:area,size:18,color:'888888'})]})]})
+  const docFtr=new Footer({children:[new Paragraph({alignment:AlignmentType.CENTER,border:{top:{style:BorderStyle.SINGLE,size:4,color:'CCCCCC',space:4}},children:[new TextRun({text:'Página ',size:18,color:'888888'}),new TextRun({children:[PageNumber.CURRENT],size:18,color:'888888'}),new TextRun({text:' de ',size:18,color:'888888'}),new TextRun({children:[PageNumber.TOTAL_PAGES],size:18,color:'888888'})]})]})
+
+  const titleText=isEf?'REPORTE DE ENCUESTA DE EFICACIA':'REPORTE DE ENCUESTA DE OPINIÓN'
+  const coverChildren=[
+    sp(),sp(),logoRow,sp(),
+    new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:120,after:80},border:{top:{style:BorderStyle.SINGLE,size:6,color:'1F5C99',space:8},bottom:{style:BorderStyle.SINGLE,size:6,color:'1F5C99',space:8}},children:[new TextRun({text:titleText,size:40,bold:true,color:'1F5C99',font:'Arial'})]}),
+    new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:80,after:320},children:[new TextRun({text:periodo,size:32,color:'2E75B6',font:'Arial'})]}),
+    summTable([[String(totalRows),'Respuestas'],[fmt(catAvgs.global),'Promedio global'],[String(departamentos.length),'Departamentos'],[String(comentarios.length),isEf?'Sugerencias':'Comentarios']]),
+    sp(),sp(),
+    ...(autor?[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:`Elaboró: ${autor}`,size:20,color:'888888'})]})]: []),
+    new Paragraph({children:[new PageBreak()]})
+  ]
+
+  let contentChildren=[]
+
+  if(!isEf){
+    const qData=perQuestion.map(q=>[q.label.length>55?q.label.slice(0,53)+'…':q.label,/^[1-7][-.]/.test(q.label)?'Facilitador':/^([89]|10)[-.]/.test(q.label)?'Material':/^(1[1-4])[-.]/.test(q.label)?'Programa':'Instalaciones',fmt(q.avg)])
+    const commPos=comentarios.filter(c=>/excelente|muy bien|felicit|dominio|superó/i.test(c.text)).slice(0,8)
+    const commNeg=comentarios.filter(c=>/cafeter|sanitario|baño|falt|mejorar|deficiente|no hubo/i.test(c.text)).slice(0,8)
+    const commSug=comentarios.filter(c=>/recomend|diplom|seguimiento|más.*curso/i.test(c.text)&&!/cafeter/i.test(c.text)).slice(0,6)
+
+    const catTable=new Table({width:{size:W,type:WidthType.DXA},columnWidths:[4000,1800,1760,1800],rows:[
+      hRow(['Categoría','Promedio','Escala','Nivel'],[4000,1800,1760,1800]),
+      ...[['Facilitador (P1–P7)',fmt(catAvgs.facilitador),'1–5',catAvgs.facilitador>=4.85?'Excelente':catAvgs.facilitador>=4.5?'Bueno':'Mejora'],['Programa (P11–P14)',fmt(catAvgs.programa),'1–5',catAvgs.programa>=4.85?'Excelente':catAvgs.programa>=4.5?'Bueno':'Mejora'],['Material (P8–P10)',fmt(catAvgs.material),'1–5',catAvgs.material>=4.85?'Excelente':catAvgs.material>=4.5?'Bueno':'Mejora'],['Instalaciones (P15–P18)',fmt(catAvgs.instalaciones),'1–5',catAvgs.instalaciones>=4.85?'Excelente':catAvgs.instalaciones>=4.5?'Bueno':'Mejora'],['PROMEDIO GLOBAL',fmt(catAvgs.global),'1–5',catAvgs.global>=4.85?'Excelente':catAvgs.global>=4.5?'Bueno':'Mejora']].map((row,i)=>new TableRow({children:[
+        new TableCell({borders:bds,width:{size:4000,type:WidthType.DXA},shading:{fill:row[0].startsWith('PROM')?'E8EFF7':i%2===0?'FFFFFF':'F8F8F8',type:ShadingType.CLEAR},margins:{top:80,bottom:80,left:120,right:120},children:[new Paragraph({children:[new TextRun({text:row[0],size:21,bold:row[0].startsWith('PROM'),color:'222222'})]})] }),
+        ...[1,2,3].map(j=>new TableCell({borders:bds,width:{size:[1800,1760,1800][j-1],type:WidthType.DXA},shading:{fill:j===1?hc(row[j]):row[0].startsWith('PROM')?'E8EFF7':i%2===0?'FFFFFF':'F8F8F8',type:ShadingType.CLEAR},margins:{top:80,bottom:80,left:80,right:80},children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:row[j],size:21,bold:j===1,color:j===1?'1A3A5C':'333333'})]})]}))
+      ]}))
+    ]})
+
+    contentChildren=[
+      h1('1. Resumen General'),pr(`Encuesta de opinión de ${periodo} — ${totalRows} participantes.`),sp(),h2('1.1 Promedios por categoría'),catTable,sp(),
+      new Paragraph({spacing:{before:40,after:60},children:[new TextRun({text:'Leyenda:  ',size:20,bold:true,color:'333333'}),new TextRun({text:'Verde (≥4.85) Excelente   ',size:20,color:'3B6D11'}),new TextRun({text:'Amarillo (4.50–4.84) Bueno   ',size:20,color:'854F0B'}),new TextRun({text:'Rojo (<4.50) Mejora',size:20,color:'A32D2D'})]}),
+      sp(),new Paragraph({children:[new PageBreak()]}),
+      h1('2. Resultados por Pregunta'),
+      new Table({width:{size:W,type:WidthType.DXA},columnWidths:[5000,2200,2160],rows:[hRow(['Pregunta','Categoría','Promedio'],[5000,2200,2160]),...qData.map((row,i)=>new TableRow({children:[new TableCell({borders:bds,width:{size:5000,type:WidthType.DXA},shading:{fill:i%2===0?'FFFFFF':'F8F8F8',type:ShadingType.CLEAR},margins:{top:70,bottom:70,left:120,right:120},children:[new Paragraph({children:[new TextRun({text:row[0],size:19,color:'222222'})]})] }),new TableCell({borders:bds,width:{size:2200,type:WidthType.DXA},shading:{fill:i%2===0?'FFFFFF':'F8F8F8',type:ShadingType.CLEAR},margins:{top:70,bottom:70,left:80,right:80},children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:row[1],size:19,color:'555555'})]})] }),new TableCell({borders:bds,width:{size:2160,type:WidthType.DXA},shading:{fill:hc(row[2]),type:ShadingType.CLEAR},margins:{top:70,bottom:70,left:80,right:80},children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:row[2],size:21,bold:true,color:'1A3A5C'})]})]} )]}))]})
+      ,sp(),new Paragraph({children:[new PageBreak()]}),
+      h1('3. Análisis por Facilitador'),pr('Con 3 o más evaluaciones. Nombres normalizados y consolidados.'),sp(),
+      new Table({width:{size:W,type:WidthType.DXA},columnWidths:[3900,700,1220,1770,1770],rows:[hRow(['Facilitador','Resp.','Prom. General','Prom. Facilitador','Prom. Instalaciones'],[3900,700,1220,1770,1770]),...facilitadores.map((f,i)=>new TableRow({children:[new TableCell({borders:bds,width:{size:3900,type:WidthType.DXA},shading:{fill:i%2===0?'FFFFFF':'F8F8F8',type:ShadingType.CLEAR},margins:{top:70,bottom:70,left:120,right:120},children:[new Paragraph({children:[new TextRun({text:f.name,size:19,color:'222222'})]})] }),new TableCell({borders:bds,width:{size:700,type:WidthType.DXA},shading:{fill:i%2===0?'FFFFFF':'F8F8F8',type:ShadingType.CLEAR},margins:{top:70,bottom:70,left:80,right:80},children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:String(f.n),size:19,color:'555555'})]})] }),...[fmt(f.general),fmt(f.facilitador),fmt(f.instalaciones)].map((v,j)=>new TableCell({borders:bds,width:{size:[1220,1770,1770][j],type:WidthType.DXA},shading:{fill:hc(v),type:ShadingType.CLEAR},margins:{top:70,bottom:70,left:80,right:80},children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:v,size:20,bold:true,color:'1A3A5C'})]})]} ))]}))]})
+      ,sp(),new Paragraph({children:[new PageBreak()]}),
+      h1('4. Departamento × Categoría'),pr('Promedio por dimensión, de mayor a menor por facilitador.'),sp(),
+      new Table({width:{size:W,type:WidthType.DXA},columnWidths:[2900,660,1450,1450,1450,1450],rows:[hRow(['Departamento','Resp.','Facilitador','Material','Programa','Instalaciones'],[2900,660,1450,1450,1450,1450]),...departamentos.map(d=>htRow([d.dept,String(d.n),fmt(d.facilitador),fmt(d.material),fmt(d.programa),fmt(d.instalaciones)],[2900,660,1450,1450,1450,1450],[2,3,4,5]))]})
+      ,sp(),new Paragraph({children:[new PageBreak()]}),
+      h1('5. Comentarios y Sugerencias'),
+      ...(commPos.length?[h2('5.1 Positivos'),new Table({width:{size:W,type:WidthType.DXA},columnWidths:[2600,6760],rows:[hRow(['Departamento','Comentario'],[2600,6760]),...commPos.map((c,i)=>dRow([c.dept,c.text],[2600,6760],i))]}),sp()]:[]),
+      ...(commNeg.length?[h2('5.2 Áreas de mejora'),new Table({width:{size:W,type:WidthType.DXA},columnWidths:[2600,6760],rows:[hRow(['Departamento','Comentario'],[2600,6760],'B03A2E'),...commNeg.map((c,i)=>dRow([c.dept,c.text],[2600,6760],i))]}),sp()]:[]),
+      ...(commSug.length?[h2('5.3 Sugerencias'),new Table({width:{size:W,type:WidthType.DXA},columnWidths:[2600,6760],rows:[hRow(['Departamento','Sugerencia'],[2600,6760],'7D6608'),...commSug.map((c,i)=>dRow([c.dept,c.text],[2600,6760],i))]}),sp()]:[]),
+      new Paragraph({children:[new PageBreak()]}),
+      h1('6. Conclusiones'),h2('Fortalezas'),bl(`Facilitador: ${fmt(catAvgs.facilitador)}/5 — dimensión mejor evaluada.`),bl(`Programa: ${fmt(catAvgs.programa)}/5.`),
+      ...(facilitadores.length?[bl(`${facilitadores[0].name} lidera con promedio ${fmt(facilitadores[0].general)}.`)]:[]),
+      sp(),h2('Áreas de mejora'),bl(`Instalaciones: ${fmt(catAvgs.instalaciones)}/5. Sanitarios requieren atención.`),
+      ...(departamentos.length?[bl(`${departamentos[departamentos.length-1].dept} requiere atención diferenciada.`)]:[]),
+      sp(),h2('Recomendaciones'),bl('Atender inmediatamente servicio de cafetería y sanitarios.'),bl('Estandarizar el campo Nombre del Facilitador en el formulario.'),bl('Continuar con cursos de herramientas de IA.'),
+    ]
+  } else {
+    const qData=perQuestion.map(q=>[q.label.length>65?q.label.slice(0,63)+'…':q.label,fmt(q.avg)])
+    const catTable=new Table({width:{size:W,type:WidthType.DXA},columnWidths:[4500,1600,1560,1700],rows:[
+      hRow(['Dimensión','Promedio','Escala','Nivel'],[4500,1600,1560,1700]),
+      ...[['Impacto Docente (Q1,Q2,Q5,Q8)',fmt(catAvgs.impacto),'1–5',catAvgs.impacto>=4.5?'Excelente':catAvgs.impacto>=3.8?'Bueno':'Mejora'],['Desarrollo y Colaboración (Q3,Q4,Q6,Q7)',fmt(catAvgs.desarrollo),'1–5',catAvgs.desarrollo>=4.5?'Excelente':catAvgs.desarrollo>=3.8?'Bueno':'Mejora'],['PROMEDIO GLOBAL',fmt(catAvgs.global),'1–5',catAvgs.global>=4.5?'Excelente':catAvgs.global>=3.8?'Bueno':'Mejora']].map((row,i)=>new TableRow({children:[
+        new TableCell({borders:bds,width:{size:4500,type:WidthType.DXA},shading:{fill:row[0].startsWith('PROM')?'E8EFF7':i%2===0?'FFFFFF':'F8F8F8',type:ShadingType.CLEAR},margins:{top:80,bottom:80,left:120,right:120},children:[new Paragraph({children:[new TextRun({text:row[0],size:21,bold:row[0].startsWith('PROM'),color:'222222'})]})] }),
+        ...[1,2,3].map(j=>new TableCell({borders:bds,width:{size:[1600,1560,1700][j-1],type:WidthType.DXA},shading:{fill:j===1?hc(row[j]):row[0].startsWith('PROM')?'E8EFF7':i%2===0?'FFFFFF':'F8F8F8',type:ShadingType.CLEAR},margins:{top:80,bottom:80,left:80,right:80},children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:row[j],size:21,bold:j===1,color:j===1?'1A3A5C':'333333'})]})]}))
+      ]}))
+    ]})
+    contentChildren=[
+      h1('1. Resumen por Dimensión'),pr(`Encuesta de eficacia de ${periodo} — ${totalRows} participantes.`),sp(),h2('1.1 Promedios por dimensión'),catTable,sp(),
+      new Paragraph({spacing:{before:40,after:60},children:[new TextRun({text:'Leyenda:  ',size:20,bold:true,color:'333333'}),new TextRun({text:'Verde (≥4.50) Excelente   ',size:20,color:'3B6D11'}),new TextRun({text:'Amarillo (3.80–4.49) Bueno   ',size:20,color:'854F0B'}),new TextRun({text:'Rojo (<3.80) Mejora',size:20,color:'A32D2D'})]}),
+      sp(),new Paragraph({children:[new PageBreak()]}),
+      h1('2. Resultados por Pregunta'),
+      new Table({width:{size:W,type:WidthType.DXA},columnWidths:[7200,2160],rows:[hRow(['Pregunta','Promedio'],[7200,2160]),...qData.map((row,i)=>new TableRow({children:[new TableCell({borders:bds,width:{size:7200,type:WidthType.DXA},shading:{fill:i%2===0?'FFFFFF':'F8F8F8',type:ShadingType.CLEAR},margins:{top:70,bottom:70,left:120,right:120},children:[new Paragraph({children:[new TextRun({text:row[0],size:20,color:'222222'})]})] }),new TableCell({borders:bds,width:{size:2160,type:WidthType.DXA},shading:{fill:hc(row[1]),type:ShadingType.CLEAR},margins:{top:70,bottom:70,left:80,right:80},children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:row[1],size:21,bold:true,color:'1A3A5C'})]})] })]}))]})
+      ,sp(),new Paragraph({children:[new PageBreak()]}),
+      h1('3. Análisis por Departamento'),pr('Ordenado de mayor a menor promedio general.'),sp(),
+      new Table({width:{size:W,type:WidthType.DXA},columnWidths:[3200,760,1800,1800,1800],rows:[hRow(['Departamento','Resp.','Impacto Docente','Desarrollo y Col.','General'],[3200,760,1800,1800,1800]),...departamentos.map(d=>htRow([d.dept,String(d.n),fmt(d.impacto),fmt(d.desarrollo),fmt(d.general)],[3200,760,1800,1800,1800],[2,3,4]))]})
+      ,sp(),
+      ...(comentarios.length?[new Paragraph({children:[new PageBreak()]}),h1('4. Sugerencias'),new Table({width:{size:W,type:WidthType.DXA},columnWidths:[2600,6760],rows:[hRow(['Departamento','Sugerencia'],[2600,6760]),...comentarios.slice(0,15).map((c,i)=>dRow([c.dept,c.text],[2600,6760],i))]}),sp()]:[]),
+      new Paragraph({children:[new PageBreak()]}),
+      h1(`${comentarios.length?'5':'4'}. Conclusiones`),h2('Fortalezas'),bl(`Promedio global: ${fmt(catAvgs.global)}/5.`),bl(`Impacto Docente: ${fmt(catAvgs.impacto)}/5.`),bl(`Desarrollo y Colaboración: ${fmt(catAvgs.desarrollo)}/5.`),
+      ...(departamentos.length?[bl(`${departamentos[0].dept} lidera con promedio ${fmt(departamentos[0].general)}.`)]:[]),
+      sp(),h2('Áreas de oportunidad'),bl(`Dimensión menor: ${catAvgs.impacto<catAvgs.desarrollo?'Impacto Docente':'Desarrollo y Colaboración'} (${fmt(Math.min(catAvgs.impacto,catAvgs.desarrollo))}/5).`),
+      sp(),h2('Recomendaciones'),bl('Reforzar contenidos de colaboración e integración entre docentes.'),bl('Diseñar cursos orientados a la aplicación práctica en la materia que imparte cada docente.'),bl('Continuar y ampliar la oferta de capacitación.'),
+    ]
+  }
+
+  const doc=new Document({
+    numbering:{config:[{reference:'bullets',levels:[{level:0,format:LevelFormat.BULLET,text:'\u2022',alignment:AlignmentType.LEFT,style:{paragraph:{indent:{left:720,hanging:360}}}}]}]},
+    styles:{default:{document:{run:{font:'Arial',size:22}}},paragraphStyles:[
+      {id:'Heading1',name:'Heading 1',basedOn:'Normal',next:'Normal',quickFormat:true,run:{size:32,bold:true,font:'Arial',color:'1F5C99'},paragraph:{spacing:{before:320,after:160},outlineLevel:0,border:{bottom:{style:BorderStyle.SINGLE,size:4,color:'1F5C99',space:4}}}},
+      {id:'Heading2',name:'Heading 2',basedOn:'Normal',next:'Normal',quickFormat:true,run:{size:26,bold:true,font:'Arial',color:'2E75B6'},paragraph:{spacing:{before:240,after:120},outlineLevel:1}},
+    ]},
+    sections:[{
+      properties:{page:{size:{width:12240,height:15840},margin:{top:1440,right:1440,bottom:1440,left:1440}}},
+      headers:{default:docHdr},footers:{default:docFtr},
+      children:[...coverChildren,...contentChildren,
+        new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:400},border:{top:{style:BorderStyle.SINGLE,size:4,color:'CCCCCC',space:8}},children:[new TextRun({text:`Reporte generado con base en ${totalRows} respuestas — ${periodo}`,size:18,color:'888888'})]}),
+      ]
+    }]
+  })
+  return await Packer.toBlob(doc)
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DOWNLOAD BUTTONS
+// ═══════════════════════════════════════════════════════════════
+document.getElementById('btn-download-chart').addEventListener('click',()=>{
+  if(!parsedData){toast('Primero procesa los datos','error');return}
+  const btn=document.getElementById('btn-download-chart')
+  btn.classList.add('loading')
+  try{
+    const html=buildChartHtml()
+    const p=getPortada()
+    const tipo=parsedData.tipo==='eficacia'?'Eficacia':'Encuesta'
+    dlFile(html,'text/html',`Reporte_Grafico_${tipo}_${p.periodo.replace(/\s+/g,'_')}.html`)
+    toast('✓ Reporte gráfico descargado','success')
+  }catch(e){toast('Error: '+e.message,'error')}
+  finally{btn.classList.remove('loading')}
+})
+
+document.getElementById('btn-download-word').addEventListener('click',async()=>{
+  if(!parsedData){toast('Primero procesa los datos','error');return}
+  const btn=document.getElementById('btn-download-word')
+  btn.classList.add('loading')
+  try{
+    const blob=await buildWordDoc()
+    const p=getPortada()
+    const tipo=parsedData.tipo==='eficacia'?'Eficacia':'Encuesta'
+    saveAs(blob,`Reporte_Word_${tipo}_${p.periodo.replace(/\s+/g,'_')}.docx`)
+    toast('✓ Reporte Word descargado','success')
+  }catch(e){toast('Error Word: '+e.message,'error');console.error(e)}
+  finally{btn.classList.remove('loading')}
+})
+</script>
+</body>
+</html>
