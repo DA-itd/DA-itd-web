@@ -641,10 +641,12 @@ async function buildWordDoc(){
       return new ImageRun({data:buf, transformation:{width:w, height:targetH}, type:ext})
     } catch(e) { return null }
   }
-  const imgTN=await mkImg(tnBuf,'jpg',60)
-  const imgIT=await mkImg(itdBuf,'png',60)
+  const imgTN=await mkImg(tnBuf,'jpg',85)
+  const imgIT=await mkImg(itdBuf,'png',85)
 
-  const logoRow=new Table({width:{size:W,type:WidthType.DXA},columnWidths:[W/3,W/3,W/3],rows:[new TableRow({children:[
+  const noBorderStyle={style:BorderStyle.NONE,size:0,color:"FFFFFF"}
+const noTableBorders={top:noBorderStyle,bottom:noBorderStyle,left:noBorderStyle,right:noBorderStyle,insideH:noBorderStyle,insideV:noBorderStyle}
+const logoRow=new Table({borders:noTableBorders,width:{size:W,type:WidthType.DXA},columnWidths:[W/3,W/3,W/3],rows:[new TableRow({children:[
     new TableCell({borders:nbd,width:{size:W/3,type:WidthType.DXA},margins:{top:0,bottom:0,left:0,right:0},children:[new Paragraph({alignment:AlignmentType.CENTER,children:imgTN?[imgTN]:[new TextRun({text:'TecNM',size:24,bold:true,color:'1A4A8A'})]})]}),
     new TableCell({borders:nbd,width:{size:W/3,type:WidthType.DXA},margins:{top:0,bottom:0,left:120,right:120},children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:institucion.toUpperCase(),size:22,bold:true,color:'0D2340'})]}),new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:40},children:[new TextRun({text:direccion,size:20,color:'1A4A8A'})]}),new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:20},children:[new TextRun({text:area,size:20,color:'2E75B6'})]})]}),
     new TableCell({borders:nbd,width:{size:W/3,type:WidthType.DXA},margins:{top:0,bottom:0,left:0,right:0},children:[new Paragraph({alignment:AlignmentType.CENTER,children:imgIT?[imgIT]:[new TextRun({text:'ITD',size:24,bold:true,color:'1A4A8A'})]})]}),
