@@ -8,9 +8,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
 
 <!-- ── LIBRERÍAS ── -->
-<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="https://unpkg.com/docx@9.5.3/build/index.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@9.5.3/build/index.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
 <style>
@@ -273,6 +273,18 @@ let logoTecNMb64 = null, logoITDb64 = null
 let previewCharts = []
 
 // Pre-fetch logos
+// Wait for all CDN scripts to load
+function waitForLibs(cb, attempts=0) {
+  if (typeof XLSX !== 'undefined' && typeof Chart !== 'undefined' && typeof docx !== 'undefined' && typeof saveAs !== 'undefined') {
+    cb()
+  } else if (attempts < 50) {
+    setTimeout(() => waitForLibs(cb, attempts+1), 100)
+  } else {
+    console.error('CDN libs failed to load. XLSX:', typeof XLSX, 'Chart:', typeof Chart, 'docx:', typeof docx, 'saveAs:', typeof saveAs)
+    document.getElementById('upload-zone').querySelector('.upload-hint').textContent = '⚠ Error cargando librerías. Verifica tu conexión a internet.'
+  }
+}
+
 ;(async()=>{
   const toB64 = url => fetch(url).then(r=>r.ok?r.blob():null).then(b=>b?new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.readAsDataURL(b)}):null).catch(()=>null)
   ;[logoTecNMb64, logoITDb64] = await Promise.all([toB64(LOGO_TECNM), toB64(LOGO_ITD)])
@@ -360,12 +372,14 @@ function parseEficacia(raw,keys,numCols){
 // ═══════════════════════════════════════════════════════════════
 // UI EVENTS
 // ═══════════════════════════════════════════════════════════════
+
+waitForLibs(function() {
 const uploadZone=document.getElementById('upload-zone')
 const fileInput=document.getElementById('file-input')
 uploadZone.addEventListener('dragover',e=>{e.preventDefault();uploadZone.classList.add('drag-over')})
 uploadZone.addEventListener('dragleave',()=>uploadZone.classList.remove('drag-over'))
 uploadZone.addEventListener('drop',e=>{e.preventDefault();uploadZone.classList.remove('drag-over');handleFile(e.dataTransfer.files[0])})
-uploadZone.addEventListener('click',()=>fileInput.click())
+// zone click handled by link-btn only
 fileInput.addEventListener('change',e=>handleFile(e.target.files[0]))
 
 async function handleFile(file){
@@ -387,7 +401,7 @@ async function handleFile(file){
     const m=file.name.match(/(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)[_\s-]*(\d{4})/i)
     if(m)document.getElementById('f-periodo').value=m[1].charAt(0).toUpperCase()+m[1].slice(1).toLowerCase()+' '+m[2]
     toast(`✓ ${isOp?'Encuesta de Opinión':'Encuesta de Eficacia'} — ${parsedData.totalRows} respuestas`,'success')
-  }catch(err){toast('Error: '+err.message,'error')}
+  }catch(err){toast('Error: '+err.message,'error');console.error('handleFile error:',err)}
 }
 
 document.getElementById('remove-file').addEventListener('click',()=>{
@@ -465,6 +479,9 @@ function renderEficaciaPreview(tc,gc){
   previewCharts.push(new Chart(document.getElementById('p-dept'),{type:'bar',indexAxis:'y',data:{labels:departamentos.map(d=>d.dept.length>20?d.dept.slice(0,18)+'…':d.dept),datasets:[{data:departamentos.map(d=>parseFloat(d.general).toFixed(2)),backgroundColor:departamentos.map(d=>parseFloat(d.general)>=4.5?'#1A4A8A':parseFloat(d.general)>=3.8?'#E8A020':'#C0392B'),borderRadius:3,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{min:2.5,max:5,ticks:{color:tc,font:{size:9}},grid:{color:gc},border:{color:'transparent'}},y:{ticks:{color:tc,font:{size:9}},grid:{display:false},border:{color:'transparent'}}}}}))
   previewCharts.push(new Chart(document.getElementById('p-q'),{type:'bar',indexAxis:'y',data:{labels:qL,datasets:[{data:qV,backgroundColor:qC,borderRadius:3,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{min:2.5,max:5,ticks:{color:tc,font:{size:10}},grid:{color:gc},border:{color:'transparent'}},y:{ticks:{color:tc,font:{size:10}},grid:{display:false},border:{color:'transparent'}}}}}))
 }
+
+
+}) // end waitForLibs
 
 // ═══════════════════════════════════════════════════════════════
 // CHART HTML REPORT
@@ -582,7 +599,8 @@ ${body}
 // WORD REPORT
 // ═══════════════════════════════════════════════════════════════
 async function buildWordDoc(){
-  const{Document,Packer,Paragraph,TextRun,Table,TableRow,TableCell,AlignmentType,HeadingLevel,BorderStyle,WidthType,ShadingType,LevelFormat,PageNumber,PageBreak,Header,Footer,ImageRun}=docx
+  const _d=window.docx||docx
+  const{Document,Packer,Paragraph,TextRun,Table,TableRow,TableCell,AlignmentType,HeadingLevel,BorderStyle,WidthType,ShadingType,LevelFormat,PageNumber,PageBreak,Header,Footer,ImageRun}=_d
   const portada=getPortada()
   const{tipo,totalRows,catAvgs,perQuestion,facilitadores,departamentos,comentarios}=parsedData
   const{periodo,institucion,direccion,area,autor}=portada
