@@ -10,7 +10,7 @@
 <!-- ── LIBRERÍAS ── -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/docx@9.5.3/build/index.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
 <style>
@@ -347,10 +347,10 @@ function parseOpinion(raw,keys,numCols){
   const perQuestion=numCols.map(col=>({label:col,avg:avg(rows,[col])}))
   const facMap={};rows.forEach(r=>{if(!facMap[r._c])facMap[r._c]=[];facMap[r._c].push(r)})
   const facilitadores=Object.entries(facMap).filter(([,rs])=>rs.length>=3)
-    .map(([name,rs])=>({name,n:rs.length,general:avg(rs,numCols),facilitador:avg(rs,fC),instalaciones:avg(rs,iC)}))
+    .map(function(entry){var name=entry[0],rs=entry[1];return {name,n:rs.length,general:avg(rs,numCols),facilitador:avg(rs,fC),instalaciones:avg(rs,iC)}})
     .sort((a,b)=>b.general-a.general)
   const deptMap={};rows.forEach(r=>{const d=cleanDept(r[deptKey]);if(!deptMap[d])deptMap[d]=[];deptMap[d].push(r)})
-  const departamentos=Object.entries(deptMap).map(([dept,rs])=>({dept,n:rs.length,facilitador:avg(rs,fC),material:avg(rs,mC),programa:avg(rs,pC),instalaciones:avg(rs,iC),general:avg(rs,numCols)})).sort((a,b)=>b.facilitador-a.facilitador)
+  const departamentos=Object.entries(deptMap).map(function(entry){var dept=entry[0],rs=entry[1];return {dept,n:rs.length,facilitador:avg(rs,fC),material:avg(rs,mC),programa:avg(rs,pC),instalaciones:avg(rs,iC),general:avg(rs,numCols)}}).sort((a,b)=>b.facilitador-a.facilitador)
   const comentarios=rows.filter(r=>r[commKey]&&String(r[commKey]).trim().length>3).filter(r=>!/prueba|listo|xxxx/i.test(String(r[commKey]))).map(r=>({dept:cleanDept(r[deptKey]),text:String(r[commKey]).trim()}))
   return{tipo:'opinion',totalRows:rows.length,catAvgs,perQuestion,facilitadores,departamentos,comentarios}
 }
@@ -364,7 +364,7 @@ function parseEficacia(raw,keys,numCols){
   const catAvgs={impacto:avg(rows,impC),desarrollo:avg(rows,devC),global:avg(rows,numCols)}
   const perQuestion=numCols.map(col=>({label:col,avg:avg(rows,[col])}))
   const deptMap={};rows.forEach(r=>{const d=cleanDept(r[deptKey]);if(!deptMap[d])deptMap[d]=[];deptMap[d].push(r)})
-  const departamentos=Object.entries(deptMap).map(([dept,rs])=>({dept,n:rs.length,impacto:avg(rs,impC),desarrollo:avg(rs,devC),general:avg(rs,numCols)})).sort((a,b)=>b.general-a.general)
+  const departamentos=Object.entries(deptMap).map(function(entry){var dept=entry[0],rs=entry[1];return {dept,n:rs.length,impacto:avg(rs,impC),desarrollo:avg(rs,devC),general:avg(rs,numCols)}}).sort((a,b)=>b.general-a.general)
   const comentarios=!commKey?[]:rows.filter(r=>r[commKey]&&String(r[commKey]).trim().length>3).map(r=>({dept:cleanDept(r[deptKey]),text:String(r[commKey]).trim()}))
   return{tipo:'eficacia',totalRows:rows.length,catAvgs,perQuestion,facilitadores:[],departamentos,comentarios}
 }
@@ -448,7 +448,7 @@ function renderOpinionPreview(tc,gc){
   document.getElementById('metrics-row').innerHTML=[
     [String(parsedData.totalRows),'Respuestas'],[fmt(catAvgs.global),'Promedio global'],
     [String(departamentos.length),'Departamentos'],[fmt(catAvgs.facilitador),'Facilitador']
-  ].map(([v,l])=>metricCard(v,l)).join('')
+  ].map(function(item){return metricCard(item[0],item[1])}).join('')
   const qL=perQuestion.map(q=>{const m=q.label.match(/^(\d+)/);return(m?m[1]+'.':'')+q.label.replace(/^\d+[-.\s]+/,'').slice(0,38)})
   const qV=perQuestion.map(q=>parseFloat(q.avg).toFixed(2))
   const qC=qV.map(v=>parseFloat(v)>=4.85?'#1A4A8A':parseFloat(v)>=4.5?'#E8A020':'#C0392B')
@@ -467,7 +467,7 @@ function renderEficaciaPreview(tc,gc){
   document.getElementById('metrics-row').innerHTML=[
     [String(parsedData.totalRows),'Respuestas'],[fmt(catAvgs.global),'Promedio global'],
     [String(departamentos.length),'Departamentos'],[fmt(catAvgs.impacto),'Impacto Docente']
-  ].map(([v,l])=>metricCard(v,l)).join('')
+  ].map(function(item){return metricCard(item[0],item[1])}).join('')
   const qL=perQuestion.map(q=>{const m=q.label.match(/^(\d+)/);return(m?m[1]+'.':'')+q.label.replace(/^\d+[-.\s]+/,'').slice(0,44)})
   const qV=perQuestion.map(q=>parseFloat(q.avg).toFixed(2))
   const qC=qV.map(v=>parseFloat(v)>=4.5?'#1D9E75':parseFloat(v)>=3.8?'#E8A020':'#C0392B')
@@ -501,7 +501,7 @@ function logoBlockHtml(portada){
 
 function coverCardsHtml(items){
   return`<div style="display:grid;grid-template-columns:repeat(${items.length},1fr);gap:1rem;width:100%;max-width:700px;margin-bottom:2.5rem">
-    ${items.map(([v,l])=>`<div style="background:#fff;border-top:4px solid #2E75B6;border-radius:10px;padding:1.25rem;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.07)"><div style="font-size:2.2rem;font-weight:700;color:#0D2340;line-height:1">${v}</div><div style="font-size:.75rem;color:#6B7A8D;margin-top:5px">${l}</div></div>`).join('')}
+    ${items.map(function(it){var v=it[0],l=it[1];return '<div style="background:#fff;border-top:4px solid #2E75B6;border-radius:10px;padding:1.25rem;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.07)"><div style="font-size:2.2rem;font-weight:700;color:#0D2340;line-height:1">'+v+'</div><div style="font-size:.75rem;color:#6B7A8D;margin-top:5px">'+l+'</div></div>'}).join('')}
   </div>`
 }
 
@@ -599,7 +599,7 @@ ${body}
 // WORD REPORT
 // ═══════════════════════════════════════════════════════════════
 async function buildWordDoc(){
-  const _d=window.docx||docx
+  var _d = (typeof docx !== "undefined") ? docx : window.docx
   const{Document,Packer,Paragraph,TextRun,Table,TableRow,TableCell,AlignmentType,HeadingLevel,BorderStyle,WidthType,ShadingType,LevelFormat,PageNumber,PageBreak,Header,Footer,ImageRun}=_d
   const portada=getPortada()
   const{tipo,totalRows,catAvgs,perQuestion,facilitadores,departamentos,comentarios}=parsedData
@@ -634,7 +634,26 @@ async function buildWordDoc(){
     new TableCell({borders:nbd,width:{size:W/3,type:WidthType.DXA},margins:{top:0,bottom:0,left:0,right:0},children:[new Paragraph({alignment:AlignmentType.CENTER,children:imgIT?[imgIT]:[new TextRun({text:'ITD',size:24,bold:true,color:'1A4A8A'})]})]}),
   ]})]})
 
-  const summTable=items=>new Table({width:{size:W,type:WidthType.DXA},columnWidths:items.map(()=>Math.floor(W/items.length)),rows:[new TableRow({children:items.map(([val,lbl])=>new TableCell({borders:{top:{style:BorderStyle.SINGLE,size:6,color:'2E75B6'},bottom:bd,left:bd,right:bd},width:{size:Math.floor(W/items.length),type:WidthType.DXA},shading:{fill:'F2F7FC',type:ShadingType.CLEAR},margins:{top:160,bottom:160,left:120,right:120},children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:val,size:52,bold:true,color:'1F5C99'})]}),new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:lbl,size:18,color:'666666'})]})]}))]})]})
+  function summTable(items) {
+    var colW = Math.floor(W / items.length)
+    return new Table({
+      width:{size:W,type:WidthType.DXA},
+      columnWidths:items.map(function(){return colW}),
+      rows:[new TableRow({children:items.map(function(item){
+        var val=item[0], lbl=item[1]
+        return new TableCell({
+          borders:{top:{style:BorderStyle.SINGLE,size:6,color:'2E75B6'},bottom:bd,left:bd,right:bd},
+          width:{size:colW,type:WidthType.DXA},
+          shading:{fill:'F2F7FC',type:ShadingType.CLEAR},
+          margins:{top:160,bottom:160,left:120,right:120},
+          children:[
+            new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:val,size:52,bold:true,color:'1F5C99'})]}),
+            new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:lbl,size:18,color:'666666'})]})
+          ]
+        })
+      })})]
+    })
+  }
 
   const docHdr=new Header({children:[new Paragraph({border:{bottom:{style:BorderStyle.SINGLE,size:4,color:'1F5C99',space:4}},tabStops:[{type:'right',position:9360}],children:[new TextRun({text:`${institucion} — ${periodo}`,size:18,color:'1F5C99'}),new TextRun({text:'\t',size:18}),new TextRun({text:area,size:18,color:'888888'})]})]})
   const docFtr=new Footer({children:[new Paragraph({alignment:AlignmentType.CENTER,border:{top:{style:BorderStyle.SINGLE,size:4,color:'CCCCCC',space:4}},children:[new TextRun({text:'Página ',size:18,color:'888888'}),new TextRun({children:[PageNumber.CURRENT],size:18,color:'888888'}),new TextRun({text:' de ',size:18,color:'888888'}),new TextRun({children:[PageNumber.TOTAL_PAGES],size:18,color:'888888'})]})]})
