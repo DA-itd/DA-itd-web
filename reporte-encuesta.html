@@ -624,9 +624,25 @@ async function buildWordDoc(){
   // Fetch logos as ArrayBuffer for Word
   const fetchBuf=async url=>{try{const r=await fetch(url);return r.ok?await r.arrayBuffer():null}catch{return null}}
   const[tnBuf,itdBuf]=await Promise.all([fetchBuf(LOGO_TECNM),fetchBuf(LOGO_ITD)])
-  const mkImg=(buf,ext,w,h)=>{if(!buf)return null;try{return new ImageRun({data:buf,transformation:{width:w,height:h},type:ext})}catch{return null}}
-  const imgTN=mkImg(tnBuf,'jpg',110,55)
-  const imgIT=mkImg(itdBuf,'png',110,55)
+  async function mkImg(buf, ext, targetH) {
+    if(!buf) return null
+    try {
+      // Get actual image dimensions to preserve aspect ratio
+      const blob = new Blob([buf])
+      const url = URL.createObjectURL(blob)
+      const dims = await new Promise(res => {
+        const img = new Image()
+        img.onload = () => { res({w:img.naturalWidth, h:img.naturalHeight}); URL.revokeObjectURL(url) }
+        img.onerror = () => { res({w:1,h:1}); URL.revokeObjectURL(url) }
+        img.src = url
+      })
+      const ratio = dims.w / dims.h
+      const w = Math.round(targetH * ratio)
+      return new ImageRun({data:buf, transformation:{width:w, height:targetH}, type:ext})
+    } catch(e) { return null }
+  }
+  const imgTN=await mkImg(tnBuf,'jpg',60)
+  const imgIT=await mkImg(itdBuf,'png',60)
 
   const logoRow=new Table({width:{size:W,type:WidthType.DXA},columnWidths:[W/3,W/3,W/3],rows:[new TableRow({children:[
     new TableCell({borders:nbd,width:{size:W/3,type:WidthType.DXA},margins:{top:0,bottom:0,left:0,right:0},children:[new Paragraph({alignment:AlignmentType.CENTER,children:imgTN?[imgTN]:[new TextRun({text:'TecNM',size:24,bold:true,color:'1A4A8A'})]})]}),
