@@ -782,7 +782,7 @@ document.getElementById('btn-download-chart').addEventListener('click',()=>{
   try{
     const html=buildChartHtml()
     const p=getPortada()
-    const tipo=parsedData.tipo==='eficacia'?'Eficacia':'Encuesta'
+    const tipo=parsedData.tipo==='eficacia'?'Eficacia':'Opinión'
     dlFile(html,'text/html',`Reporte_Grafico_${tipo}_${p.periodo.replace(/\s+/g,'_')}.html`)
     toast('✓ Reporte gráfico descargado','success')
   }catch(e){toast('Error: '+e.message,'error')}
@@ -796,7 +796,7 @@ document.getElementById('btn-download-word').addEventListener('click',async()=>{
   try{
     const blob=await buildWordDoc()
     const p=getPortada()
-    const tipo=parsedData.tipo==='eficacia'?'Eficacia':'Encuesta'
+    const tipo=parsedData.tipo==='eficacia'?'Eficacia':'Opinión'
     saveAs(blob,`Reporte_Word_${tipo}_${p.periodo.replace(/\s+/g,'_')}.docx`)
     toast('✓ Reporte Word descargado','success')
   }catch(e){toast('Error Word: '+e.message,'error');console.error(e)}
