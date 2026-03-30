@@ -248,7 +248,8 @@
                     NombreInstructor: meta.NombreInstructor || s.NombreInstructor,
                     Horario: meta.Horario || s.Horario,
                     Lugar: meta.Lugar || s.Lugar,
-                    Departamento: meta.Departamento || s.Departamento
+                    // Departamento: se respeta el del alumno; solo se usa el del meta si el alumno no tiene ninguno
+                    Departamento: s.Departamento || meta.Departamento
                 }));
 
                 return { meta, students: mergedStudents };
