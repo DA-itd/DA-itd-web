@@ -336,18 +336,27 @@
                     var align = block.align || 'left';
                     style += 'padding:10px 30px;font-size:16px;line-height:1.6;text-align:'+align+';';
                     if (block.bgImage && block.bgImage.trim()) {
-                        // Técnica Gmail: <img> con opacity posicionada dentro de tabla
-                        // position:relative en la celda td + img absolute + contenido z-index
+                        // Técnica Gmail-compatible: la imagen y el texto comparten la misma celda
+                        // usando una tabla anidada de 2 filas donde la fila de la imagen tiene
+                        // height:0 y font-size:0, y la fila del texto usa margin-top negativo
+                        // para superponerse. La opacidad se aplica directamente al <img>.
                         var imgUrl = fixGithubUrl(block.bgImage);
                         var op = block.bgOpacity || 0.08;
                         var sz = block.bgSize || 'contain';
-                        // Gmail ignora position:absolute en divs pero respeta tablas anidadas
-                        // Usamos: tabla exterior con td position:relative, img con opacity inline
-                        style += 'position:relative;';
-                        cell = '<img src="'+imgUrl+'" width="100%" '
-                            +'style="position:absolute;top:0;left:0;width:100%;height:100%;'
-                            +'object-fit:'+sz+';opacity:'+op+';display:block;pointer-events:none;" alt="">'
-                            +'<div style="position:relative;z-index:1;text-align:'+align+';">'+block.content+'</div>';
+                        // Calculamos un alto estimado de la imagen para el margin-top negativo
+                        // Usamos 300px como alto genérico (funciona bien para logos)
+                        cell = '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="table-layout:fixed;">'
+                            // Fila 1: imagen tenue, height=0 para que no empuje el texto
+                            +'<tr><td align="center" valign="top" style="height:0;line-height:0;font-size:0;padding:0;overflow:visible;">'
+                            +'<img src="'+imgUrl+'" width="300" height="300" '
+                            +'style="width:300px;height:300px;object-fit:'+sz+';opacity:'+op+';display:block;margin:0 auto;" alt="">'
+                            +'</td></tr>'
+                            // Fila 2: texto con margin-top negativo igual al alto de la imagen
+                            +'<tr><td style="text-align:'+align+';font-size:16px;line-height:1.6;padding:10px 0;margin-top:-300px;mso-line-height-rule:exactly;">'
+                            +'<div style="margin-top:-300px;">'+block.content+'</div>'
+                            +'</td></tr>'
+                            +'</table>';
+                        style = 'font-family:Arial,sans-serif;color:#333;padding:10px 30px;';
                     } else {
                         cell = block.content;
                     }
@@ -508,18 +517,27 @@
                     var align = block.align || 'left';
                     style += 'padding:10px 30px;font-size:16px;line-height:1.6;text-align:'+align+';';
                     if (block.bgImage && block.bgImage.trim()) {
-                        // Técnica Gmail: <img> con opacity posicionada dentro de tabla
-                        // position:relative en la celda td + img absolute + contenido z-index
+                        // Técnica Gmail-compatible: la imagen y el texto comparten la misma celda
+                        // usando una tabla anidada de 2 filas donde la fila de la imagen tiene
+                        // height:0 y font-size:0, y la fila del texto usa margin-top negativo
+                        // para superponerse. La opacidad se aplica directamente al <img>.
                         var imgUrl = fixGithubUrl(block.bgImage);
                         var op = block.bgOpacity || 0.08;
                         var sz = block.bgSize || 'contain';
-                        // Gmail ignora position:absolute en divs pero respeta tablas anidadas
-                        // Usamos: tabla exterior con td position:relative, img con opacity inline
-                        style += 'position:relative;';
-                        cell = '<img src="'+imgUrl+'" width="100%" '
-                            +'style="position:absolute;top:0;left:0;width:100%;height:100%;'
-                            +'object-fit:'+sz+';opacity:'+op+';display:block;pointer-events:none;" alt="">'
-                            +'<div style="position:relative;z-index:1;text-align:'+align+';">'+block.content+'</div>';
+                        // Calculamos un alto estimado de la imagen para el margin-top negativo
+                        // Usamos 300px como alto genérico (funciona bien para logos)
+                        cell = '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="table-layout:fixed;">'
+                            // Fila 1: imagen tenue, height=0 para que no empuje el texto
+                            +'<tr><td align="center" valign="top" style="height:0;line-height:0;font-size:0;padding:0;overflow:visible;">'
+                            +'<img src="'+imgUrl+'" width="300" height="300" '
+                            +'style="width:300px;height:300px;object-fit:'+sz+';opacity:'+op+';display:block;margin:0 auto;" alt="">'
+                            +'</td></tr>'
+                            // Fila 2: texto con margin-top negativo igual al alto de la imagen
+                            +'<tr><td style="text-align:'+align+';font-size:16px;line-height:1.6;padding:10px 0;margin-top:-300px;mso-line-height-rule:exactly;">'
+                            +'<div style="margin-top:-300px;">'+block.content+'</div>'
+                            +'</td></tr>'
+                            +'</table>';
+                        style = 'font-family:Arial,sans-serif;color:#333;padding:10px 30px;';
                     } else {
                         cell = block.content;
                     }
@@ -787,18 +805,27 @@
                     var align = block.align || 'left';
                     style += 'padding:10px 30px;font-size:16px;line-height:1.6;text-align:'+align+';';
                     if (block.bgImage && block.bgImage.trim()) {
-                        // Técnica Gmail: <img> con opacity posicionada dentro de tabla
-                        // position:relative en la celda td + img absolute + contenido z-index
+                        // Técnica Gmail-compatible: la imagen y el texto comparten la misma celda
+                        // usando una tabla anidada de 2 filas donde la fila de la imagen tiene
+                        // height:0 y font-size:0, y la fila del texto usa margin-top negativo
+                        // para superponerse. La opacidad se aplica directamente al <img>.
                         var imgUrl = fixGithubUrl(block.bgImage);
                         var op = block.bgOpacity || 0.08;
                         var sz = block.bgSize || 'contain';
-                        // Gmail ignora position:absolute en divs pero respeta tablas anidadas
-                        // Usamos: tabla exterior con td position:relative, img con opacity inline
-                        style += 'position:relative;';
-                        cell = '<img src="'+imgUrl+'" width="100%" '
-                            +'style="position:absolute;top:0;left:0;width:100%;height:100%;'
-                            +'object-fit:'+sz+';opacity:'+op+';display:block;pointer-events:none;" alt="">'
-                            +'<div style="position:relative;z-index:1;text-align:'+align+';">'+block.content+'</div>';
+                        // Calculamos un alto estimado de la imagen para el margin-top negativo
+                        // Usamos 300px como alto genérico (funciona bien para logos)
+                        cell = '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="table-layout:fixed;">'
+                            // Fila 1: imagen tenue, height=0 para que no empuje el texto
+                            +'<tr><td align="center" valign="top" style="height:0;line-height:0;font-size:0;padding:0;overflow:visible;">'
+                            +'<img src="'+imgUrl+'" width="300" height="300" '
+                            +'style="width:300px;height:300px;object-fit:'+sz+';opacity:'+op+';display:block;margin:0 auto;" alt="">'
+                            +'</td></tr>'
+                            // Fila 2: texto con margin-top negativo igual al alto de la imagen
+                            +'<tr><td style="text-align:'+align+';font-size:16px;line-height:1.6;padding:10px 0;margin-top:-300px;mso-line-height-rule:exactly;">'
+                            +'<div style="margin-top:-300px;">'+block.content+'</div>'
+                            +'</td></tr>'
+                            +'</table>';
+                        style = 'font-family:Arial,sans-serif;color:#333;padding:10px 30px;';
                     } else {
                         cell = block.content;
                     }
