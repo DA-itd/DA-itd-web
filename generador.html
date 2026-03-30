@@ -327,8 +327,52 @@
         }
 
         // ── BUILD GMAIL HTML (técnica <img> con opacity — compatible Gmail) ──
-        function buildGmailHTML() {
+        // Convierte imagen URL a base64 con opacidad aplicada via canvas
+        async function getBase64bg(url, opacity, size) {
+            return new Promise(function(resolve) {
+                var img = new Image();
+                img.crossOrigin = 'Anonymous';
+                img.onload = function() {
+                    try {
+                        var canvas = document.createElement('canvas');
+                        var maxW = 540; // ancho del email
+                        var ratio = img.naturalHeight / img.naturalWidth;
+                        canvas.width = maxW;
+                        canvas.height = Math.round(maxW * ratio);
+                        var ctx = canvas.getContext('2d');
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.globalAlpha = opacity;
+                        if (size === 'contain' || size === 'auto') {
+                            // centrar con padding
+                            var dw = canvas.width, dh = canvas.height;
+                            var sr = img.naturalWidth / img.naturalHeight;
+                            if (dw / dh > sr) { dw = dh * sr; }
+                            else { dh = dw / sr; }
+                            var dx = (canvas.width - dw) / 2;
+                            var dy = (canvas.height - dh) / 2;
+                            ctx.drawImage(img, dx, dy, dw, dh);
+                        } else {
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        }
+                        resolve(canvas.toDataURL('image/png'));
+                    } catch(e) { resolve(''); }
+                };
+                img.onerror = function() { resolve(''); };
+                img.src = url;
+            });
+        }
+
+        async function buildGmailHTML() {
             var accent = document.getElementById('accentColor').value;
+            // Pre-calcular base64 con opacidad para todos los bloques con bgImage
+            window._base64Cache = {};
+            var bgBlocks = blocks.filter(function(b){ return b.type==='text' && b.bgImage && b.bgImage.trim(); });
+            for (var bi = 0; bi < bgBlocks.length; bi++) {
+                var b = bgBlocks[bi];
+                var b64 = await getBase64bg(fixGithubUrl(b.bgImage), b.bgOpacity||0.08, b.bgSize||'contain');
+                window._base64Cache[b.bgImage] = b64;
+            }
+
             var rows = '';
             blocks.forEach(function(block) {
                 var cell = '', style = 'font-family:Arial,sans-serif;color:#333;';
@@ -336,27 +380,20 @@
                     var align = block.align || 'left';
                     style += 'padding:10px 30px;font-size:16px;line-height:1.6;text-align:'+align+';';
                     if (block.bgImage && block.bgImage.trim()) {
-                        // Técnica Gmail-compatible: la imagen y el texto comparten la misma celda
-                        // usando una tabla anidada de 2 filas donde la fila de la imagen tiene
-                        // height:0 y font-size:0, y la fila del texto usa margin-top negativo
-                        // para superponerse. La opacidad se aplica directamente al <img>.
-                        var imgUrl = fixGithubUrl(block.bgImage);
-                        var op = block.bgOpacity || 0.08;
-                        var sz = block.bgSize || 'contain';
-                        // Calculamos un alto estimado de la imagen para el margin-top negativo
-                        // Usamos 300px como alto genérico (funciona bien para logos)
-                        cell = '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="table-layout:fixed;">'
-                            // Fila 1: imagen tenue, height=0 para que no empuje el texto
-                            +'<tr><td align="center" valign="top" style="height:0;line-height:0;font-size:0;padding:0;overflow:visible;">'
-                            +'<img src="'+imgUrl+'" width="300" height="300" '
-                            +'style="width:300px;height:300px;object-fit:'+sz+';opacity:'+op+';display:block;margin:0 auto;" alt="">'
-                            +'</td></tr>'
-                            // Fila 2: texto con margin-top negativo igual al alto de la imagen
-                            +'<tr><td style="text-align:'+align+';font-size:16px;line-height:1.6;padding:10px 0;margin-top:-300px;mso-line-height-rule:exactly;">'
-                            +'<div style="margin-top:-300px;">'+block.content+'</div>'
-                            +'</td></tr>'
-                            +'</table>';
-                        style = 'font-family:Arial,sans-serif;color:#333;padding:10px 30px;';
+                        // Técnica definitiva: la imagen ya fue convertida a base64 con opacity
+                        // aplicada via canvas (ver buildGmailHTML que es async y llama a getBase64bg)
+                        // Aquí usamos el valor pre-calculado del mapa _base64Cache
+                        var b64 = (window._base64Cache && window._base64Cache[block.bgImage]) || '';
+                        if (b64) {
+                            cell = block.content;
+                            style += 'background-image:url('+b64+');'
+                                +'background-repeat:no-repeat;background-position:center center;'
+                                +'background-size:'+(block.bgSize||'contain')+';'
+                                +'text-align:'+align+';';
+                        } else {
+                            // fallback: texto plano sin fondo si no se pudo convertir
+                            cell = block.content;
+                        }
                     } else {
                         cell = block.content;
                     }
@@ -404,7 +441,7 @@
 
         // ── COPY GMAIL SAFE ───────────────────────────────────────────
         async function copyGmailSafe() {
-            var html = buildGmailHTML();
+            var html = await buildGmailHTML();
             var temp = document.createElement('div');
             temp.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none;';
             temp.innerHTML = html;
@@ -508,8 +545,52 @@
         }
 
         // ── BUILD GMAIL HTML (técnica <img> con opacity — compatible Gmail) ──
-        function buildGmailHTML() {
+        // Convierte imagen URL a base64 con opacidad aplicada via canvas
+        async function getBase64bg(url, opacity, size) {
+            return new Promise(function(resolve) {
+                var img = new Image();
+                img.crossOrigin = 'Anonymous';
+                img.onload = function() {
+                    try {
+                        var canvas = document.createElement('canvas');
+                        var maxW = 540; // ancho del email
+                        var ratio = img.naturalHeight / img.naturalWidth;
+                        canvas.width = maxW;
+                        canvas.height = Math.round(maxW * ratio);
+                        var ctx = canvas.getContext('2d');
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.globalAlpha = opacity;
+                        if (size === 'contain' || size === 'auto') {
+                            // centrar con padding
+                            var dw = canvas.width, dh = canvas.height;
+                            var sr = img.naturalWidth / img.naturalHeight;
+                            if (dw / dh > sr) { dw = dh * sr; }
+                            else { dh = dw / sr; }
+                            var dx = (canvas.width - dw) / 2;
+                            var dy = (canvas.height - dh) / 2;
+                            ctx.drawImage(img, dx, dy, dw, dh);
+                        } else {
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        }
+                        resolve(canvas.toDataURL('image/png'));
+                    } catch(e) { resolve(''); }
+                };
+                img.onerror = function() { resolve(''); };
+                img.src = url;
+            });
+        }
+
+        async function buildGmailHTML() {
             var accent = document.getElementById('accentColor').value;
+            // Pre-calcular base64 con opacidad para todos los bloques con bgImage
+            window._base64Cache = {};
+            var bgBlocks = blocks.filter(function(b){ return b.type==='text' && b.bgImage && b.bgImage.trim(); });
+            for (var bi = 0; bi < bgBlocks.length; bi++) {
+                var b = bgBlocks[bi];
+                var b64 = await getBase64bg(fixGithubUrl(b.bgImage), b.bgOpacity||0.08, b.bgSize||'contain');
+                window._base64Cache[b.bgImage] = b64;
+            }
+
             var rows = '';
             blocks.forEach(function(block) {
                 var cell = '', style = 'font-family:Arial,sans-serif;color:#333;';
@@ -517,27 +598,20 @@
                     var align = block.align || 'left';
                     style += 'padding:10px 30px;font-size:16px;line-height:1.6;text-align:'+align+';';
                     if (block.bgImage && block.bgImage.trim()) {
-                        // Técnica Gmail-compatible: la imagen y el texto comparten la misma celda
-                        // usando una tabla anidada de 2 filas donde la fila de la imagen tiene
-                        // height:0 y font-size:0, y la fila del texto usa margin-top negativo
-                        // para superponerse. La opacidad se aplica directamente al <img>.
-                        var imgUrl = fixGithubUrl(block.bgImage);
-                        var op = block.bgOpacity || 0.08;
-                        var sz = block.bgSize || 'contain';
-                        // Calculamos un alto estimado de la imagen para el margin-top negativo
-                        // Usamos 300px como alto genérico (funciona bien para logos)
-                        cell = '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="table-layout:fixed;">'
-                            // Fila 1: imagen tenue, height=0 para que no empuje el texto
-                            +'<tr><td align="center" valign="top" style="height:0;line-height:0;font-size:0;padding:0;overflow:visible;">'
-                            +'<img src="'+imgUrl+'" width="300" height="300" '
-                            +'style="width:300px;height:300px;object-fit:'+sz+';opacity:'+op+';display:block;margin:0 auto;" alt="">'
-                            +'</td></tr>'
-                            // Fila 2: texto con margin-top negativo igual al alto de la imagen
-                            +'<tr><td style="text-align:'+align+';font-size:16px;line-height:1.6;padding:10px 0;margin-top:-300px;mso-line-height-rule:exactly;">'
-                            +'<div style="margin-top:-300px;">'+block.content+'</div>'
-                            +'</td></tr>'
-                            +'</table>';
-                        style = 'font-family:Arial,sans-serif;color:#333;padding:10px 30px;';
+                        // Técnica definitiva: la imagen ya fue convertida a base64 con opacity
+                        // aplicada via canvas (ver buildGmailHTML que es async y llama a getBase64bg)
+                        // Aquí usamos el valor pre-calculado del mapa _base64Cache
+                        var b64 = (window._base64Cache && window._base64Cache[block.bgImage]) || '';
+                        if (b64) {
+                            cell = block.content;
+                            style += 'background-image:url('+b64+');'
+                                +'background-repeat:no-repeat;background-position:center center;'
+                                +'background-size:'+(block.bgSize||'contain')+';'
+                                +'text-align:'+align+';';
+                        } else {
+                            // fallback: texto plano sin fondo si no se pudo convertir
+                            cell = block.content;
+                        }
                     } else {
                         cell = block.content;
                     }
@@ -585,7 +659,7 @@
 
         // ── COPY GMAIL SAFE ───────────────────────────────────────────
         async function copyGmailSafe() {
-            var html = buildGmailHTML();
+            var html = await buildGmailHTML();
             var temp = document.createElement('div');
             temp.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none;';
             temp.innerHTML = html;
@@ -796,8 +870,52 @@
         }
 
         // ── BUILD GMAIL HTML (técnica <img> con opacity — compatible Gmail) ──
-        function buildGmailHTML() {
+        // Convierte imagen URL a base64 con opacidad aplicada via canvas
+        async function getBase64bg(url, opacity, size) {
+            return new Promise(function(resolve) {
+                var img = new Image();
+                img.crossOrigin = 'Anonymous';
+                img.onload = function() {
+                    try {
+                        var canvas = document.createElement('canvas');
+                        var maxW = 540; // ancho del email
+                        var ratio = img.naturalHeight / img.naturalWidth;
+                        canvas.width = maxW;
+                        canvas.height = Math.round(maxW * ratio);
+                        var ctx = canvas.getContext('2d');
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.globalAlpha = opacity;
+                        if (size === 'contain' || size === 'auto') {
+                            // centrar con padding
+                            var dw = canvas.width, dh = canvas.height;
+                            var sr = img.naturalWidth / img.naturalHeight;
+                            if (dw / dh > sr) { dw = dh * sr; }
+                            else { dh = dw / sr; }
+                            var dx = (canvas.width - dw) / 2;
+                            var dy = (canvas.height - dh) / 2;
+                            ctx.drawImage(img, dx, dy, dw, dh);
+                        } else {
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        }
+                        resolve(canvas.toDataURL('image/png'));
+                    } catch(e) { resolve(''); }
+                };
+                img.onerror = function() { resolve(''); };
+                img.src = url;
+            });
+        }
+
+        async function buildGmailHTML() {
             var accent = document.getElementById('accentColor').value;
+            // Pre-calcular base64 con opacidad para todos los bloques con bgImage
+            window._base64Cache = {};
+            var bgBlocks = blocks.filter(function(b){ return b.type==='text' && b.bgImage && b.bgImage.trim(); });
+            for (var bi = 0; bi < bgBlocks.length; bi++) {
+                var b = bgBlocks[bi];
+                var b64 = await getBase64bg(fixGithubUrl(b.bgImage), b.bgOpacity||0.08, b.bgSize||'contain');
+                window._base64Cache[b.bgImage] = b64;
+            }
+
             var rows = '';
             blocks.forEach(function(block) {
                 var cell = '', style = 'font-family:Arial,sans-serif;color:#333;';
@@ -805,27 +923,20 @@
                     var align = block.align || 'left';
                     style += 'padding:10px 30px;font-size:16px;line-height:1.6;text-align:'+align+';';
                     if (block.bgImage && block.bgImage.trim()) {
-                        // Técnica Gmail-compatible: la imagen y el texto comparten la misma celda
-                        // usando una tabla anidada de 2 filas donde la fila de la imagen tiene
-                        // height:0 y font-size:0, y la fila del texto usa margin-top negativo
-                        // para superponerse. La opacidad se aplica directamente al <img>.
-                        var imgUrl = fixGithubUrl(block.bgImage);
-                        var op = block.bgOpacity || 0.08;
-                        var sz = block.bgSize || 'contain';
-                        // Calculamos un alto estimado de la imagen para el margin-top negativo
-                        // Usamos 300px como alto genérico (funciona bien para logos)
-                        cell = '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="table-layout:fixed;">'
-                            // Fila 1: imagen tenue, height=0 para que no empuje el texto
-                            +'<tr><td align="center" valign="top" style="height:0;line-height:0;font-size:0;padding:0;overflow:visible;">'
-                            +'<img src="'+imgUrl+'" width="300" height="300" '
-                            +'style="width:300px;height:300px;object-fit:'+sz+';opacity:'+op+';display:block;margin:0 auto;" alt="">'
-                            +'</td></tr>'
-                            // Fila 2: texto con margin-top negativo igual al alto de la imagen
-                            +'<tr><td style="text-align:'+align+';font-size:16px;line-height:1.6;padding:10px 0;margin-top:-300px;mso-line-height-rule:exactly;">'
-                            +'<div style="margin-top:-300px;">'+block.content+'</div>'
-                            +'</td></tr>'
-                            +'</table>';
-                        style = 'font-family:Arial,sans-serif;color:#333;padding:10px 30px;';
+                        // Técnica definitiva: la imagen ya fue convertida a base64 con opacity
+                        // aplicada via canvas (ver buildGmailHTML que es async y llama a getBase64bg)
+                        // Aquí usamos el valor pre-calculado del mapa _base64Cache
+                        var b64 = (window._base64Cache && window._base64Cache[block.bgImage]) || '';
+                        if (b64) {
+                            cell = block.content;
+                            style += 'background-image:url('+b64+');'
+                                +'background-repeat:no-repeat;background-position:center center;'
+                                +'background-size:'+(block.bgSize||'contain')+';'
+                                +'text-align:'+align+';';
+                        } else {
+                            // fallback: texto plano sin fondo si no se pudo convertir
+                            cell = block.content;
+                        }
                     } else {
                         cell = block.content;
                     }
@@ -873,7 +984,7 @@
 
         // ── COPY GMAIL SAFE ───────────────────────────────────────────
         async function copyGmailSafe() {
-            var html = buildGmailHTML();
+            var html = await buildGmailHTML();
             var temp = document.createElement('div');
             temp.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none;';
             temp.innerHTML = html;
