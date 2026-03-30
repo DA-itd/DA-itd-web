@@ -138,7 +138,8 @@
             <button class="btn-add" onclick="addBlock('separator')"><i class="fas fa-minus"></i> Línea</button>
             <button class="btn-add" onclick="addBlock('html')"><i class="fas fa-code"></i> HTML</button>
             
-            <button class="btn-copy" onclick="copyToClipboard()"><i class="fas fa-copy"></i> COPIAR CORREO</button>
+            <button class="btn-copy" onclick="copyToClipboard()" style="grid-column: span 2;"><i class="fas fa-copy"></i> COPIAR (vista previa)</button>
+            <button class="btn-copy" onclick="copyGmailSafe()" style="grid-column: span 2; background:#15803d;" title="Genera HTML compatible con Gmail (fondo de imagen incluido)"><i class="fas fa-envelope"></i> COPIAR PARA GMAIL ✉️</button>
             <p id="msg" style="grid-column: span 4; text-align: center; color: green; display: none; margin: 0; font-size: 0.8rem;">¡Copiado! Pégalo en Gmail.</p>
         </div>
     </div>
@@ -450,6 +451,186 @@
             }
         }
 
+
+        // --- COPIAR PARA GMAIL: genera HTML con tablas, compatible con clientes de correo ---
+        function buildGmailHTML() {
+            const accentColor = document.getElementById('accentColor').value;
+            let rowsHTML = '';
+
+            blocks.forEach(block => {
+                let cellContent = '';
+                let cellStyle = 'font-family:Arial,sans-serif; color:#333;';
+
+                if (block.type === 'text') {
+                    const padding = 'padding:10px 30px;';
+                    if (block.bgImage && block.bgImage.trim() !== '') {
+                        // Técnica Gmail-compatible: tabla con <img> posicionada sobre una celda
+                        // Gmail no soporta position:absolute, pero sí tablas con rowspan + imágenes
+                        // Usamos una tabla de 1 celda con la imagen inline centrada + texto encima via z-index
+                        // Solución real: tabla con la imagen en background usando VML para Outlook
+                        // y para Gmail: imagen encima con opacity via filter en una tabla anidada
+                        const imgUrl = fixGithubUrl(block.bgImage);
+                        const opacity = Math.round((block.bgOpacity || 0.08) * 100);
+                        const align = block.align || 'left';
+                        // Técnica: tabla contenedora con posición relativa simulada via celdas
+                        // La imagen se coloca como fila de altura 0 con overflow visible
+                        cellContent = `
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                                style="position:relative;">
+                                <tr>
+                                    <td style="${padding} text-align:${align}; font-size:16px; line-height:1.6;
+                                        background-image:url('${imgUrl}');
+                                        background-repeat:no-repeat;
+                                        background-position:center center;
+                                        background-size:${block.bgSize||'contain'};">
+                                        <!--[if gte mso 9]>
+                                        <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false"
+                                            style="width:540px;">
+                                            <v:fill type="frame" src="${imgUrl}" color="#ffffff"/>
+                                            <v:textbox inset="0,0,0,0">
+                                        <![endif]-->
+                                        <div style="font-size:16px; line-height:1.6; text-align:${align};">
+                                            ${block.content}
+                                        </div>
+                                        <!--[if gte mso 9]></v:textbox></v:rect><![endif]-->
+                                    </td>
+                                </tr>
+                            </table>`;
+                        cellStyle += padding;
+                    } else {
+                        cellStyle += `${padding} font-size:16px; line-height:1.6; text-align:${block.align||'left'};`;
+                        cellContent = block.content;
+                    }
+                }
+                else if (block.type === 'box') {
+                    cellStyle += 'padding:15px 30px;';
+                    cellContent = `<table width="100%" cellpadding="0" cellspacing="0"
+                        style="background-color:${block.bgColor}; border-radius:6px;">
+                        <tr><td style="padding:20px; color:${block.textColor}; font-size:15px; text-align:${block.align||'center'};">
+                            ${block.content}
+                        </td></tr></table>`;
+                }
+                else if (block.type === 'header_tri') {
+                    cellStyle += 'padding:10px 20px;';
+                    const lw = block.logoWidth || 60;
+                    cellContent = `<table width="100%" border="0" cellspacing="0" cellpadding="0">
+                        <tr>
+                            <td width="20%" align="left" valign="middle">
+                                <img src="${fixGithubUrl(block.logo1)}" width="${lw}" style="width:${lw}%; max-width:100px; height:auto; display:block;">
+                            </td>
+                            <td width="60%" align="center" valign="middle" style="padding:0 10px;">
+                                <div style="color:#1b396a; font-weight:bold; font-size:14px; line-height:1.2; margin-bottom:4px; text-transform:uppercase;">${block.line1}</div>
+                                <div style="color:#555; font-size:13px; line-height:1.2;">${block.line2}</div>
+                            </td>
+                            <td width="20%" align="right" valign="middle">
+                                <img src="${fixGithubUrl(block.logo2)}" width="${lw}" style="width:${lw}%; max-width:100px; height:auto; display:block; margin-left:auto;">
+                            </td>
+                        </tr></table>`;
+                }
+                else if (block.type === 'columns') {
+                    cellStyle += 'padding:10px 20px;';
+                    const c1 = block.col1Type === 'image'
+                        ? `<img src="${fixGithubUrl(block.col1Content)}" style="width:${block.col1Width||100}%; max-width:100%; height:auto; display:inline-block;">`
+                        : `<div style="font-size:15px; line-height:1.6;">${block.col1Content.replace(/
+/g,'<br>')}</div>`;
+                    const c2 = block.col2Type === 'image'
+                        ? `<img src="${fixGithubUrl(block.col2Content)}" style="width:${block.col2Width||100}%; max-width:100%; height:auto; display:inline-block;">`
+                        : `<div style="font-size:15px; line-height:1.6;">${block.col2Content.replace(/
+/g,'<br>')}</div>`;
+                    cellContent = `<table width="100%" border="0" cellspacing="0" cellpadding="0">
+                        <tr>
+                            <td width="50%" valign="middle" align="${block.col1Align||'left'}" style="padding-right:10px;">${c1}</td>
+                            <td width="50%" valign="middle" align="${block.col2Align||'left'}" style="padding-left:10px;">${c2}</td>
+                        </tr></table>`;
+                }
+                else if (block.type === 'image') {
+                    cellStyle += 'padding:10px 30px;';
+                    if (block.url) {
+                        const w = block.width || 100;
+                        cellContent = `<div align="${block.align||'center'}">
+                            <img src="${fixGithubUrl(block.url)}" style="width:${w}%; max-width:100%; height:auto; display:inline-block;">
+                        </div>`;
+                    }
+                }
+                else if (block.type === 'separator') {
+                    cellContent = `<div align="center">
+                        <hr style="width:${block.width||90}%; border:0; border-top:${block.thickness||2}px ${block.style||'solid'} ${block.color}; margin:15px auto;">
+                    </div>`;
+                }
+                else if (block.type === 'button') {
+                    cellStyle += 'padding:20px; text-align:center;';
+                    cellContent = `<a href="${block.link||'#'}" style="background:${block.btnColor||'#1b396a'}; color:white; padding:12px 24px; text-decoration:none; border-radius:4px; font-weight:bold; display:inline-block; font-family:Arial,sans-serif;">${block.text||'Click'}</a>`;
+                }
+                else if (block.type === 'html') {
+                    cellContent = block.content;
+                }
+
+                if (cellContent) {
+                    rowsHTML += `<tr><td style="${cellStyle}">${cellContent}</td></tr>`;
+                }
+            });
+
+            return `<table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#f1f5f9; font-family:Arial,sans-serif;">
+                <tr><td align="center" style="padding:20px;">
+                    <table width="600" border="0" cellspacing="0" cellpadding="0" style="background-color:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 4px 10px rgba(0,0,0,0.1);">
+                        <tr><td height="6" style="background-color:${accentColor}; font-size:0;">&nbsp;</td></tr>
+                        <tr><td style="padding:0;">
+                            <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                <tbody>${rowsHTML}</tbody>
+                            </table>
+                        </td></tr>
+                        <tr><td align="center" style="background-color:#f8fafc; padding:20px; font-size:11px; color:#64748b; border-top:1px solid #e2e8f0;">
+                            <strong>Instituto Tecnológico de Durango</strong><br>
+                            Coordinación de Actualización Docente<br>
+                            coord_actualizaciondocente@itdurango.edu.mx
+                        </td></tr>
+                        <tr><td height="6" style="background-color:${accentColor}; font-size:0;">&nbsp;</td></tr>
+                    </table>
+                </td></tr>
+            </table>`;
+        }
+
+        async function copyGmailSafe() {
+            const html = buildGmailHTML();
+            // Crear un elemento temporal invisible con el HTML listo para Gmail
+            const temp = document.createElement('div');
+            temp.style.cssText = 'position:fixed; left:-9999px; top:-9999px; opacity:0; pointer-events:none;';
+            temp.innerHTML = html;
+            document.body.appendChild(temp);
+
+            try {
+                if (navigator.clipboard && navigator.clipboard.write) {
+                    const blob = new Blob([html], { type: 'text/html' });
+                    const item = new ClipboardItem({ 'text/html': blob });
+                    await navigator.clipboard.write([item]);
+                } else {
+                    const r = document.createRange();
+                    const s = window.getSelection();
+                    r.selectNode(temp);
+                    s.removeAllRanges();
+                    s.addRange(r);
+                    document.execCommand('copy');
+                    s.removeAllRanges();
+                }
+                document.getElementById('msg').textContent = '✅ ¡Listo! Abre Gmail → Redactar → pega con Cmd+V o Ctrl+V';
+                document.getElementById('msg').style.color = '#15803d';
+                document.getElementById('msg').style.display = 'block';
+                setTimeout(() => document.getElementById('msg').style.display = 'none', 4000);
+            } catch(e) {
+                // Fallback: seleccionar para que el usuario copie manualmente
+                const r = document.createRange();
+                const s = window.getSelection();
+                r.selectNode(temp);
+                s.removeAllRanges();
+                s.addRange(r);
+                document.getElementById('msg').textContent = 'Seleccionado — usa Cmd+C / Ctrl+C para copiar';
+                document.getElementById('msg').style.color = '#92400e';
+                document.getElementById('msg').style.display = 'block';
+                setTimeout(() => document.getElementById('msg').style.display = 'none', 4000);
+            } finally {
+                document.body.removeChild(temp);
+            }
+        }
 
         // Inicialización segura — garantiza que el DOM esté listo en Safari
         function init() {
