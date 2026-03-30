@@ -238,7 +238,7 @@
         // --- UPDATE BLOCKS ---
         function addBlock(type) {
             let newBlock = { type: type };
-            if(type === 'text') { newBlock.content = 'Escribe aquí...'; newBlock.align = 'left'; }
+            if(type === 'text') { newBlock.content = 'Escribe aquí...'; newBlock.align = 'left'; newBlock.bgImage = ''; newBlock.bgOpacity = 0.08; newBlock.bgSize = 'contain'; }
             if(type === 'box') { newBlock.content = 'DESTACADO'; newBlock.bgColor = '#e0f2fe'; newBlock.textColor = '#0c4a6e'; newBlock.align = 'center'; }
             if(type === 'image') { newBlock.url = ''; newBlock.align = 'center'; newBlock.width = 100; }
             if(type === 'button') { newBlock.text = 'Click'; newBlock.btnColor = '#1b396a'; }
@@ -289,7 +289,52 @@
                 let html = `<div class="block-card"><div class="block-header"><div class="block-title"><i class="fas fa-cube"></i> ${block.type.toUpperCase()}</div><div style="display:flex; align-items:center;"><div class="move-controls"><button class="btn-move" onclick="moveBlock(${index}, -1)">▲</button><button class="btn-move" onclick="moveBlock(${index}, 1)">▼</button></div><i class="fas fa-trash-alt btn-delete" onclick="removeBlock(${index})"></i></div></div>`;
 
                 if (block.type === 'text') {
-                    html += `<select onchange="updateBlock(${index}, 'align', this.value)" style="margin-bottom:5px;"><option value="left" ${block.align==='left'?'selected':''}>Izquierda</option><option value="center" ${block.align==='center'?'selected':''}>Centro</option><option value="right" ${block.align==='right'?'selected':''}>Derecha</option><option value="justify" ${block.align==='justify'?'selected':''}>Justificado</option></select><div class="editor-toolbar"><button onmousedown="event.preventDefault(); execFormat('bold')" title="Negrita"><b>B</b></button> <button onmousedown="event.preventDefault(); execFormat('italic')" title="Cursiva"><i>I</i></button> <button onmousedown="event.preventDefault(); execClean()" title="Limpiar Formato para aplicar Color">🧹 Limpiar</button></div><div contenteditable="true" style="min-height:60px; border:1px solid #cbd5e1; padding:8px; background:white; color:#333;" oninput="updateBlock(${index}, 'content', this.innerHTML)">${block.content}</div>`;
+                    const bgLogos = [
+                        'https://raw.githubusercontent.com/DA-itd/web/main/logo_itdurango.png',
+                        'https://raw.githubusercontent.com/DA-itd/web/main/pola.png',
+                        'https://raw.githubusercontent.com/DA-itd/web/main/TecNM.jpg',
+                        'https://raw.githubusercontent.com/DA-itd/A/main/tecnm1.jpg'
+                    ];
+                    const hasBg = block.bgImage && block.bgImage.trim() !== '';
+                    html += `
+                        <select onchange="updateBlock(${index}, 'align', this.value)" style="margin-bottom:5px;">
+                            <option value="left" ${block.align==='left'?'selected':''}>Izquierda</option>
+                            <option value="center" ${block.align==='center'?'selected':''}>Centro</option>
+                            <option value="right" ${block.align==='right'?'selected':''}>Derecha</option>
+                            <option value="justify" ${block.align==='justify'?'selected':''}>Justificado</option>
+                        </select>
+                        <div class="editor-toolbar">
+                            <button onmousedown="event.preventDefault(); execFormat('bold')" title="Negrita"><b>B</b></button>
+                            <button onmousedown="event.preventDefault(); execFormat('italic')" title="Cursiva"><i>I</i></button>
+                            <button onmousedown="event.preventDefault(); execClean()" title="Limpiar Formato">🧹 Limpiar</button>
+                        </div>
+                        <div contenteditable="true" style="min-height:60px; border:1px solid #cbd5e1; padding:8px; background:white; color:#333;" oninput="updateBlock(${index}, 'content', this.innerHTML)">${block.content}</div>
+
+                        <!-- FONDO OPCIONAL -->
+                        <div style="margin-top:8px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:8px;">
+                            <label style="color:#166534; margin-bottom:6px;">🖼️ Imagen de fondo (opcional)</label>
+                            <div style="display:flex; gap:5px; margin-bottom:6px;">
+                                ${bgLogos.map(url => `
+                                    <div onclick="updateBlock(${index},'bgImage','${url}')"
+                                        style="width:48px; height:40px; border:2px solid ${block.bgImage===url?'#1b396a':'#ddd'}; border-radius:4px; background:white; cursor:pointer; display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;" title="${url}">
+                                        <img src="${url}" style="max-width:90%; max-height:90%; object-fit:contain;">
+                                    </div>`).join('')}
+                                <div onclick="updateBlock(${index},'bgImage','')"
+                                    style="width:48px; height:40px; border:2px solid ${!hasBg?'#ef4444':'#ddd'}; border-radius:4px; background:#fff5f5; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#ef4444; font-size:18px; flex-shrink:0;" title="Sin fondo">✕</div>
+                            </div>
+                            <div style="display:flex; gap:5px; margin-bottom:6px;">
+                                <input type="text" value="${block.bgImage||''}" placeholder="O pega otra URL de imagen..." oninput="updateBlock(${index},'bgImage',this.value)" style="flex:1;">
+                            </div>
+                            ${hasBg ? `
+                            <label style="color:#166534;">Opacidad del fondo: ${Math.round((block.bgOpacity||0.08)*100)}%</label>
+                            <input type="range" min="2" max="40" value="${Math.round((block.bgOpacity||0.08)*100)}" oninput="updateBlock(${index},'bgOpacity',this.value/100)">
+                            <label style="color:#166534;">Tamaño: </label>
+                            <select onchange="updateBlock(${index},'bgSize',this.value)">
+                                <option value="contain" ${(block.bgSize||'contain')==='contain'?'selected':''}>Contener (logo completo)</option>
+                                <option value="cover" ${block.bgSize==='cover'?'selected':''}>Cubrir</option>
+                                <option value="auto" ${block.bgSize==='auto'?'selected':''}>Tamaño real</option>
+                            </select>` : ''}
+                        </div>`;
                 }
                 else if (block.type === 'box') {
                     html += `<div class="row"> <div class="col"><label>Fondo</label><input type="color" value="${block.bgColor||'#e0f2fe'}" oninput="updateBlock(${index},'bgColor',this.value)"></div> <div class="col"><label>Texto</label><input type="color" value="${block.textColor||'#1e3a8a'}" oninput="updateBlock(${index},'textColor',this.value)"></div> </div><div class="row"><div class="col"><label>Alineación</label><select onchange="updateBlock(${index}, 'align', this.value)"><option value="left" ${block.align==='left'?'selected':''}>Izquierda</option><option value="center" ${block.align==='center'?'selected':''}>Centro</option><option value="right" ${block.align==='right'?'selected':''}>Derecha</option><option value="justify" ${block.align==='justify'?'selected':''}>Justificado</option></select></div></div><div class="editor-toolbar"><button onmousedown="event.preventDefault(); execFormat('bold')" title="Negrita"><b>B</b></button> <button onmousedown="event.preventDefault(); execFormat('italic')" title="Cursiva"><i>I</i></button> <button onmousedown="event.preventDefault(); execClean()" title="Limpiar Formato para aplicar Color">🧹 Limpiar</button></div><div contenteditable="true" style="min-height:60px; border:1px solid #cbd5e1; padding:8px; background:white; color:#333;" oninput="updateBlock(${index}, 'content', this.innerHTML)">${block.content}</div>`;
@@ -330,7 +375,26 @@
             blocks.forEach(block => {
                 let tr = document.createElement('tr'); let td = document.createElement('td'); td.style.fontFamily = 'Arial, sans-serif'; td.style.color = '#333';
                 if (block.type === 'box') { td.style.padding = '15px 30px'; td.innerHTML = `<table width="100%" cellpadding="0" cellspacing="0" style="background-color:${block.bgColor}; border-radius:6px;"><tr><td style="padding:20px; color:${block.textColor}; font-size:15px; text-align:${block.align||'center'};">${block.content}</td></tr></table>`; }
-                else if (block.type === 'text') { td.style.padding = '10px 30px'; td.style.fontSize = '16px'; td.style.lineHeight = '1.6'; td.style.textAlign = block.align||'left'; td.innerHTML = block.content; }
+                else if (block.type === 'text') {
+                    td.style.padding = '10px 30px';
+                    td.style.fontSize = '16px';
+                    td.style.lineHeight = '1.6';
+                    td.style.textAlign = block.align || 'left';
+                    if (block.bgImage && block.bgImage.trim() !== '') {
+                        // Fondo con imagen usando pseudo-overlay via div apilado
+                        const opacity = block.bgOpacity || 0.08;
+                        const size = block.bgSize || 'contain';
+                        td.style.position = 'relative';
+                        td.innerHTML = `
+                            <div style="position:absolute; top:0; left:0; width:100%; height:100%;
+                                background-image:url('${fixGithubUrl(block.bgImage)}');
+                                background-repeat:no-repeat; background-position:center center;
+                                background-size:${size}; opacity:${opacity}; pointer-events:none; z-index:0;"></div>
+                            <div style="position:relative; z-index:1;">${block.content}</div>`;
+                    } else {
+                        td.innerHTML = block.content;
+                    }
+                }
                 
                 else if (block.type === 'header_tri') {
                     td.style.padding = '10px 20px';
