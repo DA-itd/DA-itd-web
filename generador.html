@@ -177,6 +177,16 @@
 
     <script>
         // --- DATA INICIAL ---
+        // --- STORAGE SEGURO (compatible con Safari privado y file://) ---
+        const safeStorage = {
+            get: function(key) {
+                try { return localStorage.getItem(key); } catch(e) { return null; }
+            },
+            set: function(key, value) {
+                try { localStorage.setItem(key, value); } catch(e) { /* Safari privado: ignorar */ }
+            }
+        };
+
         let blocks = [
             { 
                 type: 'header_tri', 
@@ -190,7 +200,7 @@
         ];
 
         // RECUPERAR
-        const savedData = localStorage.getItem('itd_email_v22');
+        const savedData = safeStorage.get('itd_email_v22');
         if(savedData) {
             try {
                 const parsed = JSON.parse(savedData);
@@ -199,10 +209,18 @@
         }
 
         // --- CORE FUNCTIONS ---
-        function saveData() { localStorage.setItem('itd_email_v22', JSON.stringify({ blocks: blocks, accentColor: document.getElementById('accentColor').value })); }
+        function saveData() { safeStorage.set('itd_email_v22', JSON.stringify({ blocks: blocks, accentColor: document.getElementById('accentColor').value })); }
         function saveTemplate() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ blocks: blocks, accentColor: document.getElementById('accentColor').value }));
-            const a = document.createElement('a'); a.href = dataStr; a.download = "plantilla_itd.json"; document.body.appendChild(a); a.click(); a.remove();
+            try {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ blocks: blocks, accentColor: document.getElementById('accentColor').value }));
+                const a = document.createElement('a'); a.href = dataStr; a.download = "plantilla_itd.json"; document.body.appendChild(a); a.click(); a.remove();
+            } catch(e) {
+                // Safari: fallback usando Blob
+                const blob = new Blob([JSON.stringify({ blocks: blocks, accentColor: document.getElementById('accentColor').value })], {type: 'application/json'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = "plantilla_itd.json"; document.body.appendChild(a); a.click();
+                setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+            }
         }
         function loadTemplate(input) {
             const file = input.files[0]; if(!file) return;
@@ -249,13 +267,13 @@
             [b.col1Type, b.col2Type] = [b.col2Type, b.col1Type];
             [b.col1Content, b.col2Content] = [b.col2Content, b.col1Content];
             [b.col1Width, b.col2Width] = [b.col2Width, b.col1Width];
-            renderControls(); renderPreview(); saveData();
+     saveData();
         }
 
         function swapHeaderLogos(index) {
             const b = blocks[index];
             [b.logo1, b.logo2] = [b.logo2, b.logo1];
-            renderControls(); renderPreview(); saveData();
+     saveData();
         }
 
         function updateBlockLayout(index, key, value) { blocks[index][key] = value; renderControls(); renderPreview(); saveData(); }
@@ -334,9 +352,55 @@
                 tr.appendChild(td); tbody.appendChild(tr);
             });
         }
-        async function copyToClipboard() { const t=document.getElementById('copy-target'),r=document.createRange(),s=window.getSelection();r.selectNode(t);s.removeAllRanges();s.addRange(r);try{document.execCommand('copy');document.getElementById('msg').style.display='block';setTimeout(()=>document.getElementById('msg').style.display='none',3000);}catch(e){}s.removeAllRanges(); }
+        async function copyToClipboard() {
+            const t = document.getElementById('copy-target');
+            // Método moderno (Chrome/Firefox) con fallback a execCommand (Safari)
+            try {
+                if (navigator.clipboard && navigator.clipboard.write) {
+                    const html = t.innerHTML;
+                    const blob = new Blob([html], { type: 'text/html' });
+                    const item = new ClipboardItem({ 'text/html': blob });
+                    await navigator.clipboard.write([item]);
+                } else {
+                    // Fallback: selección + execCommand (funciona en Safari)
+                    const r = document.createRange();
+                    const s = window.getSelection();
+                    r.selectNode(t);
+                    s.removeAllRanges();
+                    s.addRange(r);
+                    document.execCommand('copy');
+                    s.removeAllRanges();
+                }
+                document.getElementById('msg').style.display = 'block';
+                setTimeout(() => document.getElementById('msg').style.display = 'none', 3000);
+            } catch(e) {
+                // Último recurso: selección manual
+                const r = document.createRange();
+                const s = window.getSelection();
+                r.selectNode(t);
+                s.removeAllRanges();
+                s.addRange(r);
+                document.getElementById('msg').textContent = 'Seleccionado — usa Cmd+C para copiar';
+                document.getElementById('msg').style.display = 'block';
+                setTimeout(() => document.getElementById('msg').style.display = 'none', 4000);
+            }
+        }
 
-        renderControls(); renderPreview();
+
+        // Inicialización segura — garantiza que el DOM esté listo en Safari
+        function init() {
+            try {
+                renderControls();
+                renderPreview();
+            } catch(e) {
+                console.error('Error en inicialización:', e);
+            }
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
     </script>
 </body>
 </html>
