@@ -230,7 +230,7 @@
         // --- UPDATE BLOCKS ---
         function addBlock(type) {
             let newBlock = { type: type };
-            if(type === 'text') { newBlock.content = 'Escribe aquí...'; newBlock.align = 'left'; newBlock.bgImage = ''; newBlock.bgOpacity = 0.08; newBlock.bgSize = 'contain'; }
+            if(type === 'text') { newBlock.content = 'Escribe aquí...'; newBlock.align = 'left'; newBlock.bgImage = ''; newBlock.bgOpacity = 0.06; newBlock.bgSize = 'contain'; }
             if(type === 'box') { newBlock.content = 'DESTACADO'; newBlock.bgColor = '#e0f2fe'; newBlock.textColor = '#0c4a6e'; newBlock.align = 'center'; }
             if(type === 'image') { newBlock.url = ''; newBlock.align = 'center'; newBlock.width = 100; }
             if(type === 'button') { newBlock.text = 'Click'; newBlock.btnColor = '#1b396a'; }
@@ -306,8 +306,8 @@
             if (hasBg) {
                 var pct = Math.round((block.bgOpacity||0.08)*100);
                 var sz  = block.bgSize || 'contain';
-                picker += '<label style="color:#166534;display:block;margin-top:4px;">Opacidad del fondo: '+pct+'%</label>'
-                    +'<input type="range" min="2" max="40" value="'+pct+'" oninput="setBgOpacity('+index+',this.value)" style="width:100%;box-sizing:border-box;">'
+                picker += '<label style="color:#166534;display:block;margin-top:4px;">Atenuación (más = más tenue): '+pct+'%</label>'
+                    +'<input type="range" min="2" max="15" value="'+pct+'" oninput="setBgOpacity('+index+',this.value)" style="width:100%;box-sizing:border-box;">'
                     +'<label style="color:#166534;display:block;margin-top:4px;">Tamaño:</label>'
                     +'<select onchange="setBgSize('+index+',this.value)" style="width:100%;">'
                     +'<option value="contain"'+(sz==='contain'?' selected':'')+'>Contener (logo completo)</option>'
@@ -362,17 +362,8 @@
             });
         }
 
-        async function buildGmailHTML() {
+        function buildGmailHTML() {
             var accent = document.getElementById('accentColor').value;
-            // Pre-calcular base64 con opacidad para todos los bloques con bgImage
-            window._base64Cache = {};
-            var bgBlocks = blocks.filter(function(b){ return b.type==='text' && b.bgImage && b.bgImage.trim(); });
-            for (var bi = 0; bi < bgBlocks.length; bi++) {
-                var b = bgBlocks[bi];
-                var b64 = await getBase64bg(fixGithubUrl(b.bgImage), b.bgOpacity||0.08, b.bgSize||'contain');
-                window._base64Cache[b.bgImage] = b64;
-            }
-
             var rows = '';
             blocks.forEach(function(block) {
                 var cell = '', style = 'font-family:Arial,sans-serif;color:#333;';
@@ -380,20 +371,19 @@
                     var align = block.align || 'left';
                     style += 'padding:10px 30px;font-size:16px;line-height:1.6;text-align:'+align+';';
                     if (block.bgImage && block.bgImage.trim()) {
-                        // Técnica definitiva: la imagen ya fue convertida a base64 con opacity
-                        // aplicada via canvas (ver buildGmailHTML que es async y llama a getBase64bg)
-                        // Aquí usamos el valor pre-calculado del mapa _base64Cache
-                        var b64 = (window._base64Cache && window._base64Cache[block.bgImage]) || '';
-                        if (b64) {
-                            cell = block.content;
-                            style += 'background-image:url('+b64+');'
-                                +'background-repeat:no-repeat;background-position:center center;'
-                                +'background-size:'+(block.bgSize||'contain')+';'
-                                +'text-align:'+align+';';
-                        } else {
-                            // fallback: texto plano sin fondo si no se pudo convertir
-                            cell = block.content;
-                        }
+                        var imgUrl = fixGithubUrl(block.bgImage);
+                        var sz = block.bgSize || 'contain';
+                        // Técnica simple que funciona: background-image en td + div con
+                        // fondo blanco semitransparente encima para atenuar la imagen.
+                        // El slider controla cuánto blanco se aplica (más opacidad = más blanco = más tenue)
+                        var whiteCover = 1 - (block.bgOpacity || 0.08);  // 0.08 opacidad → 0.92 blanco
+                        whiteCover = Math.min(0.97, Math.max(0.6, whiteCover)); // clamp 0.6–0.97
+                        style += 'background-image:url('+imgUrl+');'
+                            +'background-repeat:no-repeat;background-position:center center;'
+                            +'background-size:'+sz+';text-align:'+align+';';
+                        cell = '<div style="background-color:rgba(255,255,255,'+whiteCover.toFixed(2)+');'
+                            +'padding:0;font-size:16px;line-height:1.6;">'
+                            +block.content+'</div>';
                     } else {
                         cell = block.content;
                     }
@@ -441,7 +431,7 @@
 
         // ── COPY GMAIL SAFE ───────────────────────────────────────────
         async function copyGmailSafe() {
-            var html = await buildGmailHTML();
+            var html = buildGmailHTML();
             var temp = document.createElement('div');
             temp.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none;';
             temp.innerHTML = html;
@@ -524,8 +514,8 @@
             if (hasBg) {
                 var pct = Math.round((block.bgOpacity||0.08)*100);
                 var sz  = block.bgSize || 'contain';
-                picker += '<label style="color:#166534;display:block;margin-top:4px;">Opacidad del fondo: '+pct+'%</label>'
-                    +'<input type="range" min="2" max="40" value="'+pct+'" oninput="setBgOpacity('+index+',this.value)" style="width:100%;box-sizing:border-box;">'
+                picker += '<label style="color:#166534;display:block;margin-top:4px;">Atenuación (más = más tenue): '+pct+'%</label>'
+                    +'<input type="range" min="2" max="15" value="'+pct+'" oninput="setBgOpacity('+index+',this.value)" style="width:100%;box-sizing:border-box;">'
                     +'<label style="color:#166534;display:block;margin-top:4px;">Tamaño:</label>'
                     +'<select onchange="setBgSize('+index+',this.value)" style="width:100%;">'
                     +'<option value="contain"'+(sz==='contain'?' selected':'')+'>Contener (logo completo)</option>'
@@ -580,17 +570,8 @@
             });
         }
 
-        async function buildGmailHTML() {
+        function buildGmailHTML() {
             var accent = document.getElementById('accentColor').value;
-            // Pre-calcular base64 con opacidad para todos los bloques con bgImage
-            window._base64Cache = {};
-            var bgBlocks = blocks.filter(function(b){ return b.type==='text' && b.bgImage && b.bgImage.trim(); });
-            for (var bi = 0; bi < bgBlocks.length; bi++) {
-                var b = bgBlocks[bi];
-                var b64 = await getBase64bg(fixGithubUrl(b.bgImage), b.bgOpacity||0.08, b.bgSize||'contain');
-                window._base64Cache[b.bgImage] = b64;
-            }
-
             var rows = '';
             blocks.forEach(function(block) {
                 var cell = '', style = 'font-family:Arial,sans-serif;color:#333;';
@@ -598,20 +579,19 @@
                     var align = block.align || 'left';
                     style += 'padding:10px 30px;font-size:16px;line-height:1.6;text-align:'+align+';';
                     if (block.bgImage && block.bgImage.trim()) {
-                        // Técnica definitiva: la imagen ya fue convertida a base64 con opacity
-                        // aplicada via canvas (ver buildGmailHTML que es async y llama a getBase64bg)
-                        // Aquí usamos el valor pre-calculado del mapa _base64Cache
-                        var b64 = (window._base64Cache && window._base64Cache[block.bgImage]) || '';
-                        if (b64) {
-                            cell = block.content;
-                            style += 'background-image:url('+b64+');'
-                                +'background-repeat:no-repeat;background-position:center center;'
-                                +'background-size:'+(block.bgSize||'contain')+';'
-                                +'text-align:'+align+';';
-                        } else {
-                            // fallback: texto plano sin fondo si no se pudo convertir
-                            cell = block.content;
-                        }
+                        var imgUrl = fixGithubUrl(block.bgImage);
+                        var sz = block.bgSize || 'contain';
+                        // Técnica simple que funciona: background-image en td + div con
+                        // fondo blanco semitransparente encima para atenuar la imagen.
+                        // El slider controla cuánto blanco se aplica (más opacidad = más blanco = más tenue)
+                        var whiteCover = 1 - (block.bgOpacity || 0.08);  // 0.08 opacidad → 0.92 blanco
+                        whiteCover = Math.min(0.97, Math.max(0.6, whiteCover)); // clamp 0.6–0.97
+                        style += 'background-image:url('+imgUrl+');'
+                            +'background-repeat:no-repeat;background-position:center center;'
+                            +'background-size:'+sz+';text-align:'+align+';';
+                        cell = '<div style="background-color:rgba(255,255,255,'+whiteCover.toFixed(2)+');'
+                            +'padding:0;font-size:16px;line-height:1.6;">'
+                            +block.content+'</div>';
                     } else {
                         cell = block.content;
                     }
@@ -659,7 +639,7 @@
 
         // ── COPY GMAIL SAFE ───────────────────────────────────────────
         async function copyGmailSafe() {
-            var html = await buildGmailHTML();
+            var html = buildGmailHTML();
             var temp = document.createElement('div');
             temp.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none;';
             temp.innerHTML = html;
@@ -849,8 +829,8 @@
             if (hasBg) {
                 var pct = Math.round((block.bgOpacity||0.08)*100);
                 var sz  = block.bgSize || 'contain';
-                picker += '<label style="color:#166534;display:block;margin-top:4px;">Opacidad del fondo: '+pct+'%</label>'
-                    +'<input type="range" min="2" max="40" value="'+pct+'" oninput="setBgOpacity('+index+',this.value)" style="width:100%;box-sizing:border-box;">'
+                picker += '<label style="color:#166534;display:block;margin-top:4px;">Atenuación (más = más tenue): '+pct+'%</label>'
+                    +'<input type="range" min="2" max="15" value="'+pct+'" oninput="setBgOpacity('+index+',this.value)" style="width:100%;box-sizing:border-box;">'
                     +'<label style="color:#166534;display:block;margin-top:4px;">Tamaño:</label>'
                     +'<select onchange="setBgSize('+index+',this.value)" style="width:100%;">'
                     +'<option value="contain"'+(sz==='contain'?' selected':'')+'>Contener (logo completo)</option>'
@@ -905,17 +885,8 @@
             });
         }
 
-        async function buildGmailHTML() {
+        function buildGmailHTML() {
             var accent = document.getElementById('accentColor').value;
-            // Pre-calcular base64 con opacidad para todos los bloques con bgImage
-            window._base64Cache = {};
-            var bgBlocks = blocks.filter(function(b){ return b.type==='text' && b.bgImage && b.bgImage.trim(); });
-            for (var bi = 0; bi < bgBlocks.length; bi++) {
-                var b = bgBlocks[bi];
-                var b64 = await getBase64bg(fixGithubUrl(b.bgImage), b.bgOpacity||0.08, b.bgSize||'contain');
-                window._base64Cache[b.bgImage] = b64;
-            }
-
             var rows = '';
             blocks.forEach(function(block) {
                 var cell = '', style = 'font-family:Arial,sans-serif;color:#333;';
@@ -923,20 +894,19 @@
                     var align = block.align || 'left';
                     style += 'padding:10px 30px;font-size:16px;line-height:1.6;text-align:'+align+';';
                     if (block.bgImage && block.bgImage.trim()) {
-                        // Técnica definitiva: la imagen ya fue convertida a base64 con opacity
-                        // aplicada via canvas (ver buildGmailHTML que es async y llama a getBase64bg)
-                        // Aquí usamos el valor pre-calculado del mapa _base64Cache
-                        var b64 = (window._base64Cache && window._base64Cache[block.bgImage]) || '';
-                        if (b64) {
-                            cell = block.content;
-                            style += 'background-image:url('+b64+');'
-                                +'background-repeat:no-repeat;background-position:center center;'
-                                +'background-size:'+(block.bgSize||'contain')+';'
-                                +'text-align:'+align+';';
-                        } else {
-                            // fallback: texto plano sin fondo si no se pudo convertir
-                            cell = block.content;
-                        }
+                        var imgUrl = fixGithubUrl(block.bgImage);
+                        var sz = block.bgSize || 'contain';
+                        // Técnica simple que funciona: background-image en td + div con
+                        // fondo blanco semitransparente encima para atenuar la imagen.
+                        // El slider controla cuánto blanco se aplica (más opacidad = más blanco = más tenue)
+                        var whiteCover = 1 - (block.bgOpacity || 0.08);  // 0.08 opacidad → 0.92 blanco
+                        whiteCover = Math.min(0.97, Math.max(0.6, whiteCover)); // clamp 0.6–0.97
+                        style += 'background-image:url('+imgUrl+');'
+                            +'background-repeat:no-repeat;background-position:center center;'
+                            +'background-size:'+sz+';text-align:'+align+';';
+                        cell = '<div style="background-color:rgba(255,255,255,'+whiteCover.toFixed(2)+');'
+                            +'padding:0;font-size:16px;line-height:1.6;">'
+                            +block.content+'</div>';
                     } else {
                         cell = block.content;
                     }
@@ -984,7 +954,7 @@
 
         // ── COPY GMAIL SAFE ───────────────────────────────────────────
         async function copyGmailSafe() {
-            var html = await buildGmailHTML();
+            var html = buildGmailHTML();
             var temp = document.createElement('div');
             temp.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none;';
             temp.innerHTML = html;
