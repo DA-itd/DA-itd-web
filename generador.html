@@ -140,7 +140,7 @@
             
             <button class="btn-copy" onclick="copyToClipboard()" style="grid-column:span 2;"><i class="fas fa-copy"></i> COPIAR (vista previa)</button>
             <button class="btn-copy" onclick="copyGmailSafe()" style="grid-column:span 2;background:#15803d;" title="HTML compatible con Gmail"><i class="fas fa-envelope"></i> COPIAR PARA GMAIL ✉️</button>
-            <p id="msg" style="grid-column:span 4;text-align:center;color:green;display:none;margin:0;font-size:0.8rem;">¡Copiado! Pégalo en Gmail.</p>
+            <p id="msg" style="grid-column:span 4;text-align:center;color:green;display:none;margin:0;font-size:0.8rem;">¡Copiado!</p>
         </div>
     </div>
 
@@ -178,7 +178,6 @@
 
     <script>
         // --- DATA INICIAL ---
-        // STORAGE SEGURO (Safari privado / file://)
         const safeStorage = {
             get: function(k) { try { return localStorage.getItem(k); } catch(e) { return null; } },
             set: function(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
@@ -209,17 +208,11 @@
         function saveData() { safeStorage.set('itd_email_v22', JSON.stringify({ blocks: blocks, accentColor: document.getElementById('accentColor').value })); }
         function saveTemplate() {
             const data = JSON.stringify({ blocks: blocks, accentColor: document.getElementById('accentColor').value });
-            try {
-                const blob = new Blob([data], {type:'application/json'});
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a'); a.href = url; a.download = 'plantilla_itd.json';
-                document.body.appendChild(a); a.click();
-                setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
-            } catch(e) {
-                const a = document.createElement('a');
-                a.href = "data:text/json;charset=utf-8," + encodeURIComponent(data);
-                a.download = 'plantilla_itd.json'; document.body.appendChild(a); a.click(); a.remove();
-            }
+            const blob = new Blob([data], {type:'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'plantilla_itd.json';
+            document.body.appendChild(a); a.click();
+            setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 1000);
         }
         function loadTemplate(input) {
             const file = input.files[0]; if(!file) return;
@@ -267,129 +260,167 @@
             [b.col1Content, b.col2Content] = [b.col2Content, b.col1Content];
             [b.col1Width, b.col2Width] = [b.col2Width, b.col1Width];
     
-        function setTextBlockHtml(index, block, bgPickerHtml) {
-            var alignOpts = ['left','center','right','justify'];
-            var alignLabels = ['Izquierda','Centro','Derecha','Justificado'];
-            var sel = '<select onchange="updateBlock(' + index + ',\'align\',this.value)" style="margin-bottom:5px;">';
-            alignOpts.forEach(function(v, i) {
-                sel += '<option value="' + v + '"' + (block.align===v?' selected':'') + '>' + alignLabels[i] + '</option>';
-            });
+        // ── HELPERS FONDO DE IMAGEN ──────────────────────────────────
+        var _bgRefs = {};
+        function setBgLogo(bi, li) { blocks[bi].bgImage = _bgRefs[bi][li]; renderControls(); renderPreview(); saveData(); }
+        function clearBgImage(bi) { blocks[bi].bgImage = ''; renderControls(); renderPreview(); saveData(); }
+        function setBgUrl(bi, v) { blocks[bi].bgImage = v; renderPreview(); saveData(); }
+        function setBgOpacity(bi, v) { blocks[bi].bgOpacity = v/100; renderControls(); renderPreview(); saveData(); }
+        function setBgSize(bi, v) { blocks[bi].bgSize = v; renderPreview(); saveData(); }
+
+        // ── BUILD TEXT CONTROL ────────────────────────────────────────
+        function buildTextCtrl(index, block) {
+            var aOpts = [['left','Izquierda'],['center','Centro'],['right','Derecha'],['justify','Justificado']];
+            var sel = '<select onchange="updateBlock('+index+',\'align\',this.value)" style="margin-bottom:5px;">';
+            aOpts.forEach(function(o){ sel += '<option value="'+o[0]+'"'+(block.align===o[0]?' selected':'')+'>'+o[1]+'</option>'; });
             sel += '</select>';
             var toolbar = '<div class="editor-toolbar">'
-                + '<button onmousedown="event.preventDefault();execFormat(\'bold\')" title="Negrita"><b>B</b></button> '
-                + '<button onmousedown="event.preventDefault();execFormat(\'italic\')" title="Cursiva"><i>I</i></button> '
-                + '<button onmousedown="event.preventDefault();execClean()" title="Limpiar">🧹 Limpiar</button>'
-                + '</div>';
-            var editor = '<div contenteditable="true" style="min-height:60px;border:1px solid #cbd5e1;padding:8px;background:white;color:#333;" oninput="updateBlock(' + index + ',\'content\',this.innerHTML)">' + block.content + '</div>';
-            return sel + toolbar + editor + bgPickerHtml;
+                +'<button onmousedown="event.preventDefault();execFormat(\'bold\')" title="Negrita"><b>B</b></button> '
+                +'<button onmousedown="event.preventDefault();execFormat(\'italic\')" title="Cursiva"><i>I</i></button> '
+                +'<button onmousedown="event.preventDefault();execClean()" title="Limpiar">🧹 Limpiar</button>'
+                +'</div>';
+            var editor = '<div contenteditable="true" style="min-height:60px;border:1px solid #cbd5e1;padding:8px;background:white;color:#333;" '
+                +'oninput="updateBlock('+index+',\'content\',this.innerHTML)">'+block.content+'</div>';
+
+            var bgLogos = [
+                'https://raw.githubusercontent.com/DA-itd/web/main/logo_itdurango.png',
+                'https://raw.githubusercontent.com/DA-itd/web/main/pola.png',
+                'https://raw.githubusercontent.com/DA-itd/web/main/TecNM.jpg',
+                'https://raw.githubusercontent.com/DA-itd/A/main/tecnm1.jpg'
+            ];
+            _bgRefs[index] = bgLogos;
+            var hasBg = !!(block.bgImage && block.bgImage.trim());
+
+            var picker = '<div style="margin-top:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:8px;">'
+                +'<label style="color:#166534;display:block;margin-bottom:6px;">🖼️ Imagen de fondo (opcional)</label>'
+                +'<div style="display:flex;gap:5px;margin-bottom:6px;">';
+            bgLogos.forEach(function(url, li) {
+                var brd = (block.bgImage === url) ? '#1b396a' : '#ddd';
+                picker += '<div onclick="setBgLogo('+index+','+li+')" style="width:48px;height:40px;border:2px solid '+brd+';border-radius:4px;background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;" title="Usar como fondo">'
+                    +'<img src="'+url+'" style="max-width:90%;max-height:90%;object-fit:contain;"></div>';
+            });
+            var noSelColor = hasBg ? '#ddd' : '#ef4444';
+            picker += '<div onclick="clearBgImage('+index+')" style="width:48px;height:40px;border:2px solid '+noSelColor+';border-radius:4px;background:#fff5f5;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#ef4444;font-size:18px;flex-shrink:0;" title="Sin fondo">✕</div>'
+                +'</div>'
+                +'<input type="text" value="'+(block.bgImage||'')+'" placeholder="O pega otra URL de imagen..." oninput="setBgUrl('+index+',this.value)" style="width:100%;margin-bottom:6px;box-sizing:border-box;">';
+            if (hasBg) {
+                var pct = Math.round((block.bgOpacity||0.08)*100);
+                var sz  = block.bgSize || 'contain';
+                picker += '<label style="color:#166534;display:block;margin-top:4px;">Opacidad del fondo: '+pct+'%</label>'
+                    +'<input type="range" min="2" max="40" value="'+pct+'" oninput="setBgOpacity('+index+',this.value)" style="width:100%;box-sizing:border-box;">'
+                    +'<label style="color:#166534;display:block;margin-top:4px;">Tamaño:</label>'
+                    +'<select onchange="setBgSize('+index+',this.value)" style="width:100%;">'
+                    +'<option value="contain"'+(sz==='contain'?' selected':'')+'>Contener (logo completo)</option>'
+                    +'<option value="cover"'+(sz==='cover'?' selected':'')+'>Cubrir</option>'
+                    +'<option value="auto"'+(sz==='auto'?' selected':'')+'>Tamaño real</option>'
+                    +'</select>';
+            }
+            picker += '</div>';
+            return sel + toolbar + editor + picker;
         }
 
-        // Helpers para el selector de fondo en bloque texto
-        function setBgOpacity(blockIdx, val) {
-            blocks[blockIdx].bgOpacity = val / 100;
-            renderPreview(); saveData();
-            renderControls(); // re-render to update label %
-        }
-        function setBgSize(blockIdx, val) {
-            blocks[blockIdx].bgSize = val;
-            renderPreview(); saveData();
-        }
-        function setBgLogo(blockIdx, logoIdx) {
-            if (!window._bgLogoRefs || !window._bgLogoRefs[blockIdx]) return;
-            blocks[blockIdx].bgImage = window._bgLogoRefs[blockIdx][logoIdx];
-            renderControls(); renderPreview(); saveData();
-        }
-        function clearBgImage(blockIdx) {
-            blocks[blockIdx].bgImage = '';
-            renderControls(); renderPreview(); saveData();
-        }
-        function setBgUrl(blockIdx, url) {
-            blocks[blockIdx].bgImage = url;
-            renderPreview(); saveData();
-        }
-
+        // ── SHOW MSG ─────────────────────────────────────────────────
         function showMsg(text, color) {
-            const m = document.getElementById('msg');
-            m.textContent = text; m.style.color = color || 'green'; m.style.display = 'block';
-            setTimeout(() => m.style.display = 'none', 4000);
+            var m = document.getElementById('msg');
+            m.textContent = text; m.style.color = color||'green'; m.style.display = 'block';
+            setTimeout(function(){ m.style.display='none'; }, 4000);
         }
 
+        // ── BUILD GMAIL HTML (técnica <img> con opacity — compatible Gmail) ──
         function buildGmailHTML() {
-            const accent = document.getElementById('accentColor').value;
-            let rows = '';
+            var accent = document.getElementById('accentColor').value;
+            var rows = '';
             blocks.forEach(function(block) {
-                let cell = '', style = 'font-family:Arial,sans-serif;color:#333;';
+                var cell = '', style = 'font-family:Arial,sans-serif;color:#333;';
                 if (block.type === 'text') {
-                    style += 'padding:10px 30px;font-size:16px;line-height:1.6;text-align:' + (block.align||'left') + ';';
+                    var align = block.align || 'left';
+                    style += 'padding:10px 30px;font-size:16px;line-height:1.6;text-align:'+align+';';
                     if (block.bgImage && block.bgImage.trim()) {
-                        style += 'background-image:url(\'' + fixGithubUrl(block.bgImage) + '\');background-repeat:no-repeat;background-position:center center;background-size:' + (block.bgSize||'contain') + ';';
+                        // Técnica Gmail: <img> con opacity posicionada dentro de tabla
+                        // position:relative en la celda td + img absolute + contenido z-index
+                        var imgUrl = fixGithubUrl(block.bgImage);
+                        var op = block.bgOpacity || 0.08;
+                        var sz = block.bgSize || 'contain';
+                        // Gmail ignora position:absolute en divs pero respeta tablas anidadas
+                        // Usamos: tabla exterior con td position:relative, img con opacity inline
+                        style += 'position:relative;';
+                        cell = '<img src="'+imgUrl+'" width="100%" '
+                            +'style="position:absolute;top:0;left:0;width:100%;height:100%;'
+                            +'object-fit:'+sz+';opacity:'+op+';display:block;pointer-events:none;" alt="">'
+                            +'<div style="position:relative;z-index:1;text-align:'+align+';">'+block.content+'</div>';
+                    } else {
+                        cell = block.content;
                     }
-                    cell = block.content;
                 } else if (block.type === 'box') {
                     style += 'padding:15px 30px;';
-                    cell = '<table width="100%" cellpadding="0" cellspacing="0" style="background-color:' + block.bgColor + ';border-radius:6px;"><tr><td style="padding:20px;color:' + block.textColor + ';font-size:15px;text-align:' + (block.align||'center') + ';">' + block.content + '</td></tr></table>';
+                    cell = '<table width="100%" cellpadding="0" cellspacing="0" style="background-color:'+block.bgColor+';border-radius:6px;"><tr><td style="padding:20px;color:'+block.textColor+';font-size:15px;text-align:'+(block.align||'center')+';">'+block.content+'</td></tr></table>';
                 } else if (block.type === 'header_tri') {
                     style += 'padding:10px 20px;';
                     var lw = block.logoWidth || 60;
                     cell = '<table width="100%" border="0" cellspacing="0" cellpadding="0"><tr>'
-                        + '<td width="20%" align="left" valign="middle"><img src="' + fixGithubUrl(block.logo1) + '" style="width:' + lw + '%;max-width:100px;height:auto;display:block;"></td>'
-                        + '<td width="60%" align="center" valign="middle" style="padding:0 10px;"><div style="color:#1b396a;font-weight:bold;font-size:14px;line-height:1.2;margin-bottom:4px;text-transform:uppercase;">' + block.line1 + '</div><div style="color:#555;font-size:13px;">' + block.line2 + '</div></td>'
-                        + '<td width="20%" align="right" valign="middle"><img src="' + fixGithubUrl(block.logo2) + '" style="width:' + lw + '%;max-width:100px;height:auto;display:block;margin-left:auto;"></td>'
-                        + '</tr></table>';
+                        +'<td width="20%" align="left" valign="middle"><img src="'+fixGithubUrl(block.logo1)+'" style="width:'+lw+'%;max-width:100px;height:auto;display:block;" alt=""></td>'
+                        +'<td width="60%" align="center" valign="middle" style="padding:0 10px;"><div style="color:#1b396a;font-weight:bold;font-size:14px;line-height:1.2;margin-bottom:4px;text-transform:uppercase;">'+block.line1+'</div><div style="color:#555;font-size:13px;">'+block.line2+'</div></td>'
+                        +'<td width="20%" align="right" valign="middle"><img src="'+fixGithubUrl(block.logo2)+'" style="width:'+lw+'%;max-width:100px;height:auto;display:block;margin-left:auto;" alt=""></td>'
+                        +'</tr></table>';
                 } else if (block.type === 'columns') {
                     style += 'padding:10px 20px;';
-                    var c1 = block.col1Type === 'image' ? '<img src="' + fixGithubUrl(block.col1Content) + '" style="width:' + (block.col1Width||100) + '%;max-width:100%;height:auto;">' : '<div>' + block.col1Content + '</div>';
-                    var c2 = block.col2Type === 'image' ? '<img src="' + fixGithubUrl(block.col2Content) + '" style="width:' + (block.col2Width||100) + '%;max-width:100%;height:auto;">' : '<div>' + block.col2Content + '</div>';
-                    cell = '<table width="100%" border="0" cellspacing="0" cellpadding="0"><tr><td width="50%" valign="middle" align="' + (block.col1Align||'left') + '" style="padding-right:10px;">' + c1 + '</td><td width="50%" valign="middle" align="' + (block.col2Align||'left') + '" style="padding-left:10px;">' + c2 + '</td></tr></table>';
+                    var c1 = block.col1Type==='image' ? '<img src="'+fixGithubUrl(block.col1Content)+'" style="width:'+(block.col1Width||100)+'%;max-width:100%;height:auto;" alt="">' : '<div>'+block.col1Content+'</div>';
+                    var c2 = block.col2Type==='image' ? '<img src="'+fixGithubUrl(block.col2Content)+'" style="width:'+(block.col2Width||100)+'%;max-width:100%;height:auto;" alt="">' : '<div>'+block.col2Content+'</div>';
+                    cell = '<table width="100%" border="0" cellspacing="0" cellpadding="0"><tr>'
+                        +'<td width="50%" valign="middle" align="'+(block.col1Align||'left')+'" style="padding-right:10px;">'+c1+'</td>'
+                        +'<td width="50%" valign="middle" align="'+(block.col2Align||'left')+'" style="padding-left:10px;">'+c2+'</td>'
+                        +'</tr></table>';
                 } else if (block.type === 'image') {
-                    style += 'padding:10px 30px;text-align:' + (block.align||'center') + ';';
-                    if (block.url) cell = '<img src="' + fixGithubUrl(block.url) + '" style="width:' + (block.width||100) + '%;max-width:100%;height:auto;display:inline-block;">';
+                    style += 'padding:10px 30px;text-align:'+(block.align||'center')+';';
+                    if (block.url) cell = '<img src="'+fixGithubUrl(block.url)+'" style="width:'+(block.width||100)+'%;max-width:100%;height:auto;display:inline-block;" alt="">';
                 } else if (block.type === 'separator') {
-                    cell = '<div align="center"><hr style="width:' + (block.width||90) + '%;border:0;border-top:' + (block.thickness||2) + 'px ' + (block.style||'solid') + ' ' + block.color + ';margin:15px auto;"></div>';
+                    cell = '<div align="center"><hr style="width:'+(block.width||90)+'%;border:0;border-top:'+(block.thickness||2)+'px '+(block.style||'solid')+' '+block.color+';margin:15px auto;"></div>';
                 } else if (block.type === 'button') {
                     style += 'padding:20px;text-align:center;';
-                    cell = '<a href="' + (block.link||'#') + '" style="background:' + (block.btnColor||'#1b396a') + ';color:white;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold;display:inline-block;">' + (block.text||'Click') + '</a>';
+                    cell = '<a href="'+(block.link||'#')+'" style="background:'+(block.btnColor||'#1b396a')+';color:white;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold;display:inline-block;">'+(block.text||'Click')+'</a>';
                 } else if (block.type === 'html') {
                     cell = block.content;
                 }
-                if (cell) rows += '<tr><td style="' + style + '">' + cell + '</td></tr>';
+                if (cell) rows += '<tr><td style="'+style+'">'+cell+'</td></tr>';
             });
             return '<table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#f1f5f9;font-family:Arial,sans-serif;">'
-                + '<tr><td align="center" style="padding:20px;">'
-                + '<table width="600" border="0" cellspacing="0" cellpadding="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,0.1);">'
-                + '<tr><td height="6" style="background-color:' + accent + ';font-size:0;">&nbsp;</td></tr>'
-                + '<tr><td><table width="100%" border="0" cellspacing="0" cellpadding="0"><tbody>' + rows + '</tbody></table></td></tr>'
-                + '<tr><td align="center" style="background-color:#f8fafc;padding:20px;font-size:11px;color:#64748b;border-top:1px solid #e2e8f0;"><strong>Instituto Tecnológico de Durango</strong><br>Coordinación de Actualización Docente</td></tr>'
-                + '<tr><td height="6" style="background-color:' + accent + ';font-size:0;">&nbsp;</td></tr>'
-                + '</table></td></tr></table>';
+                +'<tr><td align="center" style="padding:20px;">'
+                +'<table width="600" border="0" cellspacing="0" cellpadding="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,0.1);">'
+                +'<tr><td height="6" style="background-color:'+accent+';font-size:0;">&nbsp;</td></tr>'
+                +'<tr><td><table width="100%" border="0" cellspacing="0" cellpadding="0"><tbody>'+rows+'</tbody></table></td></tr>'
+                +'<tr><td align="center" style="background-color:#f8fafc;padding:20px;font-size:11px;color:#64748b;border-top:1px solid #e2e8f0;"><strong>Instituto Tecnológico de Durango</strong><br>Coordinación de Actualización Docente</td></tr>'
+                +'<tr><td height="6" style="background-color:'+accent+';font-size:0;">&nbsp;</td></tr>'
+                +'</table></td></tr></table>';
         }
 
+        // ── COPY GMAIL SAFE ───────────────────────────────────────────
         async function copyGmailSafe() {
-            const html = buildGmailHTML();
-            const temp = document.createElement('div');
-            temp.style.cssText = 'position:fixed;left:-9999px;opacity:0;pointer-events:none;';
+            var html = buildGmailHTML();
+            var temp = document.createElement('div');
+            temp.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none;';
             temp.innerHTML = html;
             document.body.appendChild(temp);
             try {
                 if (navigator.clipboard && navigator.clipboard.write) {
-                    const blob = new Blob([html], { type: 'text/html' });
+                    var blob = new Blob([html], { type: 'text/html' });
                     await navigator.clipboard.write([new ClipboardItem({ 'text/html': blob })]);
                 } else {
-                    const r = document.createRange(), s = window.getSelection();
+                    var r = document.createRange(), s = window.getSelection();
                     r.selectNode(temp); s.removeAllRanges(); s.addRange(r);
                     document.execCommand('copy'); s.removeAllRanges();
                 }
-                showMsg('✅ ¡Listo! Abre Gmail → Redactar → Ctrl+V o Cmd+V', '#15803d');
+                showMsg('✅ Listo — abre Gmail, Redactar y pega con Ctrl+V / Cmd+V', '#15803d');
             } catch(e) {
-                const r = document.createRange(), s = window.getSelection();
+                var r = document.createRange(), s = window.getSelection();
                 r.selectNode(temp); s.removeAllRanges(); s.addRange(r);
-                showMsg('Seleccionado — usa Cmd+C / Ctrl+C', '#92400e');
+                showMsg('Seleccionado — usa Cmd+C / Ctrl+C para copiar', '#92400e');
             }
             document.body.removeChild(temp);
         }
 
+        // ── INIT SEGURO ───────────────────────────────────────────────
         function init() {
-            try { renderControls(); renderPreview(); } catch(e) { console.error('Init error:', e); }
+            try { renderControls(); renderPreview(); } catch(e) { console.error('Init:', e); }
         }
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', init);
@@ -401,120 +432,167 @@
             const b = blocks[index];
             [b.logo1, b.logo2] = [b.logo2, b.logo1];
     
-        function setTextBlockHtml(index, block, bgPickerHtml) {
-            var alignOpts = ['left','center','right','justify'];
-            var alignLabels = ['Izquierda','Centro','Derecha','Justificado'];
-            var sel = '<select onchange="updateBlock(' + index + ',\'align\',this.value)" style="margin-bottom:5px;">';
-            alignOpts.forEach(function(v, i) {
-                sel += '<option value="' + v + '"' + (block.align===v?' selected':'') + '>' + alignLabels[i] + '</option>';
-            });
+        // ── HELPERS FONDO DE IMAGEN ──────────────────────────────────
+        var _bgRefs = {};
+        function setBgLogo(bi, li) { blocks[bi].bgImage = _bgRefs[bi][li]; renderControls(); renderPreview(); saveData(); }
+        function clearBgImage(bi) { blocks[bi].bgImage = ''; renderControls(); renderPreview(); saveData(); }
+        function setBgUrl(bi, v) { blocks[bi].bgImage = v; renderPreview(); saveData(); }
+        function setBgOpacity(bi, v) { blocks[bi].bgOpacity = v/100; renderControls(); renderPreview(); saveData(); }
+        function setBgSize(bi, v) { blocks[bi].bgSize = v; renderPreview(); saveData(); }
+
+        // ── BUILD TEXT CONTROL ────────────────────────────────────────
+        function buildTextCtrl(index, block) {
+            var aOpts = [['left','Izquierda'],['center','Centro'],['right','Derecha'],['justify','Justificado']];
+            var sel = '<select onchange="updateBlock('+index+',\'align\',this.value)" style="margin-bottom:5px;">';
+            aOpts.forEach(function(o){ sel += '<option value="'+o[0]+'"'+(block.align===o[0]?' selected':'')+'>'+o[1]+'</option>'; });
             sel += '</select>';
             var toolbar = '<div class="editor-toolbar">'
-                + '<button onmousedown="event.preventDefault();execFormat(\'bold\')" title="Negrita"><b>B</b></button> '
-                + '<button onmousedown="event.preventDefault();execFormat(\'italic\')" title="Cursiva"><i>I</i></button> '
-                + '<button onmousedown="event.preventDefault();execClean()" title="Limpiar">🧹 Limpiar</button>'
-                + '</div>';
-            var editor = '<div contenteditable="true" style="min-height:60px;border:1px solid #cbd5e1;padding:8px;background:white;color:#333;" oninput="updateBlock(' + index + ',\'content\',this.innerHTML)">' + block.content + '</div>';
-            return sel + toolbar + editor + bgPickerHtml;
+                +'<button onmousedown="event.preventDefault();execFormat(\'bold\')" title="Negrita"><b>B</b></button> '
+                +'<button onmousedown="event.preventDefault();execFormat(\'italic\')" title="Cursiva"><i>I</i></button> '
+                +'<button onmousedown="event.preventDefault();execClean()" title="Limpiar">🧹 Limpiar</button>'
+                +'</div>';
+            var editor = '<div contenteditable="true" style="min-height:60px;border:1px solid #cbd5e1;padding:8px;background:white;color:#333;" '
+                +'oninput="updateBlock('+index+',\'content\',this.innerHTML)">'+block.content+'</div>';
+
+            var bgLogos = [
+                'https://raw.githubusercontent.com/DA-itd/web/main/logo_itdurango.png',
+                'https://raw.githubusercontent.com/DA-itd/web/main/pola.png',
+                'https://raw.githubusercontent.com/DA-itd/web/main/TecNM.jpg',
+                'https://raw.githubusercontent.com/DA-itd/A/main/tecnm1.jpg'
+            ];
+            _bgRefs[index] = bgLogos;
+            var hasBg = !!(block.bgImage && block.bgImage.trim());
+
+            var picker = '<div style="margin-top:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:8px;">'
+                +'<label style="color:#166534;display:block;margin-bottom:6px;">🖼️ Imagen de fondo (opcional)</label>'
+                +'<div style="display:flex;gap:5px;margin-bottom:6px;">';
+            bgLogos.forEach(function(url, li) {
+                var brd = (block.bgImage === url) ? '#1b396a' : '#ddd';
+                picker += '<div onclick="setBgLogo('+index+','+li+')" style="width:48px;height:40px;border:2px solid '+brd+';border-radius:4px;background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;" title="Usar como fondo">'
+                    +'<img src="'+url+'" style="max-width:90%;max-height:90%;object-fit:contain;"></div>';
+            });
+            var noSelColor = hasBg ? '#ddd' : '#ef4444';
+            picker += '<div onclick="clearBgImage('+index+')" style="width:48px;height:40px;border:2px solid '+noSelColor+';border-radius:4px;background:#fff5f5;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#ef4444;font-size:18px;flex-shrink:0;" title="Sin fondo">✕</div>'
+                +'</div>'
+                +'<input type="text" value="'+(block.bgImage||'')+'" placeholder="O pega otra URL de imagen..." oninput="setBgUrl('+index+',this.value)" style="width:100%;margin-bottom:6px;box-sizing:border-box;">';
+            if (hasBg) {
+                var pct = Math.round((block.bgOpacity||0.08)*100);
+                var sz  = block.bgSize || 'contain';
+                picker += '<label style="color:#166534;display:block;margin-top:4px;">Opacidad del fondo: '+pct+'%</label>'
+                    +'<input type="range" min="2" max="40" value="'+pct+'" oninput="setBgOpacity('+index+',this.value)" style="width:100%;box-sizing:border-box;">'
+                    +'<label style="color:#166534;display:block;margin-top:4px;">Tamaño:</label>'
+                    +'<select onchange="setBgSize('+index+',this.value)" style="width:100%;">'
+                    +'<option value="contain"'+(sz==='contain'?' selected':'')+'>Contener (logo completo)</option>'
+                    +'<option value="cover"'+(sz==='cover'?' selected':'')+'>Cubrir</option>'
+                    +'<option value="auto"'+(sz==='auto'?' selected':'')+'>Tamaño real</option>'
+                    +'</select>';
+            }
+            picker += '</div>';
+            return sel + toolbar + editor + picker;
         }
 
-        // Helpers para el selector de fondo en bloque texto
-        function setBgLogo(blockIdx, logoIdx) {
-            if (!window._bgLogoRefs || !window._bgLogoRefs[blockIdx]) return;
-            blocks[blockIdx].bgImage = window._bgLogoRefs[blockIdx][logoIdx];
-            renderControls(); renderPreview(); saveData();
-        }
-        function clearBgImage(blockIdx) {
-            blocks[blockIdx].bgImage = '';
-            renderControls(); renderPreview(); saveData();
-        }
-        function setBgUrl(blockIdx, url) {
-            blocks[blockIdx].bgImage = url;
-            renderPreview(); saveData();
-        }
-
+        // ── SHOW MSG ─────────────────────────────────────────────────
         function showMsg(text, color) {
-            const m = document.getElementById('msg');
-            m.textContent = text; m.style.color = color || 'green'; m.style.display = 'block';
-            setTimeout(() => m.style.display = 'none', 4000);
+            var m = document.getElementById('msg');
+            m.textContent = text; m.style.color = color||'green'; m.style.display = 'block';
+            setTimeout(function(){ m.style.display='none'; }, 4000);
         }
 
+        // ── BUILD GMAIL HTML (técnica <img> con opacity — compatible Gmail) ──
         function buildGmailHTML() {
-            const accent = document.getElementById('accentColor').value;
-            let rows = '';
+            var accent = document.getElementById('accentColor').value;
+            var rows = '';
             blocks.forEach(function(block) {
-                let cell = '', style = 'font-family:Arial,sans-serif;color:#333;';
+                var cell = '', style = 'font-family:Arial,sans-serif;color:#333;';
                 if (block.type === 'text') {
-                    style += 'padding:10px 30px;font-size:16px;line-height:1.6;text-align:' + (block.align||'left') + ';';
+                    var align = block.align || 'left';
+                    style += 'padding:10px 30px;font-size:16px;line-height:1.6;text-align:'+align+';';
                     if (block.bgImage && block.bgImage.trim()) {
-                        style += 'background-image:url(\'' + fixGithubUrl(block.bgImage) + '\');background-repeat:no-repeat;background-position:center center;background-size:' + (block.bgSize||'contain') + ';';
+                        // Técnica Gmail: <img> con opacity posicionada dentro de tabla
+                        // position:relative en la celda td + img absolute + contenido z-index
+                        var imgUrl = fixGithubUrl(block.bgImage);
+                        var op = block.bgOpacity || 0.08;
+                        var sz = block.bgSize || 'contain';
+                        // Gmail ignora position:absolute en divs pero respeta tablas anidadas
+                        // Usamos: tabla exterior con td position:relative, img con opacity inline
+                        style += 'position:relative;';
+                        cell = '<img src="'+imgUrl+'" width="100%" '
+                            +'style="position:absolute;top:0;left:0;width:100%;height:100%;'
+                            +'object-fit:'+sz+';opacity:'+op+';display:block;pointer-events:none;" alt="">'
+                            +'<div style="position:relative;z-index:1;text-align:'+align+';">'+block.content+'</div>';
+                    } else {
+                        cell = block.content;
                     }
-                    cell = block.content;
                 } else if (block.type === 'box') {
                     style += 'padding:15px 30px;';
-                    cell = '<table width="100%" cellpadding="0" cellspacing="0" style="background-color:' + block.bgColor + ';border-radius:6px;"><tr><td style="padding:20px;color:' + block.textColor + ';font-size:15px;text-align:' + (block.align||'center') + ';">' + block.content + '</td></tr></table>';
+                    cell = '<table width="100%" cellpadding="0" cellspacing="0" style="background-color:'+block.bgColor+';border-radius:6px;"><tr><td style="padding:20px;color:'+block.textColor+';font-size:15px;text-align:'+(block.align||'center')+';">'+block.content+'</td></tr></table>';
                 } else if (block.type === 'header_tri') {
                     style += 'padding:10px 20px;';
                     var lw = block.logoWidth || 60;
                     cell = '<table width="100%" border="0" cellspacing="0" cellpadding="0"><tr>'
-                        + '<td width="20%" align="left" valign="middle"><img src="' + fixGithubUrl(block.logo1) + '" style="width:' + lw + '%;max-width:100px;height:auto;display:block;"></td>'
-                        + '<td width="60%" align="center" valign="middle" style="padding:0 10px;"><div style="color:#1b396a;font-weight:bold;font-size:14px;line-height:1.2;margin-bottom:4px;text-transform:uppercase;">' + block.line1 + '</div><div style="color:#555;font-size:13px;">' + block.line2 + '</div></td>'
-                        + '<td width="20%" align="right" valign="middle"><img src="' + fixGithubUrl(block.logo2) + '" style="width:' + lw + '%;max-width:100px;height:auto;display:block;margin-left:auto;"></td>'
-                        + '</tr></table>';
+                        +'<td width="20%" align="left" valign="middle"><img src="'+fixGithubUrl(block.logo1)+'" style="width:'+lw+'%;max-width:100px;height:auto;display:block;" alt=""></td>'
+                        +'<td width="60%" align="center" valign="middle" style="padding:0 10px;"><div style="color:#1b396a;font-weight:bold;font-size:14px;line-height:1.2;margin-bottom:4px;text-transform:uppercase;">'+block.line1+'</div><div style="color:#555;font-size:13px;">'+block.line2+'</div></td>'
+                        +'<td width="20%" align="right" valign="middle"><img src="'+fixGithubUrl(block.logo2)+'" style="width:'+lw+'%;max-width:100px;height:auto;display:block;margin-left:auto;" alt=""></td>'
+                        +'</tr></table>';
                 } else if (block.type === 'columns') {
                     style += 'padding:10px 20px;';
-                    var c1 = block.col1Type === 'image' ? '<img src="' + fixGithubUrl(block.col1Content) + '" style="width:' + (block.col1Width||100) + '%;max-width:100%;height:auto;">' : '<div>' + block.col1Content + '</div>';
-                    var c2 = block.col2Type === 'image' ? '<img src="' + fixGithubUrl(block.col2Content) + '" style="width:' + (block.col2Width||100) + '%;max-width:100%;height:auto;">' : '<div>' + block.col2Content + '</div>';
-                    cell = '<table width="100%" border="0" cellspacing="0" cellpadding="0"><tr><td width="50%" valign="middle" align="' + (block.col1Align||'left') + '" style="padding-right:10px;">' + c1 + '</td><td width="50%" valign="middle" align="' + (block.col2Align||'left') + '" style="padding-left:10px;">' + c2 + '</td></tr></table>';
+                    var c1 = block.col1Type==='image' ? '<img src="'+fixGithubUrl(block.col1Content)+'" style="width:'+(block.col1Width||100)+'%;max-width:100%;height:auto;" alt="">' : '<div>'+block.col1Content+'</div>';
+                    var c2 = block.col2Type==='image' ? '<img src="'+fixGithubUrl(block.col2Content)+'" style="width:'+(block.col2Width||100)+'%;max-width:100%;height:auto;" alt="">' : '<div>'+block.col2Content+'</div>';
+                    cell = '<table width="100%" border="0" cellspacing="0" cellpadding="0"><tr>'
+                        +'<td width="50%" valign="middle" align="'+(block.col1Align||'left')+'" style="padding-right:10px;">'+c1+'</td>'
+                        +'<td width="50%" valign="middle" align="'+(block.col2Align||'left')+'" style="padding-left:10px;">'+c2+'</td>'
+                        +'</tr></table>';
                 } else if (block.type === 'image') {
-                    style += 'padding:10px 30px;text-align:' + (block.align||'center') + ';';
-                    if (block.url) cell = '<img src="' + fixGithubUrl(block.url) + '" style="width:' + (block.width||100) + '%;max-width:100%;height:auto;display:inline-block;">';
+                    style += 'padding:10px 30px;text-align:'+(block.align||'center')+';';
+                    if (block.url) cell = '<img src="'+fixGithubUrl(block.url)+'" style="width:'+(block.width||100)+'%;max-width:100%;height:auto;display:inline-block;" alt="">';
                 } else if (block.type === 'separator') {
-                    cell = '<div align="center"><hr style="width:' + (block.width||90) + '%;border:0;border-top:' + (block.thickness||2) + 'px ' + (block.style||'solid') + ' ' + block.color + ';margin:15px auto;"></div>';
+                    cell = '<div align="center"><hr style="width:'+(block.width||90)+'%;border:0;border-top:'+(block.thickness||2)+'px '+(block.style||'solid')+' '+block.color+';margin:15px auto;"></div>';
                 } else if (block.type === 'button') {
                     style += 'padding:20px;text-align:center;';
-                    cell = '<a href="' + (block.link||'#') + '" style="background:' + (block.btnColor||'#1b396a') + ';color:white;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold;display:inline-block;">' + (block.text||'Click') + '</a>';
+                    cell = '<a href="'+(block.link||'#')+'" style="background:'+(block.btnColor||'#1b396a')+';color:white;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold;display:inline-block;">'+(block.text||'Click')+'</a>';
                 } else if (block.type === 'html') {
                     cell = block.content;
                 }
-                if (cell) rows += '<tr><td style="' + style + '">' + cell + '</td></tr>';
+                if (cell) rows += '<tr><td style="'+style+'">'+cell+'</td></tr>';
             });
             return '<table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#f1f5f9;font-family:Arial,sans-serif;">'
-                + '<tr><td align="center" style="padding:20px;">'
-                + '<table width="600" border="0" cellspacing="0" cellpadding="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,0.1);">'
-                + '<tr><td height="6" style="background-color:' + accent + ';font-size:0;">&nbsp;</td></tr>'
-                + '<tr><td><table width="100%" border="0" cellspacing="0" cellpadding="0"><tbody>' + rows + '</tbody></table></td></tr>'
-                + '<tr><td align="center" style="background-color:#f8fafc;padding:20px;font-size:11px;color:#64748b;border-top:1px solid #e2e8f0;"><strong>Instituto Tecnológico de Durango</strong><br>Coordinación de Actualización Docente</td></tr>'
-                + '<tr><td height="6" style="background-color:' + accent + ';font-size:0;">&nbsp;</td></tr>'
-                + '</table></td></tr></table>';
+                +'<tr><td align="center" style="padding:20px;">'
+                +'<table width="600" border="0" cellspacing="0" cellpadding="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,0.1);">'
+                +'<tr><td height="6" style="background-color:'+accent+';font-size:0;">&nbsp;</td></tr>'
+                +'<tr><td><table width="100%" border="0" cellspacing="0" cellpadding="0"><tbody>'+rows+'</tbody></table></td></tr>'
+                +'<tr><td align="center" style="background-color:#f8fafc;padding:20px;font-size:11px;color:#64748b;border-top:1px solid #e2e8f0;"><strong>Instituto Tecnológico de Durango</strong><br>Coordinación de Actualización Docente</td></tr>'
+                +'<tr><td height="6" style="background-color:'+accent+';font-size:0;">&nbsp;</td></tr>'
+                +'</table></td></tr></table>';
         }
 
+        // ── COPY GMAIL SAFE ───────────────────────────────────────────
         async function copyGmailSafe() {
-            const html = buildGmailHTML();
-            const temp = document.createElement('div');
-            temp.style.cssText = 'position:fixed;left:-9999px;opacity:0;pointer-events:none;';
+            var html = buildGmailHTML();
+            var temp = document.createElement('div');
+            temp.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none;';
             temp.innerHTML = html;
             document.body.appendChild(temp);
             try {
                 if (navigator.clipboard && navigator.clipboard.write) {
-                    const blob = new Blob([html], { type: 'text/html' });
+                    var blob = new Blob([html], { type: 'text/html' });
                     await navigator.clipboard.write([new ClipboardItem({ 'text/html': blob })]);
                 } else {
-                    const r = document.createRange(), s = window.getSelection();
+                    var r = document.createRange(), s = window.getSelection();
                     r.selectNode(temp); s.removeAllRanges(); s.addRange(r);
                     document.execCommand('copy'); s.removeAllRanges();
                 }
-                showMsg('✅ ¡Listo! Abre Gmail → Redactar → Ctrl+V o Cmd+V', '#15803d');
+                showMsg('✅ Listo — abre Gmail, Redactar y pega con Ctrl+V / Cmd+V', '#15803d');
             } catch(e) {
-                const r = document.createRange(), s = window.getSelection();
+                var r = document.createRange(), s = window.getSelection();
                 r.selectNode(temp); s.removeAllRanges(); s.addRange(r);
-                showMsg('Seleccionado — usa Cmd+C / Ctrl+C', '#92400e');
+                showMsg('Seleccionado — usa Cmd+C / Ctrl+C para copiar', '#92400e');
             }
             document.body.removeChild(temp);
         }
 
+        // ── INIT SEGURO ───────────────────────────────────────────────
         function init() {
-            try { renderControls(); renderPreview(); } catch(e) { console.error('Init error:', e); }
+            try { renderControls(); renderPreview(); } catch(e) { console.error('Init:', e); }
         }
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', init);
@@ -535,42 +613,7 @@
                 let html = `<div class="block-card"><div class="block-header"><div class="block-title"><i class="fas fa-cube"></i> ${block.type.toUpperCase()}</div><div style="display:flex; align-items:center;"><div class="move-controls"><button class="btn-move" onclick="moveBlock(${index}, -1)">▲</button><button class="btn-move" onclick="moveBlock(${index}, 1)">▼</button></div><i class="fas fa-trash-alt btn-delete" onclick="removeBlock(${index})"></i></div></div>`;
 
                 if (block.type === 'text') {
-                    const bgLogos = [
-                        'https://raw.githubusercontent.com/DA-itd/web/main/logo_itdurango.png',
-                        'https://raw.githubusercontent.com/DA-itd/web/main/pola.png',
-                        'https://raw.githubusercontent.com/DA-itd/web/main/TecNM.jpg',
-                        'https://raw.githubusercontent.com/DA-itd/A/main/tecnm1.jpg'
-                    ];
-                    const hasBg = !!(block.bgImage && block.bgImage.trim());
-                    // Registrar URLs en array global para acceso desde onclick
-                    if (!window._bgLogoRefs) window._bgLogoRefs = {};
-                    window._bgLogoRefs[index] = bgLogos;
-
-                    let bgPickerHtml = '<div style="margin-top:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:8px;">';
-                    bgPickerHtml += '<label style="color:#166534;margin-bottom:6px;display:block;">🖼️ Imagen de fondo (opcional)</label>';
-                    bgPickerHtml += '<div style="display:flex;gap:5px;margin-bottom:6px;">';
-                    bgLogos.forEach(function(url, li) {
-                        const sel = block.bgImage === url ? '#1b396a' : '#ddd';
-                        bgPickerHtml += '<div onclick="setBgLogo(' + index + ',' + li + ')" style="width:48px;height:40px;border:2px solid ' + sel + ';border-radius:4px;background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;" title="Usar este logo como fondo"><img src="' + url + '" style="max-width:90%;max-height:90%;object-fit:contain;"></div>';
-                    });
-                    const noSel = !hasBg ? '#ef4444' : '#ddd';
-                    bgPickerHtml += '<div onclick="clearBgImage(' + index + ')" style="width:48px;height:40px;border:2px solid ' + noSel + ';border-radius:4px;background:#fff5f5;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#ef4444;font-size:18px;flex-shrink:0;" title="Quitar fondo">✕</div>';
-                    bgPickerHtml += '</div>';
-                    bgPickerHtml += '<input type="text" id="bgInput_' + index + '" value="' + (block.bgImage||'') + '" placeholder="O pega otra URL de imagen..." oninput="setBgUrl(' + index + ',this.value)" style="width:100%;margin-bottom:6px;box-sizing:border-box;">';
-                    if (hasBg) {
-                        const pct = Math.round((block.bgOpacity||0.08)*100);
-                        const sz = block.bgSize || 'contain';
-                        bgPickerHtml += '<label style="color:#166534;display:block;margin-top:4px;">Opacidad: ' + pct + '%</label>';
-                        bgPickerHtml += '<input type="range" min="2" max="40" value="' + pct + '" oninput="setBgOpacity(' + index + ',this.value)" style="width:100%;box-sizing:border-box;">';
-                        bgPickerHtml += '<label style="color:#166534;display:block;margin-top:4px;">Tamaño:</label>';
-                        bgPickerHtml += '<select onchange="setBgSize(' + index + ',this.value)" style="width:100%;">';
-                        bgPickerHtml += '<option value="contain"' + (sz==='contain'?' selected':'') + '>Contener</option>';
-                        bgPickerHtml += '<option value="cover"' + (sz==='cover'?' selected':'') + '>Cubrir</option>';
-                        bgPickerHtml += '<option value="auto"' + (sz==='auto'?' selected':'') + '>Tamaño real</option>';
-                        bgPickerHtml += '</select>';
-                    }
-                    bgPickerHtml += '</div>';
-                    html += setTextBlockHtml(index, block, bgPickerHtml);
+                    html += buildTextCtrl(index, block);
                 }
                 else if (block.type === 'box') {
                     html += `<div class="row"> <div class="col"><label>Fondo</label><input type="color" value="${block.bgColor||'#e0f2fe'}" oninput="updateBlock(${index},'bgColor',this.value)"></div> <div class="col"><label>Texto</label><input type="color" value="${block.textColor||'#1e3a8a'}" oninput="updateBlock(${index},'textColor',this.value)"></div> </div><div class="row"><div class="col"><label>Alineación</label><select onchange="updateBlock(${index}, 'align', this.value)"><option value="left" ${block.align==='left'?'selected':''}>Izquierda</option><option value="center" ${block.align==='center'?'selected':''}>Centro</option><option value="right" ${block.align==='right'?'selected':''}>Derecha</option><option value="justify" ${block.align==='justify'?'selected':''}>Justificado</option></select></div></div><div class="editor-toolbar"><button onmousedown="event.preventDefault(); execFormat('bold')" title="Negrita"><b>B</b></button> <button onmousedown="event.preventDefault(); execFormat('italic')" title="Cursiva"><i>I</i></button> <button onmousedown="event.preventDefault(); execClean()" title="Limpiar Formato para aplicar Color">🧹 Limpiar</button></div><div contenteditable="true" style="min-height:60px; border:1px solid #cbd5e1; padding:8px; background:white; color:#333;" oninput="updateBlock(${index}, 'content', this.innerHTML)">${block.content}</div>`;
@@ -612,12 +655,17 @@
                 let tr = document.createElement('tr'); let td = document.createElement('td'); td.style.fontFamily = 'Arial, sans-serif'; td.style.color = '#333';
                 if (block.type === 'box') { td.style.padding = '15px 30px'; td.innerHTML = `<table width="100%" cellpadding="0" cellspacing="0" style="background-color:${block.bgColor}; border-radius:6px;"><tr><td style="padding:20px; color:${block.textColor}; font-size:15px; text-align:${block.align||'center'};">${block.content}</td></tr></table>`; }
                 else if (block.type === 'text') {
-                    td.style.padding = '10px 30px'; td.style.fontSize = '16px'; td.style.lineHeight = '1.6'; td.style.textAlign = block.align||'left';
+                    td.style.padding = '10px 30px'; td.style.fontSize = '16px';
+                    td.style.lineHeight = '1.6'; td.style.textAlign = block.align||'left';
                     if (block.bgImage && block.bgImage.trim()) {
                         td.style.position = 'relative';
-                        const opacity = block.bgOpacity || 0.08;
-                        const size = block.bgSize || 'contain';
-                        td.innerHTML = '<div style="position:absolute;top:0;left:0;width:100%;height:100%;background-image:url(\'' + fixGithubUrl(block.bgImage) + '\');background-repeat:no-repeat;background-position:center center;background-size:' + size + ';opacity:' + opacity + ';pointer-events:none;z-index:0;"></div><div style="position:relative;z-index:1;">' + block.content + '</div>';
+                        var op = block.bgOpacity || 0.08;
+                        var sz = block.bgSize || 'contain';
+                        td.innerHTML = '<div style="position:absolute;top:0;left:0;width:100%;height:100%;'
+                            + 'background-image:url(\'' + fixGithubUrl(block.bgImage) + '\');'
+                            + 'background-repeat:no-repeat;background-position:center center;'
+                            + 'background-size:' + sz + ';opacity:' + op + ';pointer-events:none;z-index:0;"></div>'
+                            + '<div style="position:relative;z-index:1;">' + block.content + '</div>';
                     } else {
                         td.innerHTML = block.content;
                     }
@@ -663,120 +711,167 @@
         }
 
 
-        function setTextBlockHtml(index, block, bgPickerHtml) {
-            var alignOpts = ['left','center','right','justify'];
-            var alignLabels = ['Izquierda','Centro','Derecha','Justificado'];
-            var sel = '<select onchange="updateBlock(' + index + ',\'align\',this.value)" style="margin-bottom:5px;">';
-            alignOpts.forEach(function(v, i) {
-                sel += '<option value="' + v + '"' + (block.align===v?' selected':'') + '>' + alignLabels[i] + '</option>';
-            });
+        // ── HELPERS FONDO DE IMAGEN ──────────────────────────────────
+        var _bgRefs = {};
+        function setBgLogo(bi, li) { blocks[bi].bgImage = _bgRefs[bi][li]; renderControls(); renderPreview(); saveData(); }
+        function clearBgImage(bi) { blocks[bi].bgImage = ''; renderControls(); renderPreview(); saveData(); }
+        function setBgUrl(bi, v) { blocks[bi].bgImage = v; renderPreview(); saveData(); }
+        function setBgOpacity(bi, v) { blocks[bi].bgOpacity = v/100; renderControls(); renderPreview(); saveData(); }
+        function setBgSize(bi, v) { blocks[bi].bgSize = v; renderPreview(); saveData(); }
+
+        // ── BUILD TEXT CONTROL ────────────────────────────────────────
+        function buildTextCtrl(index, block) {
+            var aOpts = [['left','Izquierda'],['center','Centro'],['right','Derecha'],['justify','Justificado']];
+            var sel = '<select onchange="updateBlock('+index+',\'align\',this.value)" style="margin-bottom:5px;">';
+            aOpts.forEach(function(o){ sel += '<option value="'+o[0]+'"'+(block.align===o[0]?' selected':'')+'>'+o[1]+'</option>'; });
             sel += '</select>';
             var toolbar = '<div class="editor-toolbar">'
-                + '<button onmousedown="event.preventDefault();execFormat(\'bold\')" title="Negrita"><b>B</b></button> '
-                + '<button onmousedown="event.preventDefault();execFormat(\'italic\')" title="Cursiva"><i>I</i></button> '
-                + '<button onmousedown="event.preventDefault();execClean()" title="Limpiar">🧹 Limpiar</button>'
-                + '</div>';
-            var editor = '<div contenteditable="true" style="min-height:60px;border:1px solid #cbd5e1;padding:8px;background:white;color:#333;" oninput="updateBlock(' + index + ',\'content\',this.innerHTML)">' + block.content + '</div>';
-            return sel + toolbar + editor + bgPickerHtml;
+                +'<button onmousedown="event.preventDefault();execFormat(\'bold\')" title="Negrita"><b>B</b></button> '
+                +'<button onmousedown="event.preventDefault();execFormat(\'italic\')" title="Cursiva"><i>I</i></button> '
+                +'<button onmousedown="event.preventDefault();execClean()" title="Limpiar">🧹 Limpiar</button>'
+                +'</div>';
+            var editor = '<div contenteditable="true" style="min-height:60px;border:1px solid #cbd5e1;padding:8px;background:white;color:#333;" '
+                +'oninput="updateBlock('+index+',\'content\',this.innerHTML)">'+block.content+'</div>';
+
+            var bgLogos = [
+                'https://raw.githubusercontent.com/DA-itd/web/main/logo_itdurango.png',
+                'https://raw.githubusercontent.com/DA-itd/web/main/pola.png',
+                'https://raw.githubusercontent.com/DA-itd/web/main/TecNM.jpg',
+                'https://raw.githubusercontent.com/DA-itd/A/main/tecnm1.jpg'
+            ];
+            _bgRefs[index] = bgLogos;
+            var hasBg = !!(block.bgImage && block.bgImage.trim());
+
+            var picker = '<div style="margin-top:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:8px;">'
+                +'<label style="color:#166534;display:block;margin-bottom:6px;">🖼️ Imagen de fondo (opcional)</label>'
+                +'<div style="display:flex;gap:5px;margin-bottom:6px;">';
+            bgLogos.forEach(function(url, li) {
+                var brd = (block.bgImage === url) ? '#1b396a' : '#ddd';
+                picker += '<div onclick="setBgLogo('+index+','+li+')" style="width:48px;height:40px;border:2px solid '+brd+';border-radius:4px;background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;" title="Usar como fondo">'
+                    +'<img src="'+url+'" style="max-width:90%;max-height:90%;object-fit:contain;"></div>';
+            });
+            var noSelColor = hasBg ? '#ddd' : '#ef4444';
+            picker += '<div onclick="clearBgImage('+index+')" style="width:48px;height:40px;border:2px solid '+noSelColor+';border-radius:4px;background:#fff5f5;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#ef4444;font-size:18px;flex-shrink:0;" title="Sin fondo">✕</div>'
+                +'</div>'
+                +'<input type="text" value="'+(block.bgImage||'')+'" placeholder="O pega otra URL de imagen..." oninput="setBgUrl('+index+',this.value)" style="width:100%;margin-bottom:6px;box-sizing:border-box;">';
+            if (hasBg) {
+                var pct = Math.round((block.bgOpacity||0.08)*100);
+                var sz  = block.bgSize || 'contain';
+                picker += '<label style="color:#166534;display:block;margin-top:4px;">Opacidad del fondo: '+pct+'%</label>'
+                    +'<input type="range" min="2" max="40" value="'+pct+'" oninput="setBgOpacity('+index+',this.value)" style="width:100%;box-sizing:border-box;">'
+                    +'<label style="color:#166534;display:block;margin-top:4px;">Tamaño:</label>'
+                    +'<select onchange="setBgSize('+index+',this.value)" style="width:100%;">'
+                    +'<option value="contain"'+(sz==='contain'?' selected':'')+'>Contener (logo completo)</option>'
+                    +'<option value="cover"'+(sz==='cover'?' selected':'')+'>Cubrir</option>'
+                    +'<option value="auto"'+(sz==='auto'?' selected':'')+'>Tamaño real</option>'
+                    +'</select>';
+            }
+            picker += '</div>';
+            return sel + toolbar + editor + picker;
         }
 
-        // Helpers para el selector de fondo en bloque texto
-        function setBgLogo(blockIdx, logoIdx) {
-            if (!window._bgLogoRefs || !window._bgLogoRefs[blockIdx]) return;
-            blocks[blockIdx].bgImage = window._bgLogoRefs[blockIdx][logoIdx];
-            renderControls(); renderPreview(); saveData();
-        }
-        function clearBgImage(blockIdx) {
-            blocks[blockIdx].bgImage = '';
-            renderControls(); renderPreview(); saveData();
-        }
-        function setBgUrl(blockIdx, url) {
-            blocks[blockIdx].bgImage = url;
-            renderPreview(); saveData();
-        }
-
+        // ── SHOW MSG ─────────────────────────────────────────────────
         function showMsg(text, color) {
-            const m = document.getElementById('msg');
-            m.textContent = text; m.style.color = color || 'green'; m.style.display = 'block';
-            setTimeout(() => m.style.display = 'none', 4000);
+            var m = document.getElementById('msg');
+            m.textContent = text; m.style.color = color||'green'; m.style.display = 'block';
+            setTimeout(function(){ m.style.display='none'; }, 4000);
         }
 
+        // ── BUILD GMAIL HTML (técnica <img> con opacity — compatible Gmail) ──
         function buildGmailHTML() {
-            const accent = document.getElementById('accentColor').value;
-            let rows = '';
+            var accent = document.getElementById('accentColor').value;
+            var rows = '';
             blocks.forEach(function(block) {
-                let cell = '', style = 'font-family:Arial,sans-serif;color:#333;';
+                var cell = '', style = 'font-family:Arial,sans-serif;color:#333;';
                 if (block.type === 'text') {
-                    style += 'padding:10px 30px;font-size:16px;line-height:1.6;text-align:' + (block.align||'left') + ';';
+                    var align = block.align || 'left';
+                    style += 'padding:10px 30px;font-size:16px;line-height:1.6;text-align:'+align+';';
                     if (block.bgImage && block.bgImage.trim()) {
-                        style += 'background-image:url(\'' + fixGithubUrl(block.bgImage) + '\');background-repeat:no-repeat;background-position:center center;background-size:' + (block.bgSize||'contain') + ';';
+                        // Técnica Gmail: <img> con opacity posicionada dentro de tabla
+                        // position:relative en la celda td + img absolute + contenido z-index
+                        var imgUrl = fixGithubUrl(block.bgImage);
+                        var op = block.bgOpacity || 0.08;
+                        var sz = block.bgSize || 'contain';
+                        // Gmail ignora position:absolute en divs pero respeta tablas anidadas
+                        // Usamos: tabla exterior con td position:relative, img con opacity inline
+                        style += 'position:relative;';
+                        cell = '<img src="'+imgUrl+'" width="100%" '
+                            +'style="position:absolute;top:0;left:0;width:100%;height:100%;'
+                            +'object-fit:'+sz+';opacity:'+op+';display:block;pointer-events:none;" alt="">'
+                            +'<div style="position:relative;z-index:1;text-align:'+align+';">'+block.content+'</div>';
+                    } else {
+                        cell = block.content;
                     }
-                    cell = block.content;
                 } else if (block.type === 'box') {
                     style += 'padding:15px 30px;';
-                    cell = '<table width="100%" cellpadding="0" cellspacing="0" style="background-color:' + block.bgColor + ';border-radius:6px;"><tr><td style="padding:20px;color:' + block.textColor + ';font-size:15px;text-align:' + (block.align||'center') + ';">' + block.content + '</td></tr></table>';
+                    cell = '<table width="100%" cellpadding="0" cellspacing="0" style="background-color:'+block.bgColor+';border-radius:6px;"><tr><td style="padding:20px;color:'+block.textColor+';font-size:15px;text-align:'+(block.align||'center')+';">'+block.content+'</td></tr></table>';
                 } else if (block.type === 'header_tri') {
                     style += 'padding:10px 20px;';
                     var lw = block.logoWidth || 60;
                     cell = '<table width="100%" border="0" cellspacing="0" cellpadding="0"><tr>'
-                        + '<td width="20%" align="left" valign="middle"><img src="' + fixGithubUrl(block.logo1) + '" style="width:' + lw + '%;max-width:100px;height:auto;display:block;"></td>'
-                        + '<td width="60%" align="center" valign="middle" style="padding:0 10px;"><div style="color:#1b396a;font-weight:bold;font-size:14px;line-height:1.2;margin-bottom:4px;text-transform:uppercase;">' + block.line1 + '</div><div style="color:#555;font-size:13px;">' + block.line2 + '</div></td>'
-                        + '<td width="20%" align="right" valign="middle"><img src="' + fixGithubUrl(block.logo2) + '" style="width:' + lw + '%;max-width:100px;height:auto;display:block;margin-left:auto;"></td>'
-                        + '</tr></table>';
+                        +'<td width="20%" align="left" valign="middle"><img src="'+fixGithubUrl(block.logo1)+'" style="width:'+lw+'%;max-width:100px;height:auto;display:block;" alt=""></td>'
+                        +'<td width="60%" align="center" valign="middle" style="padding:0 10px;"><div style="color:#1b396a;font-weight:bold;font-size:14px;line-height:1.2;margin-bottom:4px;text-transform:uppercase;">'+block.line1+'</div><div style="color:#555;font-size:13px;">'+block.line2+'</div></td>'
+                        +'<td width="20%" align="right" valign="middle"><img src="'+fixGithubUrl(block.logo2)+'" style="width:'+lw+'%;max-width:100px;height:auto;display:block;margin-left:auto;" alt=""></td>'
+                        +'</tr></table>';
                 } else if (block.type === 'columns') {
                     style += 'padding:10px 20px;';
-                    var c1 = block.col1Type === 'image' ? '<img src="' + fixGithubUrl(block.col1Content) + '" style="width:' + (block.col1Width||100) + '%;max-width:100%;height:auto;">' : '<div>' + block.col1Content + '</div>';
-                    var c2 = block.col2Type === 'image' ? '<img src="' + fixGithubUrl(block.col2Content) + '" style="width:' + (block.col2Width||100) + '%;max-width:100%;height:auto;">' : '<div>' + block.col2Content + '</div>';
-                    cell = '<table width="100%" border="0" cellspacing="0" cellpadding="0"><tr><td width="50%" valign="middle" align="' + (block.col1Align||'left') + '" style="padding-right:10px;">' + c1 + '</td><td width="50%" valign="middle" align="' + (block.col2Align||'left') + '" style="padding-left:10px;">' + c2 + '</td></tr></table>';
+                    var c1 = block.col1Type==='image' ? '<img src="'+fixGithubUrl(block.col1Content)+'" style="width:'+(block.col1Width||100)+'%;max-width:100%;height:auto;" alt="">' : '<div>'+block.col1Content+'</div>';
+                    var c2 = block.col2Type==='image' ? '<img src="'+fixGithubUrl(block.col2Content)+'" style="width:'+(block.col2Width||100)+'%;max-width:100%;height:auto;" alt="">' : '<div>'+block.col2Content+'</div>';
+                    cell = '<table width="100%" border="0" cellspacing="0" cellpadding="0"><tr>'
+                        +'<td width="50%" valign="middle" align="'+(block.col1Align||'left')+'" style="padding-right:10px;">'+c1+'</td>'
+                        +'<td width="50%" valign="middle" align="'+(block.col2Align||'left')+'" style="padding-left:10px;">'+c2+'</td>'
+                        +'</tr></table>';
                 } else if (block.type === 'image') {
-                    style += 'padding:10px 30px;text-align:' + (block.align||'center') + ';';
-                    if (block.url) cell = '<img src="' + fixGithubUrl(block.url) + '" style="width:' + (block.width||100) + '%;max-width:100%;height:auto;display:inline-block;">';
+                    style += 'padding:10px 30px;text-align:'+(block.align||'center')+';';
+                    if (block.url) cell = '<img src="'+fixGithubUrl(block.url)+'" style="width:'+(block.width||100)+'%;max-width:100%;height:auto;display:inline-block;" alt="">';
                 } else if (block.type === 'separator') {
-                    cell = '<div align="center"><hr style="width:' + (block.width||90) + '%;border:0;border-top:' + (block.thickness||2) + 'px ' + (block.style||'solid') + ' ' + block.color + ';margin:15px auto;"></div>';
+                    cell = '<div align="center"><hr style="width:'+(block.width||90)+'%;border:0;border-top:'+(block.thickness||2)+'px '+(block.style||'solid')+' '+block.color+';margin:15px auto;"></div>';
                 } else if (block.type === 'button') {
                     style += 'padding:20px;text-align:center;';
-                    cell = '<a href="' + (block.link||'#') + '" style="background:' + (block.btnColor||'#1b396a') + ';color:white;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold;display:inline-block;">' + (block.text||'Click') + '</a>';
+                    cell = '<a href="'+(block.link||'#')+'" style="background:'+(block.btnColor||'#1b396a')+';color:white;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold;display:inline-block;">'+(block.text||'Click')+'</a>';
                 } else if (block.type === 'html') {
                     cell = block.content;
                 }
-                if (cell) rows += '<tr><td style="' + style + '">' + cell + '</td></tr>';
+                if (cell) rows += '<tr><td style="'+style+'">'+cell+'</td></tr>';
             });
             return '<table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#f1f5f9;font-family:Arial,sans-serif;">'
-                + '<tr><td align="center" style="padding:20px;">'
-                + '<table width="600" border="0" cellspacing="0" cellpadding="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,0.1);">'
-                + '<tr><td height="6" style="background-color:' + accent + ';font-size:0;">&nbsp;</td></tr>'
-                + '<tr><td><table width="100%" border="0" cellspacing="0" cellpadding="0"><tbody>' + rows + '</tbody></table></td></tr>'
-                + '<tr><td align="center" style="background-color:#f8fafc;padding:20px;font-size:11px;color:#64748b;border-top:1px solid #e2e8f0;"><strong>Instituto Tecnológico de Durango</strong><br>Coordinación de Actualización Docente</td></tr>'
-                + '<tr><td height="6" style="background-color:' + accent + ';font-size:0;">&nbsp;</td></tr>'
-                + '</table></td></tr></table>';
+                +'<tr><td align="center" style="padding:20px;">'
+                +'<table width="600" border="0" cellspacing="0" cellpadding="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,0.1);">'
+                +'<tr><td height="6" style="background-color:'+accent+';font-size:0;">&nbsp;</td></tr>'
+                +'<tr><td><table width="100%" border="0" cellspacing="0" cellpadding="0"><tbody>'+rows+'</tbody></table></td></tr>'
+                +'<tr><td align="center" style="background-color:#f8fafc;padding:20px;font-size:11px;color:#64748b;border-top:1px solid #e2e8f0;"><strong>Instituto Tecnológico de Durango</strong><br>Coordinación de Actualización Docente</td></tr>'
+                +'<tr><td height="6" style="background-color:'+accent+';font-size:0;">&nbsp;</td></tr>'
+                +'</table></td></tr></table>';
         }
 
+        // ── COPY GMAIL SAFE ───────────────────────────────────────────
         async function copyGmailSafe() {
-            const html = buildGmailHTML();
-            const temp = document.createElement('div');
-            temp.style.cssText = 'position:fixed;left:-9999px;opacity:0;pointer-events:none;';
+            var html = buildGmailHTML();
+            var temp = document.createElement('div');
+            temp.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none;';
             temp.innerHTML = html;
             document.body.appendChild(temp);
             try {
                 if (navigator.clipboard && navigator.clipboard.write) {
-                    const blob = new Blob([html], { type: 'text/html' });
+                    var blob = new Blob([html], { type: 'text/html' });
                     await navigator.clipboard.write([new ClipboardItem({ 'text/html': blob })]);
                 } else {
-                    const r = document.createRange(), s = window.getSelection();
+                    var r = document.createRange(), s = window.getSelection();
                     r.selectNode(temp); s.removeAllRanges(); s.addRange(r);
                     document.execCommand('copy'); s.removeAllRanges();
                 }
-                showMsg('✅ ¡Listo! Abre Gmail → Redactar → Ctrl+V o Cmd+V', '#15803d');
+                showMsg('✅ Listo — abre Gmail, Redactar y pega con Ctrl+V / Cmd+V', '#15803d');
             } catch(e) {
-                const r = document.createRange(), s = window.getSelection();
+                var r = document.createRange(), s = window.getSelection();
                 r.selectNode(temp); s.removeAllRanges(); s.addRange(r);
-                showMsg('Seleccionado — usa Cmd+C / Ctrl+C', '#92400e');
+                showMsg('Seleccionado — usa Cmd+C / Ctrl+C para copiar', '#92400e');
             }
             document.body.removeChild(temp);
         }
 
+        // ── INIT SEGURO ───────────────────────────────────────────────
         function init() {
-            try { renderControls(); renderPreview(); } catch(e) { console.error('Init error:', e); }
+            try { renderControls(); renderPreview(); } catch(e) { console.error('Init:', e); }
         }
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', init);
