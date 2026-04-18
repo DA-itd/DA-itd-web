@@ -1,485 +1,682 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Completador de Emails - ITD</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Completador de Datos — DA ITD</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 
-        :root {
-            --itd-blue: #1b396a;
-            --itd-gold: #d4a017;
-            --maroon: #8B1538;
-            --white: #ffffff;
-            --gray-light: #f5f7fa;
-            --gray-medium: #c3cfe2;
-        }
+:root {
+  --blue: #1B396A;
+  --blue-light: #2a4f8f;
+  --maroon: #8B1538;
+  --green: #059669;
+  --green-light: #d1fae5;
+  --red: #dc2626;
+  --red-light: #fee2e2;
+  --amber: #d97706;
+  --amber-light: #fef3c7;
+  --gray-50: #f8fafc;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-400: #94a3b8;
+  --gray-600: #475569;
+  --gray-800: #1e293b;
+  --white: #ffffff;
+  --shadow: 0 4px 24px rgba(0,0,0,0.08);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.12);
+  --radius: 14px;
+}
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, var(--gray-light) 0%, var(--gray-medium) 100%);
-            min-height: 100vh;
-        }
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
-        /* Header */
-        .header {
-            background: var(--white);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--gray-50);
+  min-height: 100vh;
+  color: var(--gray-800);
+}
 
-        .header-logos {
-            background: var(--white);
-            padding: 2rem;
-        }
+/* HEADER */
+.header {
+  background: var(--white);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+.header-logos {
+  padding: 1.2rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.header-logos img { height: 64px; object-fit: contain; }
+.header-bar {
+  background: var(--maroon);
+  height: 5px;
+}
+.header-title {
+  background: var(--blue);
+  padding: 1.4rem 2rem;
+  text-align: center;
+  color: white;
+}
+.header-title h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; }
+.header-title p { font-size: 0.85rem; opacity: 0.75; margin-top: 3px; }
 
-        .header-content {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 2rem;
-        }
+/* LAYOUT */
+.container {
+  max-width: 1000px;
+  margin: 2rem auto;
+  padding: 0 1.5rem 4rem;
+}
 
-        .logo-left img,
-        .logo-right img {
-            height: 100px;
-            width: auto;
-        }
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: white;
+  color: var(--blue);
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.875rem;
+  box-shadow: var(--shadow);
+  margin-bottom: 1.5rem;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.back-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
 
-        .center-spacer {
-            flex: 1;
-        }
+/* CARD */
+.card {
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.card-header {
+  background: linear-gradient(135deg, var(--blue) 0%, var(--blue-light) 100%);
+  padding: 1.5rem 2rem;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.card-header h2 { font-size: 1.2rem; font-weight: 700; }
+.card-header p { font-size: 0.8rem; opacity: 0.8; margin-top: 2px; }
+.card-body { padding: 2rem; }
 
-        .maroon-line {
-            width: 100%;
-            height: 6px;
-            background: var(--maroon);
-        }
+/* STEPS */
+.steps {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+}
+.step {
+  flex: 1;
+  text-align: center;
+  padding: 0.5rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--gray-400);
+  background: var(--gray-100);
+  transition: all 0.3s;
+  position: relative;
+}
+.step.active { background: var(--blue); color: white; }
+.step.done { background: var(--green-light); color: var(--green); }
 
-        .header-title {
-            background: var(--itd-blue);
-            color: var(--white);
-            padding: 2rem 1rem;
-            text-align: center;
-        }
+/* UPLOAD GRID */
+.upload-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+@media (max-width: 640px) { .upload-grid { grid-template-columns: 1fr; } }
 
-        .header-title h1 {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
-        }
+.upload-zone {
+  border: 2px dashed var(--gray-200);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--gray-50);
+  position: relative;
+}
+.upload-zone:hover { border-color: var(--blue); background: #EFF6FF; }
+.upload-zone.loaded { border-color: var(--green); border-style: solid; background: var(--green-light); }
+.upload-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.upload-icon { font-size: 2.5rem; margin-bottom: 0.8rem; }
+.upload-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gray-400); margin-bottom: 0.3rem; }
+.upload-name { font-size: 0.9rem; font-weight: 600; color: var(--blue); margin-bottom: 0.2rem; }
+.upload-sub { font-size: 0.8rem; color: var(--gray-400); }
+.upload-zone.loaded .upload-sub { color: var(--green); font-weight: 600; }
 
-        /* Contenedor principal */
-        .container {
-            max-width: 1200px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-        }
+/* COLUMN SELECTORS */
+.col-selectors {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.field-group label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--gray-600);
+  margin-bottom: 0.4rem;
+}
+.field-group select {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.85rem;
+  color: var(--gray-800);
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.field-group select:focus { outline: none; border-color: var(--blue); }
 
-        .back-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: var(--white);
-            color: var(--itd-blue);
-            padding: 0.8rem 1.5rem;
-            border-radius: 10px;
-            text-decoration: none;
-            font-weight: 600;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            margin-bottom: 2rem;
-            transition: all 0.3s ease;
-        }
+.divider {
+  border: none;
+  border-top: 1.5px solid var(--gray-100);
+  margin: 1.5rem 0;
+}
 
-        .back-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-        }
+/* PROCESS BUTTON */
+.btn-process {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, var(--maroon) 0%, var(--blue) 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+}
+.btn-process:hover:not(:disabled) { opacity: 0.92; transform: translateY(-1px); }
+.btn-process:disabled { opacity: 0.4; cursor: not-allowed; }
 
-        /* App container */
-        #app {
-            background: white;
-            border-radius: 20px;
-            padding: 2rem;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-        }
+/* RESULTS */
+.results { margin-top: 1.5rem; }
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+@media (max-width: 600px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
 
-        @media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-            }
-            
-            .logo-left img,
-            .logo-right img {
-                height: 60px;
-            }
-            
-            .header-title h1 {
-                font-size: 1.5rem;
-            }
-        }
-    </style>
+.stat-card {
+  background: var(--gray-50);
+  border-radius: 10px;
+  padding: 1.2rem;
+  text-align: center;
+  border-top: 3px solid var(--gray-200);
+}
+.stat-card.green { border-color: var(--green); background: var(--green-light); }
+.stat-card.blue  { border-color: var(--blue); background: #EFF6FF; }
+.stat-card.amber { border-color: var(--amber); background: var(--amber-light); }
+.stat-num { font-size: 2rem; font-weight: 700; color: var(--gray-800); line-height: 1; margin-bottom: 0.3rem; }
+.stat-card.green .stat-num { color: var(--green); }
+.stat-card.blue  .stat-num { color: var(--blue); }
+.stat-card.amber .stat-num { color: var(--amber); }
+.stat-lbl { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gray-400); }
+
+/* PREVIEW TABLE */
+.preview-wrap {
+  border: 1.5px solid var(--gray-200);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+.preview-title {
+  background: var(--gray-100);
+  padding: 0.7rem 1rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--gray-600);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.preview-scroll { overflow-x: auto; max-height: 260px; overflow-y: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+thead th {
+  background: var(--blue);
+  color: white;
+  padding: 0.6rem 0.8rem;
+  text-align: left;
+  font-weight: 600;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+}
+tbody tr:nth-child(even) { background: var(--gray-50); }
+tbody td { padding: 0.5rem 0.8rem; border-bottom: 1px solid var(--gray-100); white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+.tag-filled { background: var(--green-light); color: var(--green); font-weight: 600; padding: 2px 8px; border-radius: 20px; font-size: 0.75rem; font-family: 'DM Mono', monospace; }
+.tag-miss    { background: var(--amber-light); color: var(--amber); font-weight: 600; padding: 2px 8px; border-radius: 20px; font-size: 0.75rem; }
+
+/* DOWNLOAD */
+.btn-download {
+  width: 100%;
+  padding: 1rem;
+  background: var(--green);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+}
+.btn-download:hover { opacity: 0.9; transform: translateY(-1px); }
+
+/* RESET BTN */
+.btn-reset {
+  background: var(--red-light);
+  color: var(--red);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* NOTICE */
+.notice {
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  border-radius: 8px;
+  padding: 0.8rem 1rem;
+  font-size: 0.82rem;
+  color: var(--blue);
+  margin-bottom: 1.5rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* PROGRESS BAR */
+.progress-bar-wrap {
+  background: var(--gray-200);
+  border-radius: 99px;
+  height: 8px;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--green), #34d399);
+  transition: width 0.5s ease;
+}
+</style>
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <div class="header-logos">
-            <div class="header-content">
-                <div class="logo-left">
-                    <img src="https://raw.githubusercontent.com/DA-itd/A/main/tecnm1.jpg" alt="TecNM">
-                </div>
-                <div class="center-spacer"></div>
-                <div class="logo-right">
-                    <img src="https://raw.githubusercontent.com/DA-itd/web/main/logo_itdurango.png" alt="ITD">
-                </div>
-            </div>
-        </div>
-        <div class="maroon-line"></div>
-        <div class="header-title">
-            <h1>Completador de Emails</h1>
-            <p>Herramienta de Desarrollo Académico</p>
-        </div>
-    </header>
 
-    <!-- Contenido -->
-    <div class="container">
-        <a href="index.html" class="back-btn">
-            <i class="fas fa-arrow-left"></i> Volver al Portal
-        </a>
-        
-        <div id="app"></div>
+<header class="header">
+  <div class="header-logos">
+    <img src="https://raw.githubusercontent.com/DA-itd/A/main/tecnm1.jpg" alt="TecNM">
+    <img src="https://raw.githubusercontent.com/DA-itd/web/main/logo_itdurango.png" alt="ITD">
+  </div>
+  <div class="header-bar"></div>
+  <div class="header-title">
+    <h1>Completador de Columnas</h1>
+    <p>Herramienta de Desarrollo Académico — ITD</p>
+  </div>
+</header>
+
+<div class="container">
+  <a href="index.html" class="back-btn">← Volver al Portal</a>
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h2>Cruce de Datos entre Archivos</h2>
+        <p>Completa columnas vacías usando datos de un archivo fuente</p>
+      </div>
+      <button id="btn-reset" class="btn-reset" style="display:none" onclick="resetAll()">🗑 Reiniciar</button>
     </div>
+    <div class="card-body">
 
-    <script type="module">
-        import React, { useState } from 'https://esm.sh/react@18';
-        import ReactDOM from 'https://esm.sh/react-dom@18';
+      <!-- STEPS -->
+      <div class="steps">
+        <div class="step active" id="step1">1 · Cargar archivos</div>
+        <div class="step" id="step2">2 · Configurar columnas</div>
+        <div class="step" id="step3">3 · Resultado</div>
+      </div>
 
-        function EmailCompleter() {
-            const [bd2024, setBd2024] = useState(null);
-            const [bd2025, setBd2025] = useState(null);
-            const [result, setResult] = useState(null);
-            const [stats, setStats] = useState(null);
-            const [log, setLog] = useState([]);
-            const [columnas2024, setColumnas2024] = useState([]);
-            const [columnas2025, setColumnas2025] = useState([]);
-            const [colNombre2024, setColNombre2024] = useState('');
-            const [colEmail2024, setColEmail2024] = useState('');
-            const [colNombre2025, setColNombre2025] = useState('');
-            const [colEmail2025, setColEmail2025] = useState('');
+      <!-- NOTICE -->
+      <div class="notice">
+        ℹ️ <span><b>Archivo A</b> = el que tiene datos incompletos (ej. participantes sin email). &nbsp;<b>Archivo B</b> = el que tiene los datos completos (ej. BD Docentes con email).</span>
+      </div>
 
-            const addLog = (message) => {
-                setLog(prev => [...prev, message]);
-                console.log(message);
-            };
+      <!-- UPLOAD -->
+      <div class="upload-grid">
+        <!-- Archivo A -->
+        <div>
+          <div class="upload-zone" id="zone-a">
+            <input type="file" accept=".xlsx,.xls,.csv" onchange="cargarArchivo(event,'A')">
+            <div class="upload-icon" id="icon-a">📂</div>
+            <div class="upload-label">Archivo A</div>
+            <div class="upload-name" id="name-a">Datos a completar</div>
+            <div class="upload-sub" id="sub-a">Haz clic o arrastra el archivo</div>
+          </div>
 
-            const handleFileUpload = (e, year) => {
-                const file = e.target.files[0];
-                if (!file) return;
+          <div id="config-a" style="display:none; margin-top:1rem;">
+            <div class="col-selectors">
+              <div class="field-group">
+                <label>Columna NOMBRE (clave de cruce)</label>
+                <select id="col-nombre-a" onchange="verificarListo()"></select>
+              </div>
+              <div class="field-group">
+                <label>Columna a COMPLETAR</label>
+                <select id="col-completar-a" onchange="verificarListo()">
+                  <option value="">— Selecciona —</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
 
-                addLog(`Cargando archivo ${year}...`);
-                const reader = new FileReader();
-                
-                reader.onload = (event) => {
-                    try {
-                        const data = new Uint8Array(event.target.result);
-                        const workbook = XLSX.read(data, { type: 'array' });
-                        const sheetName = workbook.SheetNames[0];
-                        const sheet = workbook.Sheets[sheetName];
-                        const range = XLSX.utils.decode_range(sheet['!ref']);
-                        
-                        const headers = [];
-                        for (let col = range.s.c; col <= range.e.c; col++) {
-                            const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
-                            const cell = sheet[cellAddress];
-                            const headerValue = cell ? String(cell.v || cell.w || `Columna_${col + 1}`).trim() : `Columna_${col + 1}`;
-                            headers.push(headerValue);
-                        }
-                        
-                        addLog(`Encabezados: ${headers.join(', ')}`);
-                        
-                        const jsonData = [];
-                        for (let row = range.s.r + 1; row <= range.e.r; row++) {
-                            const rowData = {};
-                            let hasData = false;
-                            
-                            for (let col = range.s.c; col <= range.e.c; col++) {
-                                const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-                                const cell = sheet[cellAddress];
-                                const value = cell ? (cell.v || cell.w || '') : '';
-                                rowData[headers[col]] = value;
-                                if (value) hasData = true;
-                            }
-                            
-                            if (hasData) jsonData.push(rowData);
-                        }
-                        
-                        if (year === 2024) {
-                            setBd2024(jsonData);
-                            setColumnas2024(headers);
-                            addLog(`✓ BD 2024: ${jsonData.length} registros`);
-                            const colNom = headers.find(c => c.toLowerCase().includes('nombre')) || headers[0];
-                            const colEm = headers.find(c => c.toLowerCase().includes('email') || c.toLowerCase().includes('correo'));
-                            setColNombre2024(colNom);
-                            setColEmail2024(colEm || '');
-                        } else {
-                            setBd2025(jsonData);
-                            setColumnas2025(headers);
-                            addLog(`✓ BD 2025: ${jsonData.length} registros`);
-                            const colNom = headers.find(c => c.toLowerCase().includes('nombre')) || headers[0];
-                            const colEm = headers.find(c => c.toLowerCase().includes('email') || c.toLowerCase().includes('correo'));
-                            setColNombre2025(colNom);
-                            setColEmail2025(colEm || '');
-                        }
-                    } catch (error) {
-                        addLog(`✗ Error: ${error.message}`);
-                    }
-                };
-                
-                reader.readAsArrayBuffer(file);
-            };
+        <!-- Archivo B -->
+        <div>
+          <div class="upload-zone" id="zone-b">
+            <input type="file" accept=".xlsx,.xls,.csv" onchange="cargarArchivo(event,'B')">
+            <div class="upload-icon" id="icon-b">📂</div>
+            <div class="upload-label">Archivo B</div>
+            <div class="upload-name" id="name-b">Fuente de datos</div>
+            <div class="upload-sub" id="sub-b">Haz clic o arrastra el archivo</div>
+          </div>
 
-            const normalizar = (texto) => {
-                if (!texto) return '';
-                return String(texto).toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-            };
+          <div id="config-b" style="display:none; margin-top:1rem;">
+            <div class="col-selectors">
+              <div class="field-group">
+                <label>Columna NOMBRE (clave de cruce)</label>
+                <select id="col-nombre-b" onchange="verificarListo()"></select>
+              </div>
+              <div class="field-group">
+                <label>Columna con el DATO a copiar</label>
+                <select id="col-fuente-b" onchange="verificarListo()">
+                  <option value="">— Selecciona —</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-            const procesarEmails = () => {
-                addLog('--- INICIANDO PROCESO ---');
-                if (!bd2024 || !bd2025 || !colEmail2024 || !colEmail2025) {
-                    alert('Verifica que hayas cargado ambos archivos y seleccionado las columnas');
-                    return;
-                }
+      <hr class="divider">
 
-                const mapaEmails = {};
-                bd2025.forEach(fila => {
-                    const nombre = normalizar(fila[colNombre2025]);
-                    const email = fila[colEmail2025];
-                    if (nombre && email) mapaEmails[nombre] = email;
-                });
+      <button class="btn-process" id="btn-procesar" disabled onclick="procesar()">
+        COMPLETAR DATOS
+      </button>
 
-                addLog(`Mapa: ${Object.keys(mapaEmails).length} emails`);
+      <!-- RESULTS -->
+      <div class="results" id="results" style="display:none">
+        <hr class="divider">
 
-                let completados = 0, yaExistian = 0, noEncontrados = 0;
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-num" id="stat-total">0</div>
+            <div class="stat-lbl">Total registros</div>
+          </div>
+          <div class="stat-card green">
+            <div class="stat-num" id="stat-completados">0</div>
+            <div class="stat-lbl">Completados</div>
+          </div>
+          <div class="stat-card blue">
+            <div class="stat-num" id="stat-ya-tenia">0</div>
+            <div class="stat-lbl">Ya tenían dato</div>
+          </div>
+          <div class="stat-card amber">
+            <div class="stat-num" id="stat-no-encontrado">0</div>
+            <div class="stat-lbl">Sin coincidencia</div>
+          </div>
+        </div>
 
-                const resultado = bd2024.map(fila => {
-                    const nuevaFila = { ...fila };
-                    const emailActual = fila[colEmail2024];
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+        </div>
 
-                    if (emailActual && String(emailActual).trim() !== '') {
-                        yaExistian++;
-                        return nuevaFila;
-                    }
+        <!-- PREVIEW -->
+        <div class="preview-wrap" id="preview-wrap" style="display:none">
+          <div class="preview-title">
+            👁 Vista previa — primeros 30 registros
+            <span style="margin-left:auto;font-weight:400;text-transform:none;letter-spacing:0;color:#94a3b8;font-size:0.72rem">
+              🟢 completado &nbsp;|&nbsp; 🟡 sin coincidencia
+            </span>
+          </div>
+          <div class="preview-scroll">
+            <table id="preview-table"></table>
+          </div>
+        </div>
 
-                    const nombre = normalizar(fila[colNombre2024]);
-                    const emailEncontrado = mapaEmails[nombre];
+        <button class="btn-download" onclick="descargar()">
+          ⬇ Descargar archivo completado (.xlsx)
+        </button>
+      </div>
 
-                    if (emailEncontrado) {
-                        nuevaFila[colEmail2024] = emailEncontrado;
-                        completados++;
-                    } else {
-                        nuevaFila[colEmail2024] = '';
-                        noEncontrados++;
-                    }
+    </div>
+  </div>
+</div>
 
-                    return nuevaFila;
-                });
+<script>
+let datosA = null, datosB = null;
+let colsA = [], colsB = [];
+let resultado = null;
 
-                addLog(`✓ Completados: ${completados}`);
-                addLog('--- TERMINADO ---');
+function norm(s) {
+  if (!s) return '';
+  return String(s).trim().toUpperCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
 
-                setResult(resultado);
-                setStats({ total: bd2024.length, completados, yaExistian, noEncontrados });
-            };
+function cargarArchivo(e, cual) {
+  const file = e.target.files[0];
+  if (!file) return;
 
-            const descargar = () => {
-                if (!result) return;
-                const hoja = XLSX.utils.json_to_sheet(result);
-                const libro = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(libro, hoja, 'BD_2024_Completo');
-                XLSX.writeFile(libro, 'bd_2024_completado.xlsx');
-                addLog('✓ Descargado');
-            };
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const wb = XLSX.read(new Uint8Array(ev.target.result), { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    const headers = Object.keys(json[0] || {});
 
-            const limpiar = () => {
-                setBd2024(null);
-                setBd2025(null);
-                setResult(null);
-                setStats(null);
-                setLog([]);
-                setColumnas2024([]);
-                setColumnas2025([]);
-                setColNombre2024('');
-                setColEmail2024('');
-                setColNombre2025('');
-                setColEmail2025('');
-            };
+    if (cual === 'A') {
+      datosA = json; colsA = headers;
+      document.getElementById('zone-a').classList.add('loaded');
+      document.getElementById('icon-a').textContent = '✅';
+      document.getElementById('name-a').textContent = file.name;
+      document.getElementById('sub-a').textContent = `${json.length} registros cargados`;
+      document.getElementById('config-a').style.display = 'block';
+      poblarSelect('col-nombre-a', headers, ['nombre', 'nombrecompleto', 'name']);
+      poblarSelect('col-completar-a', headers, ['email', 'correo'], true);
+    } else {
+      datosB = json; colsB = headers;
+      document.getElementById('zone-b').classList.add('loaded');
+      document.getElementById('icon-b').textContent = '✅';
+      document.getElementById('name-b').textContent = file.name;
+      document.getElementById('sub-b').textContent = `${json.length} registros cargados`;
+      document.getElementById('config-b').style.display = 'block';
+      poblarSelect('col-nombre-b', headers, ['nombre', 'nombrecompleto', 'name']);
+      poblarSelect('col-fuente-b', headers, ['email', 'correo'], true);
+    }
 
-            return React.createElement('div', { style: styles.container },
-                React.createElement('div', { style: styles.header },
-                    React.createElement('h2', { style: styles.title }, 'Completador de Emails'),
-                    React.createElement('p', { style: styles.subtitle }, 'Completa emails de bd_2024 buscando en bd_2025'),
-                    (bd2024 || bd2025) && React.createElement('button', { onClick: limpiar, style: styles.btnClear }, '🗑️ Borrar')
-                ),
+    verificarListo();
+    document.getElementById('btn-reset').style.display = 'block';
+  };
+  reader.readAsArrayBuffer(file);
+}
 
-                React.createElement('div', { style: styles.grid },
-                    React.createElement('div', { style: styles.uploadBox },
-                        React.createElement('label', { style: styles.label },
-                            React.createElement('div', { style: styles.uploadContent },
-                                React.createElement('div', { style: styles.icon }, '📁'),
-                                React.createElement('p', { style: styles.uploadTitle }, 'BD 2024'),
-                                React.createElement('p', { style: styles.uploadSubtitle }, 
-                                    bd2024 ? `${bd2024.length} registros ✓` : 'Clic para cargar'
-                                )
-                            ),
-                            React.createElement('input', { 
-                                type: 'file', 
-                                accept: '.xlsx,.xls,.csv', 
-                                onChange: (e) => handleFileUpload(e, 2024),
-                                style: { display: 'none' }
-                            })
-                        ),
-                        bd2024 && React.createElement('div', { style: styles.selects },
-                            React.createElement('div', null,
-                                React.createElement('label', { style: styles.selectLabel }, 'Columna NOMBRE:'),
-                                React.createElement('select', { 
-                                    value: colNombre2024, 
-                                    onChange: (e) => setColNombre2024(e.target.value),
-                                    style: styles.select
-                                }, columnas2024.map(col => React.createElement('option', { key: col, value: col }, col)))
-                            ),
-                            React.createElement('div', null,
-                                React.createElement('label', { style: styles.selectLabel }, 'Columna EMAIL:'),
-                                React.createElement('select', { 
-                                    value: colEmail2024, 
-                                    onChange: (e) => setColEmail2024(e.target.value),
-                                    style: styles.select
-                                }, 
-                                    React.createElement('option', { value: '' }, '-- Selecciona --'),
-                                    columnas2024.map(col => React.createElement('option', { key: col, value: col }, col))
-                                )
-                            )
-                        )
-                    ),
+function poblarSelect(id, cols, hints, addEmpty = false) {
+  const sel = document.getElementById(id);
+  sel.innerHTML = '';
+  if (addEmpty) sel.innerHTML = '<option value="">— Selecciona —</option>';
+  cols.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c; opt.textContent = c;
+    sel.appendChild(opt);
+  });
+  // Auto-select si hay coincidencia
+  const match = cols.find(c => hints.some(h => c.toLowerCase().replace(/\s/g,'').includes(h)));
+  if (match) sel.value = match;
+}
 
-                    React.createElement('div', { style: styles.uploadBox },
-                        React.createElement('label', { style: styles.label },
-                            React.createElement('div', { style: styles.uploadContent },
-                                React.createElement('div', { style: styles.icon }, '📁'),
-                                React.createElement('p', { style: styles.uploadTitle }, 'BD 2025'),
-                                React.createElement('p', { style: styles.uploadSubtitle }, 
-                                    bd2025 ? `${bd2025.length} registros ✓` : 'Clic para cargar'
-                                )
-                            ),
-                            React.createElement('input', { 
-                                type: 'file', 
-                                accept: '.xlsx,.xls,.csv', 
-                                onChange: (e) => handleFileUpload(e, 2025),
-                                style: { display: 'none' }
-                            })
-                        ),
-                        bd2025 && React.createElement('div', { style: styles.selects },
-                            React.createElement('div', null,
-                                React.createElement('label', { style: styles.selectLabel }, 'Columna NOMBRE:'),
-                                React.createElement('select', { 
-                                    value: colNombre2025, 
-                                    onChange: (e) => setColNombre2025(e.target.value),
-                                    style: styles.select
-                                }, columnas2025.map(col => React.createElement('option', { key: col, value: col }, col)))
-                            ),
-                            React.createElement('div', null,
-                                React.createElement('label', { style: styles.selectLabel }, 'Columna EMAIL:'),
-                                React.createElement('select', { 
-                                    value: colEmail2025, 
-                                    onChange: (e) => setColEmail2025(e.target.value),
-                                    style: styles.select
-                                }, 
-                                    React.createElement('option', { value: '' }, '-- Selecciona --'),
-                                    columnas2025.map(col => React.createElement('option', { key: col, value: col }, col))
-                                )
-                            )
-                        )
-                    )
-                ),
+function verificarListo() {
+  const ok = datosA && datosB &&
+    document.getElementById('col-completar-a').value &&
+    document.getElementById('col-fuente-b').value;
+  document.getElementById('btn-procesar').disabled = !ok;
+  if (datosA && datosB) {
+    document.getElementById('step2').classList.add('active');
+  }
+}
 
-                React.createElement('button', { 
-                    onClick: procesarEmails,
-                    disabled: !bd2024 || !bd2025 || !colEmail2024 || !colEmail2025,
-                    style: styles.btnProcess
-                }, 'COMPLETAR EMAILS'),
+function procesar() {
+  const colNombreA   = document.getElementById('col-nombre-a').value;
+  const colCompletarA = document.getElementById('col-completar-a').value;
+  const colNombreB   = document.getElementById('col-nombre-b').value;
+  const colFuenteB   = document.getElementById('col-fuente-b').value;
 
-                stats && React.createElement('div', { style: styles.results },
-                    React.createElement('h3', { style: styles.resultsTitle }, 'Resultados'),
-                    React.createElement('div', { style: styles.statsGrid },
-                        React.createElement('div', { style: styles.statBox },
-                            React.createElement('p', { style: styles.statNumber }, stats.total),
-                            React.createElement('p', { style: styles.statLabel }, 'Total')
-                        ),
-                        React.createElement('div', { style: {...styles.statBox, borderTop: '3px solid #10b981'} },
-                            React.createElement('p', { style: {...styles.statNumber, color: '#10b981'} }, stats.completados),
-                            React.createElement('p', { style: styles.statLabel }, 'Completados')
-                        ),
-                        React.createElement('div', { style: {...styles.statBox, borderTop: '3px solid #3b82f6'} },
-                            React.createElement('p', { style: {...styles.statNumber, color: '#3b82f6'} }, stats.yaExistian),
-                            React.createElement('p', { style: styles.statLabel }, 'Ya tenían')
-                        ),
-                        React.createElement('div', { style: {...styles.statBox, borderTop: '3px solid #f59e0b'} },
-                            React.createElement('p', { style: {...styles.statNumber, color: '#f59e0b'} }, stats.noEncontrados),
-                            React.createElement('p', { style: styles.statLabel }, 'No encontrados')
-                        )
-                    ),
-                    React.createElement('button', { onClick: descargar, style: styles.btnDownload }, 
-                        '⬇️ DESCARGAR ARCHIVO COMPLETADO'
-                    )
-                ),
+  // Construir mapa de B: nombre_normalizado -> valor
+  const mapa = {};
+  datosB.forEach(row => {
+    const key = norm(row[colNombreB]);
+    const val = String(row[colFuenteB] || '').trim();
+    if (key && val && val !== '-') mapa[key] = val;
+  });
 
-                log.length > 0 && React.createElement('div', { style: styles.log },
-                    React.createElement('h4', { style: styles.logTitle }, 'Registro de actividad:'),
-                    React.createElement('div', { style: styles.logContent },
-                        log.map((msg, i) => React.createElement('div', { key: i, style: styles.logLine }, msg))
-                    )
-                )
-            );
-        }
+  let completados = 0, yaTenia = 0, noEncontrado = 0;
+  const filasEstado = []; // 'filled' | 'had' | 'miss'
 
-        const styles = {
-            container: { maxWidth: '100%' },
-            header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' },
-            title: { fontSize: '2rem', color: '#1b396a', margin: 0 },
-            subtitle: { color: '#666', margin: '0.5rem 0 0 0' },
-            btnClear: { background: '#fee2e2', color: '#dc2626', border: 'none', padding: '0.8rem 1.5rem', borderRadius: '10px', cursor: 'pointer', fontWeight: '600' },
-            grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', marginBottom: '2rem' },
-            uploadBox: { border: '2px dashed #d1d5db', borderRadius: '12px', padding: '1.5rem', background: '#f9fafb' },
-            label: { display: 'block', cursor: 'pointer' },
-            uploadContent: { textAlign: 'center', marginBottom: '1rem' },
-            icon: { fontSize: '3rem', marginBottom: '1rem' },
-            uploadTitle: { fontWeight: '600', fontSize: '1.1rem', color: '#1b396a', margin: '0.5rem 0' },
-            uploadSubtitle: { fontSize: '0.9rem', color: '#666', margin: 0 },
-            selects: { display: 'flex', flexDirection: 'column', gap: '1rem' },
-            selectLabel: { display: 'block', fontWeight: '600', fontSize: '0.85rem', color: '#374151', marginBottom: '0.3rem' },
-            select: { width: '100%', padding: '0.6rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem' },
-            btnProcess: { width: '100%', background: 'linear-gradient(135deg, #8B1538, #1b396a)', color: 'white', border: 'none', padding: '1.2rem', borderRadius: '12px', fontSize: '1.1rem', fontWeight: '700', cursor: 'pointer', marginBottom: '2rem' },
-            results: { background: 'linear-gradient(135deg, #f0f9ff, #dbeafe)', borderRadius: '12px', padding: '2rem', marginBottom: '2rem' },
-            resultsTitle: { fontSize: '1.3rem', marginBottom: '1.5rem', color: '#1b396a' },
-            statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', marginBottom: '1.5rem' },
-            statBox: { background: 'white', padding: '1.5rem', borderRadius: '10px', textAlign: 'center', borderTop: '3px solid #6b7280' },
-            statNumber: { fontSize: '2rem', fontWeight: '700', color: '#1f2937', margin: 0 },
-            statLabel: { fontSize: '0.8rem', color: '#6b7280', margin: '0.3rem 0 0 0' },
-            btnDownload: { width: '100%', background: '#10b981', color: 'white', border: 'none', padding: '1.2rem', borderRadius: '12px', fontSize: '1.1rem', fontWeight: '700', cursor: 'pointer' },
-            log: { background: '#f9fafb', borderRadius: '12px', padding: '1.5rem', border: '1px solid #e5e7eb' },
-            logTitle: { fontSize: '0.9rem', fontWeight: '600', color: '#374151', marginBottom: '1rem' },
-            logContent: { fontSize: '0.75rem', fontFamily: 'monospace', color: '#6b7280', maxHeight: '200px', overflowY: 'auto' },
-            logLine: { padding: '0.2rem 0' }
-        };
+  resultado = datosA.map(row => {
+    const nueva = { ...row };
+    const actual = String(row[colCompletarA] || '').trim();
+    const esVacio = !actual || actual === '-' || actual === 'nan';
 
-        ReactDOM.render(React.createElement(EmailCompleter), document.getElementById('app'));
-    </script>
+    if (!esVacio) {
+      yaTenia++;
+      filasEstado.push('had');
+      return nueva;
+    }
+
+    const key = norm(row[colNombreA]);
+    if (mapa[key]) {
+      nueva[colCompletarA] = mapa[key];
+      completados++;
+      filasEstado.push('filled');
+    } else {
+      noEncontrado++;
+      filasEstado.push('miss');
+    }
+    return nueva;
+  });
+
+  const total = datosA.length;
+  const pct = total > 0 ? Math.round((completados / (completados + noEncontrado)) * 100) : 0;
+
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-completados').textContent = completados;
+  document.getElementById('stat-ya-tenia').textContent = yaTenia;
+  document.getElementById('stat-no-encontrado').textContent = noEncontrado;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('results').style.display = 'block';
+  document.getElementById('step3').classList.add('active');
+
+  // Render preview
+  renderPreview(resultado, filasEstado, colCompletarA, colNombreA);
+}
+
+function renderPreview(data, estados, colEmail, colNombre) {
+  const wrap = document.getElementById('preview-wrap');
+  const table = document.getElementById('preview-table');
+  const cols = Object.keys(data[0] || {});
+
+  // Mostrar solo columnas relevantes: nombre, email/completar, + máx 3 más
+  const prioridad = [colNombre, colEmail];
+  const resto = cols.filter(c => !prioridad.includes(c)).slice(0, 3);
+  const mostrar = [...prioridad, ...resto];
+
+  const preview = data.slice(0, 30);
+  const estadoPreview = estados.slice(0, 30);
+
+  let html = '<thead><tr>';
+  mostrar.forEach(c => html += `<th>${c}</th>`);
+  html += '</tr></thead><tbody>';
+
+  preview.forEach((row, i) => {
+    const est = estadoPreview[i];
+    html += '<tr>';
+    mostrar.forEach(c => {
+      let val = row[c] !== undefined ? String(row[c]) : '';
+      if (c === colEmail && est === 'filled') {
+        html += `<td><span class="tag-filled">${val || '—'}</span></td>`;
+      } else if (c === colEmail && est === 'miss') {
+        html += `<td><span class="tag-miss">sin dato</span></td>`;
+      } else {
+        html += `<td title="${val}">${val.length > 28 ? val.slice(0,28)+'…' : val}</td>`;
+      }
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody>';
+  table.innerHTML = html;
+  wrap.style.display = 'block';
+}
+
+function descargar() {
+  if (!resultado) return;
+  const ws = XLSX.utils.json_to_sheet(resultado);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Datos_Completados');
+  XLSX.writeFile(wb, 'datos_completados.xlsx');
+}
+
+function resetAll() {
+  datosA = null; datosB = null; resultado = null;
+  colsA = []; colsB = [];
+  ['a','b'].forEach(x => {
+    document.getElementById(`zone-${x}`).classList.remove('loaded');
+    document.getElementById(`icon-${x}`).textContent = '📂';
+    document.getElementById(`name-${x}`).textContent = x === 'a' ? 'Datos a completar' : 'Fuente de datos';
+    document.getElementById(`sub-${x}`).textContent = 'Haz clic o arrastra el archivo';
+    document.getElementById(`config-${x}`).style.display = 'none';
+  });
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('preview-wrap').style.display = 'none';
+  document.getElementById('btn-procesar').disabled = true;
+  document.getElementById('btn-reset').style.display = 'none';
+  ['step1','step2','step3'].forEach(id => {
+    document.getElementById(id).classList.remove('active','done');
+  });
+  document.getElementById('step1').classList.add('active');
+}
+</script>
 </body>
 </html>
